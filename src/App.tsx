@@ -5,8 +5,6 @@ import ChartPage from "./pages/chart/ChartPage";
 import MyPage from "./pages/profile/MyPage";
 import AiCreatePage from "./pages/ai/AICreatePage";
 import PlaylistPage from "./pages/song/PlaylistPage";
-import SearchPage from "./pages/search/SearchPage";
-
 
 export default function App() {
   return (
@@ -20,7 +18,7 @@ export default function App() {
           <Route path="/mypage" element={<MyPage />} />
           <Route path="/ai" element={<AiCreatePage />} />
           <Route path="/playlist/:playlistId" element={<PlaylistPage />} />
-          <Route path="/search" element={<SearchPage />} />
+
           {/* 잘못된 주소 처리 */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
