@@ -1,17 +1,26 @@
-import Header from "../../components/layout/Header";
-import Sidebar from "../../components/layout/Sidebar";
+import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
-export default function ChartPage() {
+type Tab = "TOP100" | "DAILY" | "AI";
+
+function ChartPage() {
+    const [searchParams] = useSearchParams();
+
+    const initialTab = useMemo<Tab>(() => {
+        const t = searchParams.get("tab");
+        if (t === "DAILY" || t === "AI" || t === "TOP100") return t;
+        return "TOP100";
+    }, [searchParams]);
+
+    const [tab, setTab] = useState<Tab>(initialTab);
+
+    // ... 탭에 따라 데이터 바꿔서 렌더링
     return (
-        <div className="h-screen bg-white">
-        <Header />
-        <div className="flex h-[calc(100vh-80px)]">
-            <Sidebar />
-            <main className="flex-1 overflow-auto p-6">
-            <h1 className="text-2xl font-semibold text-[#666666]">전체 차트</h1>
-            <p className="mt-2 text-[#888888]">여기에 TOP 100 테이블 넣으면 됨</p>
-            </main>
-        </div>
+        <div>
+        {/* 탭 버튼들 */}
+        {/* tab state 사용 */}
         </div>
     );
 }
+
+export default ChartPage;
