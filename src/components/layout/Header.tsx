@@ -69,7 +69,7 @@ function Header() {
                 outline-none 
                 text-sm 
                 w-full
-                indent-[2px]"
+                indent-[4px]"
           placeholder="어떤 노래나 가수를 찾으시나요?"
         />
       </div>

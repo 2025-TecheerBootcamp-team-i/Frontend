@@ -11,11 +11,16 @@ export type Playlist = {
     };
 
     function MainLayout() {
-    const [playlists, setPlaylists] = useState<Playlist[]>([
-        { id: "p1", title: "운동할 때", coverUrl: "", createdAt: Date.now() - 30000 },
-        { id: "p2", title: "새벽 감성", coverUrl: "", createdAt: Date.now() - 20000 },
-        { id: "p3", title: "출근 BGM", coverUrl: "", createdAt: Date.now() - 10000 },
-    ]);
+        const createInitialPlaylists = () => {
+                const now = Date.now();
+                return [
+                { id: "p1", title: "운동할 때", createdAt: now - 30000 },
+                { id: "p2", title: "새벽 감성", createdAt: now - 20000 },
+                ];
+        };
+            
+        const [playlists, setPlaylists] = useState(createInitialPlaylists);
+            
 
     const handleCreatePlaylist = () => {
         const now = Date.now();
