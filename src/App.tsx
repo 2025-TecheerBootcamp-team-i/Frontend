@@ -10,6 +10,9 @@ import PlaylistPage from "./pages/song/PlaylistPage";
 import MyPlaylistPage from "./pages/profile/MyPlaylistPage";
 import SearchPage from "./pages/search/SearchPage";
 
+import ChartTop100 from "./pages/chart/ChartTop100";
+import ChartDaily from "./pages/chart/ChartDaily";
+import ChartAI from "./pages/chart/ChartAI";
 
 export default function App() {
   return (
@@ -17,7 +20,12 @@ export default function App() {
       {/* ✅ 사이드바가 필요한 모든 페이지 */}
       <Route element={<MainLayout />}>
         <Route path="/" element={<HomePage />} />
-        <Route path="/chart" element={<ChartPage />} />
+        <Route path="/chart" element={<ChartPage />}>
+          <Route index element={<Navigate to="top100" replace />} />
+          <Route path="top100" element={<ChartTop100 />} />
+          <Route path="daily" element={<ChartDaily />} />
+          <Route path="ai" element={<ChartAI />} />
+        </Route>
         <Route path="/mypage" element={<MyPage />} />
         <Route path="/ai" element={<AiCreatePage />} />
         <Route path="/playlist/:playlistId" element={<PlaylistPage />} />

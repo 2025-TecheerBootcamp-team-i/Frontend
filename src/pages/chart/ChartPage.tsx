@@ -1,26 +1,43 @@
-import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+    import { NavLink, Outlet } from "react-router-dom";
 
-type Tab = "TOP100" | "DAILY" | "AI";
+    function Tab({ to, label }: { to: string; label: string }) {
+        return (
+            <NavLink
+            to={to}
+            className={({ isActive }) =>
+                [
+                "px-4 py-2 rounded-full text-base transition whitespace-nowrap",
+                isActive
+                    ? "bg-[#666666] text-white"
+                    : "bg-[#E6E6E6] text-[#666666] hover:bg-[#dcdcdc]",
+                ].join(" ")
+            }
+            >
+            {label}
+            </NavLink>
+        );
+    }
 
-function ChartPage() {
-    const [searchParams] = useSearchParams();
+    export default function ChartPage() {
+        return (
+            <div className="w-full min-w-0 h-full flex flex-col">
+            
+            {/* ✅ 상단(탭) 고정 */}
+            <div className="sticky top-0 z-20 bg-white pt-2">
+                <div className="mt-2 flex gap-3">
+                <Tab to="top100" label="TOP 100" />
+                <Tab to="daily" label="일일 차트" />
+                <Tab to="ai" label="AI 음악" />
+                </div>
 
-    const initialTab = useMemo<Tab>(() => {
-        const t = searchParams.get("tab");
-        if (t === "DAILY" || t === "AI" || t === "TOP100") return t;
-        return "TOP100";
-    }, [searchParams]);
+                {/* optional: 아래 구분선 */}
+                <div className="mt-4 border-b border-[#E6E6E6]" />
+            </div>
 
-    const [tab, setTab] = useState<Tab>(initialTab);
-
-    // ... 탭에 따라 데이터 바꿔서 렌더링
-    return (
-        <div>
-        {/* 탭 버튼들 */}
-        {/* tab state 사용 */}
-        </div>
-    );
-}
-
-export default ChartPage;
+            {/* ✅ 아래(Outlet)만 스크롤 */}
+            <div className="flex-1 min-h-0 overflow-y-auto py-6">
+                <Outlet />
+            </div>
+            </div>
+        );
+    }

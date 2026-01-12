@@ -1,61 +1,25 @@
     import { useRef, useState, useEffect } from "react";
     import { useNavigate } from "react-router-dom";
+    import { TOP100, DAILY, AI } from "../../mocks/chart";
 
     import { MdOutlineNavigateNext } from "react-icons/md";
     import { FaPlay } from "react-icons/fa6";
 
     type Artist = { id: string; name: string };
-    type ChartRow = {
-    id: string;
-    rank: number;
-    title: string;
-    diff: number;
-    artist: string;
-    duration: string;
-    };
 
     const artists: Artist[] = Array.from({ length: 8 }).map((_, i) => ({
     id: String(i + 1),
     name: `인기 아티스트 ${i + 1}`,
     }));
 
-    const chartTop100: ChartRow[] = Array.from({ length: 10 }).map((_, i) => ({
-    id: `top-${i+1}`,
-    rank: i + 1,
-    title: "곡 명",
-    artist: "아티스트명",
-    diff: i === 0 ? 0 : Math.floor(Math.random() * 5) - 2,
-    duration: "곡 길이",
-    }));   
-
-    const chartDaily: ChartRow[] = Array.from({ length: 10 }).map((_, i) => ({
-        id: `daily-${i + 1}`,
-        rank: i + 1,
-        title: `일일차트 곡 ${i + 1}`,
-        artist: `일일 아티스트 ${i + 1}`,
-        diff: i === 0 ? 0 : Math.floor(Math.random() * 5) - 2,
-        duration: "3:05",
-    }));
-
-    const chartAI: ChartRow[] = Array.from({ length: 10 }).map((_, i) => ({
-        id: `ai-${i + 1}`,
-        rank: i + 1,
-        title: `AI 곡 ${i + 1}`,
-        artist: `AI 아티스트 ${i + 1}`,
-        diff: i === 0 ? 0 : Math.floor(Math.random() * 5) - 2,
-        duration: "2:58",
-    }));
-
-
-
-
-
-    function HomePage() {
+function HomePage() {
     const navigate = useNavigate();
 
     const goChart = () => {
-        navigate(`/chart?tab=${tab}`);
+        const map = { TOP100: "top100", DAILY: "daily", AI: "ai" } as const;
+        navigate(`/chart/${map[tab]}`);
     };
+    
     const [tab, setTab] = useState<"TOP100" | "DAILY" | "AI">("TOP100");
 
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -100,10 +64,7 @@
         );
     };
 
-    const currentChart =
-    tab === "DAILY" ? chartDaily : tab === "AI" ? chartAI : chartTop100;
-
-    
+    const currentChart = tab === "DAILY" ? DAILY : tab === "AI" ? AI : TOP100;
     const previewRows = currentChart.slice(0, 6);
 
     return (
@@ -153,7 +114,7 @@
                         onClick={goChart}
                         aria-label="전체 차트로 이동"
                         title="전체 차트"
-                        className="px-3 text-xl font-semibold text-[#666666] whitespace-nowrap"
+                        className="px-3 text-xl font-semibold text-[#666666] whitespace-nowrap transition"
                     >
                         실시간 차트
                     </button>
@@ -181,10 +142,8 @@
                 {/* 리스트 */}
                 <div className="divide-y divide-[#D9D9D9] overflow-hidden">
                     {previewRows.map((row) => (
-                    <button
+                    <div
                         key={row.id}
-                        type="button"
-                        onClick={() => navigate(`/track/${row.id}`)}
                         className="
                         group w-full text-left grid
                         grid-cols-[60px_70px_1fr_1fr_80px]
@@ -198,9 +157,15 @@
                             {row.rank}
                         </span>
 
-                        <span className="absolute opacity-0 transition-opacity group-hover:opacity-100 text-[#666666]">
+                        <button 
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/track/${row.id}`)
+                            }}
+                            className="absolute opacity-0 transition-opacity group-hover:opacity-100 text-[#666666]">
                             <FaPlay />
-                        </span>
+                        </button>
                         </div>
 
                         <div className="text-center text-xs font-medium">
@@ -215,6 +180,11 @@
                         <div className="w-10 h-10 rounded-lg bg-[#D9D9D9]" />
                         <div className="text-sm text-[#333333] whitespace-nowrap">
                             {row.title}
+                            {row.isAI && (
+                                <span className="shrink-0 ml-3 text-xs px-2 py-[2px] rounded-full bg-[#ECECEC] text-[#666666]">
+                                AI
+                                </span>
+                            )}
                         </div>
                         </div>
 
@@ -225,7 +195,7 @@
                         <div className="text-right pr-6 text-sm text-[#666666] whitespace-nowrap">
                         {row.duration}
                         </div>
-                    </button>
+                    </div>
                     ))}
                 </div>
 
@@ -235,7 +205,7 @@
                     onClick={goChart}
                     aria-label="전체 차트로 이동"
                     title="전체 차트"
-                    className="hover:text-[#aaaaaa]"
+                    className="hover:text-[#aaaaaa] transition"
                     >
                     더보기
                     </button>
