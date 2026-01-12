@@ -1,7 +1,12 @@
 import { TiHome } from 'react-icons/ti';
 import { IoSearch } from 'react-icons/io5';
+import { useNavigate } from 'react-router-dom';
+
 
 function Header() {
+    const navigate = useNavigate();
+
+
   return (
     <header
       className="
@@ -21,6 +26,7 @@ function Header() {
       />
 
       <button
+      onClick={() => navigate("/home")}
         className="
             w-[50px] h-[50px] 
             bg-[#d9d9d9] 
@@ -37,27 +43,35 @@ function Header() {
       {/* 검색바 */}
       <div
         className="
+        w-[400px] h-[50px] 
             flex 
-            items-center 
+            items-center
             bg-[#d9d9d9] 
             rounded-full 
-            px-4 py-3
-            w-96"
+            px-4 py-3"
       >
-        <span className="text-[#666666] mr-2">
-          <IoSearch size={25} />
-        </span>
+
+        <button
+        onClick={() => navigate("/search")}
+        className="
+        hover:text-[#888]
+        transition
+        text-[#666666]">
+          <IoSearch size={25} className="translate-x-[-2px]" />
+        </button>
         <input
           className="
-                bg-transparent 
+                bg-transparent
                 outline-none 
                 text-sm 
-                w-full"
-          placeholder="검색"
+                w-full
+                indent-[2px]"
+          placeholder="어떤 노래나 가수를 찾으시나요?"
         />
       </div>
     </header>
   );
 }
+
 
 export default Header;
