@@ -85,7 +85,7 @@ export default function ChartTop100() {
             </div>
 
             <div className="flex items-center gap-2">
-                <span className="px-2 whitespace-nowrap">순위</span>
+                <span className="pl-2 whitespace-nowrap border-l border-[#E6E6E6]">순위</span>
             </div>
 
             <div className="pl-2 border-l border-[#E6E6E6]">곡정보</div>
