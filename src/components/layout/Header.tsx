@@ -1,11 +1,12 @@
+import { useNavigate } from "react-router-dom";
+
 import { TiHome } from 'react-icons/ti';
 import { IoSearch } from 'react-icons/io5';
-import { useNavigate } from 'react-router-dom';
+
 
 
 function Header() {
-    const navigate = useNavigate();
-
+  const navigate = useNavigate();
 
   return (
     <header
@@ -26,7 +27,10 @@ function Header() {
       />
 
       <button
-      onClick={() => navigate("/home")}
+        type="button"
+        onClick={() => navigate("/HomePage")}
+        aria-label="홈으로 이동"
+        title="홈"
         className="
             w-[50px] h-[50px] 
             bg-[#d9d9d9] 
@@ -69,6 +73,7 @@ function Header() {
           placeholder="어떤 노래나 가수를 찾으시나요?"
         />
       </div>
+
     </header>
   );
 }
