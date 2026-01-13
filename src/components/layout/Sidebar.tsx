@@ -48,8 +48,9 @@ return (
     className="
         w-[355px]
         h-screen
-        bg-[#f0f0f0]
+        bg-[#2D2D2D]
         border-r 
+        border-[#3d3d3d]
         p-4 
         flex flex-col 
         gap-4
@@ -61,7 +62,7 @@ return (
     <div
         className="
             w-80 max-h-[380px]
-            bg-[#E9E9E9]
+            bg-[#3d3d3d]/80
             rounded-3xl
             px-5 py-4
             "
@@ -77,7 +78,7 @@ return (
                 transition
                 font-semibold 
                 text-lg
-                text-[#666666]
+                text-[#F6F6F6]
                 "
         >
         마이페이지
@@ -89,25 +90,25 @@ return (
                 hover:text-[#888]
                 transition
                 mb-2
-                text-[#666666]"
+                text-[#F6F6F6]"
         >
             <MdOutlineNavigateNext size={30} />
         </button>
         </div>
         {/* 선 */}
-        <div className="mb-3 border-b border-zinc-300" />
+        <div className="mb-3 border-b border-[#464646]" />
 
         <div
         className="
             flex 
             gap-4"
         >
-        <div className="w-24 h-24 bg-[#D9D9D9] rounded-2xl" />
+        <div className="w-24 h-24 bg-[#777777] rounded-2xl" />
         <span
             className="
                 mt-1.5
                 text-base
-                text-[#666666]
+                text-[#F6F6F6]
                 "
         >
         Name
@@ -126,14 +127,14 @@ return (
                 font-normal
                 text-base
                 mb-2
-                text-[#666666]
+                text-[#F6F6F6]
             "
         >
             나의 플레이리스트
         </button>
 
           {/* 선 */}
-        <div className="mb-3 border-b border-zinc-300" />
+        <div className="mb-3 border-b border-[#464646]" />
 
         <div
             className="
@@ -146,7 +147,7 @@ return (
                     onClick={() => navigate(`/playlist/${p.id}`)}
                     key={p.id}
                     type="button"
-                    className="shrink-0 w-20 h-20 rounded-xl overflow-hidden bg-[#d9d9d9] hover:scale-[1.03] hover:shadow transition"
+                    className="shrink-0 w-20 h-20 rounded-xl overflow-hidden bg-[#777777] hover:scale-[1.03] hover:shadow transition"
                     title={p.title}
                     >
                     {p.coverUrl ? (
@@ -158,7 +159,7 @@ return (
                 <button
                     onClick={onCreatePlaylist}
                     type="button"
-                    className="w-10 h-20 bg-zinc-300 rounded-xl hover:bg-zinc-400 transition text-[#666666]"
+                    className="w-10 h-20 bg-[#777777] rounded-xl hover:bg-zinc-400 transition text-[#3D3D3D]"
                     aria-label="플레이리스트 추가"
                     title="플레이리스트 추가"
                     >
@@ -170,13 +171,13 @@ return (
     </div>
 
       {/* 선 */}
-    <div className="border-b border-zinc-300" />
+    <div className="border-b border-[#3D3D3D]" />
 
       {/* AI 음악 */}
     <div
         className="
             w-full h-[300px]
-            bg-[#E9E9E9]
+            bg-[#3d3d3d]/80
             rounded-3xl
             px-5 py-4
             flex flex-col
@@ -196,7 +197,7 @@ return (
                 font-semibold 
                 text-lg
                 mb-2
-                text-[#666666]
+                text-[#F6F6F6]
                 "
         >
         AI 음악 만들기
@@ -208,12 +209,12 @@ return (
                 hover:text-[#888]
                 transition
                 mb-2
-                text-[#666666]"
+                text-[#F6F6F6]"
         >
             <MdOutlineNavigateNext size={30} />
         </button>
         </div>
-        <div className="mb-3 border-b border-zinc-300" />
+        <div className="mb-3 border-b border-[#464646]" />
 
         {/* 프롬프트 입력 */}
         <div className="mb-2">
@@ -227,12 +228,13 @@ return (
                     h-[80px]
                     resize-none
                     rounded-2xl
-                    bg-[#F2F2F2]
+                    bg-[#4D4D4D]
                     px-4 py-3
+                    placeholder:text-[#777777]
                     text-sm
-                    text-[#666666]
+                    text-[#e0e0e0]
                     outline-none
-                    focus:ring-2 focus:ring-zinc-300
+                    focus:ring-2 focus:ring-[#666666]
                 "
             />
 
@@ -250,43 +252,20 @@ return (
                             px-3 py-1.5
                             rounded-xl
                             text-xs
-                            bg-zinc-300
-                            text-[#666666]
-                            hover:bg-zinc-400
+                            bg-[#AFDEE2]
+                            text-[#1f2a2b]
+                            hover:bg-[#9fd3d9]
+                            active:scale-[0.97]
                             transition
-                            disabled:opacity-40
-                            disabled:hover:bg-zinc-300
+                            disabled:bg-[#5f7f83]
+                            disabled:text-[#cfd8da]
+                            disabled:cursor-not-allowed
+                            disabled:active:scale-100
                     ">
                     Create
                     </button>
             </div>
-        </div>
-
-
-        {/* 내가 만든 AI 노래 목록 */}
-        <div className="p-2 min-h-0 flex-1 overflow-x-auto overflow-y-hidden">
-            <div className="flex gap-3">
-                {myAiSongs.slice(0, 3).map((s) => (
-                <button
-                key={s.id}
-                type="button"
-                className="
-                    shrink-0
-                    w-20 h-20
-                    rounded-2xl
-                    bg-[#D9D9D9]
-                    hover:scale-[1.03]
-                    hover:shadow
-                    transition
-                    "
-                    title={s.title}
-                >
-                    {/* 커버 이미지 자리 */}
-                    {/* 나중에 실제 이미지 오면 img 태그로 교체 */}
-                </button>
-                ))}
-            </div>
-            </div>
+        </div>     
         </div>
     </aside>
     );
