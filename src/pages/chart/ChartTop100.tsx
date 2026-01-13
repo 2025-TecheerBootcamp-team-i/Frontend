@@ -72,7 +72,7 @@ export default function ChartTop100() {
 
         {/* 테이블 헤더 */}
         <div className="">
-            <div className={`grid ${GRID} items-center items-center justify-center py-3 px-3 text-sm text-[#666666]`}>
+            <div className={`grid ${GRID} items-center justify-center py-3 px-3 text-sm text-[#666666]`}>
             {/* 전체선택 */}
             <div className="flex items-center justify-center">
                 <input
