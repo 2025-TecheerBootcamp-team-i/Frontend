@@ -19,6 +19,8 @@ import ChartTop100 from "./pages/chart/ChartTop100";
 import ChartDaily from "./pages/chart/ChartDaily";
 import ChartAI from "./pages/chart/ChartAI";
 
+import NowPlayingPage from "./pages/song/NowPlayingPage";
+
 export default function App() {
   return (
     <Routes>
@@ -47,6 +49,7 @@ export default function App() {
       
       {/* ✅ 사이드바 없는 구간 (로그인/회원가입 같은 것만 두는 용도) */}
       <Route element={<PlainLayout />}>
+        <Route path="/now-playing" element={<NowPlayingPage />} />
         {/* 예: <Route path="/login" element={<LoginPage />} /> */}
       </Route>
 

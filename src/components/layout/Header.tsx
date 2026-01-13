@@ -17,7 +17,7 @@ function Header() {
       navigate("/search");
       return;
     }
-  {/* 한글/공백 같은 문자를 URL 안전하게 바꿔주는 필수 처리 */}
+  
     navigate(`/search?q=${encodeURIComponent(q)}`);
   };
 
@@ -28,8 +28,9 @@ function Header() {
     <header
       className="
         h-20 
-        bg-[#f0f0f0] 
+        bg-[#2D2D2D] 
         border-b 
+        border-[#3d3d3d]
         flex items-center 
         px-6 gap-4
         "
@@ -38,7 +39,7 @@ function Header() {
       <div
         className="
             w-[50px] h-[50px]
-            bg-[#d9d9d9] 
+            bg-[#3d3d3d] 
             rounded-full"
       />
 
@@ -49,12 +50,12 @@ function Header() {
         title="홈"
         className="
             w-[50px] h-[50px] 
-            bg-[#d9d9d9] 
+            bg-[#3d3d3d] 
             rounded-full
-            hover:bg-[#6666]
+            hover:bg-[#4d4d4d]
             transition
             flex items-center justify-center
-            text-[#666666]
+            text-[#AFDEE2]
             "
       >
         <TiHome size={25} />
@@ -66,9 +67,14 @@ function Header() {
           e.preventDefault(); // ✅ 새로고침 방지 (SPA 기본)
           goSearch();         // ✅ Enter로 검색 실행
         }}
-        
-        className="w-[400px] h-[50px] flex items-center bg-[#d9d9d9] rounded-full px-4 py-3">
-    
+        className="
+        w-[400px] h-[50px] 
+            flex 
+            items-center
+            bg-[#3d3d3d] 
+            rounded-full 
+            px-4 py-3"
+      >
         <button
         type="submit" // ✅ 클릭하면 submit 발생 → goSearch 실행
         className="
@@ -90,8 +96,10 @@ function Header() {
                 outline-none 
                 text-sm 
                 w-full
-                indent-[4px]"
-          placeholder="어떤 노래나 가수를 찾으시나요?"
+                indent-[4px]
+                text-[#e0e0e0]
+                placeholder:text-[#8a8a8a]"
+          placeholder="노래 또는 아티스트를 검색하세요"
         />
       </form>
     </header>

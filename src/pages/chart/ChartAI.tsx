@@ -15,8 +15,6 @@ const actions = [
 
 export default function ChartAI() {
     const GRID = "grid-cols-[44px_90px_1.2fr_1fr_200px]";
-
-    // ✅ 같은 데이터 공유
     const rows = useMemo(() => AI, []);
 
     const [checkedIds, setCheckedIds] = useState<Record<string, boolean>>({});
@@ -33,14 +31,16 @@ export default function ChartAI() {
     };
 
     return (
-        <section className="whitespace-nowrap rounded-2xl border border-[#E6E6E6] bg-white overflow-hidden">
+        <section className="whitespace-nowrap rounded-2xl bg-[#2d2d2d]/80 overflow-hidden">
         <div className="overflow-x-auto">
             <div className="min-w-[920px]">
             {/* 상단 헤더 */}
-            <div className="px-8 py-6 border-b border-[#E6E6E6]">
+            <div className="px-8 py-6 border-b border-[#464646]">
                 <div className="flex items-end justify-between gap-4">
                 <div className="flex items-center gap-6">
-                    <h2 className="text-xl font-semibold text-[#666666]">실시간 AI 음악 차트</h2>
+                    <h2 className="text-xl font-semibold text-[#F6F6F6]">
+                    실시간 AI 음악 차트
+                    </h2>
                     <div className="text-sm text-[#999999]">26.01.07 14:00</div>
                 </div>
                 </div>
@@ -52,15 +52,15 @@ export default function ChartAI() {
                     key={a.key}
                     type="button"
                     className="
-                        shrink-0 px-4 py-2 
-                        rounded-2xl 
-                        outline outline-1 outline-offset-[-1px] outline-stone-500 
-                        text-sm text-[#666666] hover:bg-[#f6f6f6]
+                        shrink-0 px-4 py-2
+                        rounded-2xl
+                        outline outline-1 outline-offset-[-1px] outline-stone-500
+                        text-sm text-[#F6F6F6] hover:bg-[#f6f6f6]/10
                         transition
                         flex items-center gap-2
                     "
                     >
-                    <span className="text-lg text-[#666666]">{a.icon}</span>
+                    <span className="text-lg text-[#F6F6F6]">{a.icon}</span>
                     <span className="whitespace-nowrap">{a.label}</span>
                     </button>
                 ))}
@@ -69,7 +69,9 @@ export default function ChartAI() {
 
             {/* 테이블 헤더 */}
             <div>
-                <div className={`grid ${GRID} items-center py-3 px-3 text-sm text-[#666666]`}>
+                <div
+                className={`grid ${GRID} items-center justify-center py-3 px-3 text-sm text-[#f6f6f6]`}
+                >
                 <div className="flex items-center justify-center">
                     <input
                     type="checkbox"
@@ -81,25 +83,31 @@ export default function ChartAI() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <span className="pl-2 border-l border-[#E6E6E6] whitespace-nowrap">순위</span>
+                    <span className="pl-2 whitespace-nowrap border-l border-[#E6E6E6]/20">
+                    순위
+                    </span>
                 </div>
 
-                <div className="pl-2 border-l border-[#E6E6E6]">곡정보</div>
-                <div className="pl-2 border-l border-[#E6E6E6]">아티스트</div>
-                <div className="pl-2 border-l border-[#E6E6E6]">앨범</div>
+                <div className="pl-2 border-l border-[#E6E6E6]/20">곡정보</div>
+                <div className="pl-2 border-l border-[#E6E6E6]/20">아티스트</div>
+                <div className="pl-2 border-l border-[#E6E6E6]/20">앨범</div>
                 </div>
 
-                <div className="border-b border-[#E6E6E6]" />
+                <div className="border-b border-[#464646]" />
             </div>
 
             {/* 리스트 */}
             <div>
-                <div className="divide-y divide-[#F0F0F0]">
+                <div className="divide-y divide-[#464646]">
                 {rows.map((row) => (
                     <div
                     key={row.id}
-                    className={`group grid ${GRID} items-center px-3 py-3 hover:bg-[#FAFAFA] transition`}
+                    className={`
+                        group grid ${GRID} items-center px-3 py-3
+                        ${row.rank % 2 === 0 ? "bg-[#2d2d2d]/80" : "bg-[#3b3b3b]/80"}
+                    `}
                     >
+                    {/* 체크 */}
                     <div className="flex items-center justify-center">
                         <input
                         type="checkbox"
@@ -110,41 +118,59 @@ export default function ChartAI() {
                         />
                     </div>
 
+                    {/* 순위 + 변동 + hover 재생 */}
                     <div className="flex items-center gap-3">
                         <div className="relative w-8 flex items-center justify-center">
-                        <span className="text-sm text-[#333333] transition-opacity group-hover:opacity-0">
+                        <span className="text-sm text-[#F6F6F6] transition-opacity group-hover:opacity-0">
                             {row.rank}
                         </span>
-                        <button className="absolute opacity-0 transition-opacity group-hover:opacity-100 text-[#666666]">
+                        <button className="absolute opacity-0 transition-opacity group-hover:opacity-100 text-[#AFDEE2]">
                             <FaPlay />
                         </button>
                         </div>
 
                         <div className="pl-1 text-xs font-medium w-10">
-                        {row.diff > 0 && <span className="text-red-500">▲ {row.diff}</span>}
-                        {row.diff < 0 && (
-                            <span className="text-blue-500">▼ {Math.abs(row.diff)}</span>
+                        {row.diff > 0 && (
+                            <span className="text-red-500">▲ {row.diff}</span>
                         )}
-                        {row.diff === 0 && <span className="pl-1 text-[#AAAAAA]">—</span>}
+                        {row.diff < 0 && (
+                            <span className="text-blue-500">
+                            ▼ {Math.abs(row.diff)}
+                            </span>
+                        )}
+                        {row.diff === 0 && (
+                            <span className="pl-1 text-[#AAAAAA]">—</span>
+                        )}
                         </div>
                     </div>
 
+                    {/* 곡정보 */}
                     <div className="pl-2 flex items-center gap-4 min-w-0">
-                        <div className="w-10 h-10 rounded-lg bg-[#D9D9D9] shrink-0" />
+                        <div className="w-10 h-10 rounded-lg bg-[#777777] shrink-0" />
                         <div className="min-w-0">
-                        <div className="text-sm text-[#333333] truncate">{row.title}
+                        <div className="text-sm text-[#F6F6F6] truncate">
+                            {row.title}
                             {row.isAI && (
-                                <span className="shrink-0 ml-3 text-xs px-2 py-[2px] rounded-full bg-[#ECECEC] text-[#666666]">
+                            <span className="shrink-0 ml-3 text-xs px-2 py-[1px] rounded-full bg-[#E4524D]/20 text-[#E4524D]">
                                 AI
-                                </span>
+                            </span>
                             )}
                         </div>
-                        <div className="text-xs text-[#999999] truncate md:hidden">{row.artist}</div>
+                        <div className="text-xs text-[#999999] truncate md:hidden">
+                            {row.artist}
+                        </div>
                         </div>
                     </div>
 
-                    <div className="pl-2 text-sm text-[#666666] truncate">{row.artist}</div>
-                    <div className="pl-2 text-sm text-[#666666] truncate">{row.album}</div>
+                    {/* 아티스트 */}
+                    <div className="pl-2 text-sm text-[#F6F6F6] truncate">
+                        {row.artist}
+                    </div>
+
+                    {/* 앨범 */}
+                    <div className="pl-2 text-sm text-[#F6F6F6] truncate">
+                        {row.album}
+                    </div>
                     </div>
                 ))}
                 </div>
