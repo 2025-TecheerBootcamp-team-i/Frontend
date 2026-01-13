@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useState } from "react"; 
 
 import { TiHome } from 'react-icons/ti';
 import { IoSearch } from 'react-icons/io5';
@@ -7,6 +8,21 @@ import { IoSearch } from 'react-icons/io5';
 
 function Header() {
   const navigate = useNavigate();
+
+ const [query, setQuery] = useState("");
+
+ const goSearch = () => {
+    const q = query.trim();
+    if (!q) {
+      navigate("/search");
+      return;
+    }
+  
+    navigate(`/search?q=${encodeURIComponent(q)}`);
+  };
+
+
+
 
   return (
     <header
@@ -44,9 +60,13 @@ function Header() {
       >
         <TiHome size={25} />
       </button>
-
+      {/* ✅ form으로 감싸면 Enter 키 입력이 "submit"으로 동작함 */}
       {/* 검색바 */}
-      <div
+      <form
+        onSubmit={(e) => {
+          e.preventDefault(); // ✅ 새로고침 방지 (SPA 기본)
+          goSearch();         // ✅ Enter로 검색 실행
+        }}
         className="
         w-[400px] h-[50px] 
             flex 
@@ -55,16 +75,22 @@ function Header() {
             rounded-full 
             px-4 py-3"
       >
-
         <button
-        onClick={() => navigate("/search")}
+        type="submit" // ✅ 클릭하면 submit 발생 → goSearch 실행
         className="
         hover:text-[#888]
         transition
-        text-[#666666]">
-          <IoSearch size={25} className="translate-x-[-2px]" />
+        text-[#666666]
+        translate-x-[-2px]"
+        aria-label="검색"
+        title="검색"
+        >
+          <IoSearch size={25}/>
         </button>
+        
         <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)} // ✅ 입력값 상태 업데이트
           className="
                 bg-transparent
                 outline-none 
@@ -75,11 +101,9 @@ function Header() {
                 placeholder:text-[#8a8a8a]"
           placeholder="노래 또는 아티스트를 검색하세요"
         />
-      </div>
-
+      </form>
     </header>
   );
 }
-
 
 export default Header;

@@ -1,303 +1,143 @@
-import Header from "../../components/layout/Header";
-import Sidebar from "../../components/layout/Sidebar";
-import { useMemo, useRef, useState, useEffect } from "react";
-import { MdOutlineNavigateNext, MdPlayArrow, MdMoreVert } from "react-icons/md";
+import { NavLink, Outlet, useSearchParams, useMatch } from "react-router-dom";
 
-type Tab = "모두" | "아티스트" | "곡" | "앨범";
+import { IoPlayCircle } from "react-icons/io5";
+import { IoShuffle } from "react-icons/io5";
+import { MdPlaylistAdd } from "react-icons/md";
+import { MdFavorite } from "react-icons/md";
+import { FaCheckCircle } from "react-icons/fa";
 
-type Song = {
-  id: string;
-  title: string;
-  artist: string;
-  duration: string;
-};
 
-type Artist = { id: string; name: string };
 
-type Album = {
-  id: string;
-  name: string;
-  artist: string;
-};
+const actions = [
+  { key: "play", label: "재생", icon: <IoPlayCircle size={18} /> },
+  { key: "shuffle", label: "셔플", icon: <IoShuffle size={18} /> },
+  { key: "add", label: "담기", icon: <MdPlaylistAdd size={18} /> },
+  { key: "like", label: "좋아요", icon: <MdFavorite size={18} /> },
+];
 
-const TABS: Tab[] = ["모두", "아티스트", "곡", "앨범"];
+function Tab({ to, label, end }: { to: string; label: string; end?: boolean }) {
+  const [sp] = useSearchParams();
 
-const ALL_SONGS: Song[] = Array.from({ length: 8 }).map((_, i) => ({
-  id: String(i + 1),
-  title: `곡 명 ${i + 1}`,
-  artist: `아티스트명 ${((i % 3) + 1).toString()}`,
-  duration: "2:27",
-}));
-
-const ALL_ARTISTS: Artist[] = Array.from({ length: 6 }).map((_, i) => ({
-  id: String(i + 1),
-  name: `인기 아티스트 ${i + 1}`,
-}));
-
-const ALL_ALBUMS: Album[] = Array.from({ length: 4 }).map((_, i) => ({
-  id: String(i + 1),
-  name: `앨범 ${i + 1}`,
-  artist: `아티스트명 ${((i % 3) + 1).toString()}`,
-}));
-
-export default function SearchPage() {
-  const [tab, setTab] = useState<Tab>("모두");
-
-  // 지금 Header input과 연결하지 않았으므로, 화면에서 테스트용 검색 input을 하나 둠
-  const [query, setQuery] = useState("");
-
-  // 아티스트 가로 스크롤 그라데이션
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [showLeft, setShowLeft] = useState(false);
-  const [showRight, setShowRight] = useState(false);
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-
-    const update = () => {
-      const { scrollLeft, scrollWidth, clientWidth } = el;
-      setShowLeft(scrollLeft > 0);
-      setShowRight(scrollLeft + clientWidth < scrollWidth - 1);
-    };
-
-    update();
-    el.addEventListener("scroll", update);
-    window.addEventListener("resize", update);
-
-    return () => {
-      el.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
-    };
-  }, []);
-
-  const q = query.trim();
-
-  const songs = useMemo(() => {
-    if (!q) return ALL_SONGS;
-    const lower = q.toLowerCase();
-    return ALL_SONGS.filter(
-      (s) =>
-        s.title.toLowerCase().includes(lower) ||
-        s.artist.toLowerCase().includes(lower)
-    );
-  }, [q]);
-
-  const artists = useMemo(() => {
-    if (!q) return ALL_ARTISTS;
-    const lower = q.toLowerCase();
-    return ALL_ARTISTS.filter((a) => a.name.toLowerCase().includes(lower));
-  }, [q]);
-
-  const albums = useMemo(() => {
-    if (!q) return ALL_ALBUMS;
-    const lower = q.toLowerCase();
-    return ALL_ALBUMS.filter(
-      (a) =>
-        a.name.toLowerCase().includes(lower) ||
-        a.artist.toLowerCase().includes(lower)
-    );
-  }, [q]);
-
-  const featured = songs[0] ?? null;
+  const searchStr = sp.toString();
+  const search = searchStr ? `?${searchStr}` : "";
 
   return (
-    <div className="h-screen bg-[#ffffff] flex flex-col">
-      {/* 헤더 */}
-      <Header />
+    <NavLink
+      to={{ pathname: to, search }}
+      end={end}
+      className={({ isActive }) =>
+        [
+          // ✅ ChartTop100의 버튼 감성에 맞춰 text-sm/padding 통일
+          "px-4 py-2 rounded-full text-base transition whitespace-nowrap",
+          isActive
+            ? "bg-[#6B6B6B] text-white"
+            : "bg-[#E9E9E9] text-[#666666] hover:bg-[#DDDDDD]",
+        ].join(" ")
+      }
+    >
+      {label}
+    </NavLink>
+  );
+}
 
-      <div className="flex flex-1 min-h-0">
-        {/* 사이드바 */}
-        <Sidebar />
 
-        {/* 메인 */}
-        <main className="flex-1 min-h-0 overflow-auto p-6">
-          <div className="space-y-6">
-            {/* (임시) 검색어 입력 - Header와 연결 전 테스트용 */}
-            <div className="flex items-center gap-3">
-              {q && (
-                <div className="text-sm text-[#666666]">
-                  검색어: <span className="font-semibold">“{q}”</span>
-                </div>
-              )}
+/** ✅ ChartTop100 액션 버튼 규격 그대로 */
+function ActionPill({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <button
+      type="button"
+      className="
+        shrink-0 px-4 py-2
+        rounded-2xl
+        outline outline-1 outline-offset-[-1px] outline-stone-500
+        text-sm text-[#666666] hover:bg-[#f6f6f6]
+        transition
+        flex items-center gap-2
+      "
+      aria-label={label}
+    >
+      <span className="text-lg text-[#666666]">{icon}</span>
+      <span className="whitespace-nowrap">{label}</span>
+    </button>
+  );
+}
+
+
+
+export default function SearchPage() {
+  const isSongTab = !!useMatch("/search/song");
+
+  // ✅ AI 제외 필터 상태를 URL 쿼리로 저장
+  const [sp, setSp] = useSearchParams();
+  const noAi = sp.get("noai") === "1"; // noai=1이면 AI 결과 제외
+
+  const toggleNoAi = () => {
+    const next = new URLSearchParams(sp);
+    if (noAi) next.delete("noai");
+    else next.set("noai", "1");
+    setSp(next, { replace: true }); // 토글 클릭이 뒤로가기 히스토리에 쌓이는 걸 방지
+  };
+
+  return (
+    <div className="w-full min-w-0 h-full flex flex-col">
+      {/* ✅ 탭 + (곡탭일 때) 액션버튼 = sticky 영역 안에 같이 넣기 */}
+      <div className="sticky top-0 z-20 bg-white pt-2">
+
+        <div className="mt-2 flex items-center gap-3">
+        {/* 탭 */}
+        <div className="flex items-center gap-3">
+          <Tab to="." label="모두" end />
+          <Tab to="artist" label="아티스트" />
+          <Tab to="song" label="곡" />
+          <Tab to="album" label="앨범" />
+        </div>
+
+
+          {/* ✅ AI 필터 토글(스크린샷 느낌: 체크 아이콘 + 텍스트) */}
+              <button
+                type="button"
+                onClick={toggleNoAi}
+                className={[
+                  "shrink-0 inline-flex items-center gap-2",
+                  "px-4 py-2 rounded-full text-base transition whitespace-nowrap",
+                  noAi ? "bg-[#6B6B6B] text-white" : "bg-[#E9E9E9] text-[#666666] hover:bg-[#DDDDDD]",
+                ].join(" ")}
+                aria-pressed={noAi}
+              >
+                <FaCheckCircle size={18}/>
+                 AI 필터
+              </button >
             </div>
 
-            {/* 탭 */}
-            <div className="flex items-center gap-3">
-              {TABS.map((t) => {
-                const active = t === tab;
-                return (
-                  <button
-                    key={t}
-                    onClick={() => setTab(t)}
-                    className={[
-                      "rounded-full px-5 py-2 text-sm transition",
-                      active
-                        ? "bg-[#6B6B6B] text-white"
-                        : "bg-[#E9E9E9] text-[#666666] hover:bg-[#DDDDDD]",
-                    ].join(" ")}
-                  >
-                    {t}
-                  </button>
-                );
-              })}
-            </div>
 
-            {/* 상단 2열 */}
-            {(tab === "모두" || tab === "곡" || tab === "아티스트") && (
-              <div className="grid grid-cols-12 gap-6">
-                {/* 대표 카드 */}
-                <section className="col-span-12 lg:col-span-7 rounded-3xl bg-[#F3F3F3] p-6">
-                  <div className="flex gap-6">
-                    <div className="h-44 w-44 rounded-2xl bg-[#D9D9D9]" />
 
-                    <div className="flex min-w-0 flex-1 flex-col justify-between">
-                      <div>
-                        <div className="text-lg font-semibold text-[#666666]">
-                          {featured ? featured.title : "곡 또는 아티스트명"}
-                        </div>
-                        <div className="mt-2 text-sm text-[#8A8A8A]">
-                          {featured ? "분류 (곡)" : "분류 (곡 or 아티스트)"}
-                        </div>
-                      </div>
+          {/* optional: 아래 구분선으로 탭과 컴포넌트 닿지 않게 */}
+         <div className="mt-4" />  
 
-                      <div className="flex justify-end">
-                        <button
-                          className="flex h-12 w-12 items-center justify-center rounded-full bg-[#6B6B6B] text-white hover:bg-[#5A5A5A]"
-                          aria-label="play"
-                        >
-                          <MdPlayArrow size={28} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </section>
 
-                {/* 곡 리스트 카드 */}
-                <section className="col-span-12 lg:col-span-5 rounded-3xl bg-[#F3F3F3] p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="text-base font-semibold text-[#666666]">
-                      곡
-                    </div>
-                    <button
-                      className="text-[#666666] hover:text-[#888] transition"
-                      aria-label="open"
-                    >
-                      <MdOutlineNavigateNext size={28} />
-                    </button>
-                  </div>
-
-                  <div className="mt-4 space-y-3">
-                    {(songs.length ? songs : ALL_SONGS).slice(0, 3).map((s) => (
-                      <div
-                        key={s.id}
-                        className="flex items-center gap-3 rounded-2xl bg-white/60 px-3 py-2 hover:bg-white"
-                      >
-                        <div className="h-10 w-10 rounded-xl bg-[#D9D9D9]" />
-
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm text-[#666666]">
-                            {s.title}
-                          </div>
-                        </div>
-
-                        <div className="min-w-0 w-24">
-                          <div className="truncate text-sm text-[#8A8A8A]">
-                            {s.artist}
-                          </div>
-                        </div>
-
-                        <div className="w-12 text-right text-sm text-[#8A8A8A]">
-                          {s.duration}
-                        </div>
-
-                        <button
-                          className="text-[#8A8A8A] hover:text-[#666666]"
-                          aria-label="more"
-                        >
-                          <MdMoreVert size={20} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              </div>
-            )}
-
-            {/* 아티스트 섹션 */}
-            {(tab === "모두" || tab === "아티스트") && (
-              <section className="rounded-3xl bg-[#F3F3F3] p-6">
-                <div className="flex items-center justify-between">
-                  <div className="text-base font-semibold text-[#666666]">
-                    아티스트
-                  </div>
-                  <button
-                    className="text-[#666666] hover:text-[#888] transition"
-                    aria-label="open"
-                  >
-                    <MdOutlineNavigateNext size={28} />
-                  </button>
-                </div>
-
-                <div className="mt-5 relative">
-                  <div ref={scrollRef} className="flex gap-8 overflow-x-auto pb-2">
-                    {(artists.length ? artists : ALL_ARTISTS).map((a) => (
-                      <div
-                        key={a.id}
-                        className="shrink-0 flex flex-col items-center"
-                      >
-                        <div className="w-28 h-28 rounded-full bg-[#D9D9D9]" />
-                        <div className="mt-3 text-sm text-[#666666]">
-                          {a.name}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {showLeft && (
-                    <div className="pointer-events-none absolute left-0 top-0 h-full w-12 bg-gradient-to-r from-[#F3F3F3] to-transparent" />
-                  )}
-                  {showRight && (
-                    <div className="pointer-events-none absolute right-0 top-0 h-full w-12 bg-gradient-to-l from-[#F3F3F3] to-transparent" />
-                  )}
-                </div>
-              </section>
-            )}
-
-            {/* 앨범 섹션 */}
-            {(tab === "모두" || tab === "앨범") && (
-              <section className="rounded-3xl bg-[#F3F3F3] p-6">
-                <div className="text-base font-semibold text-[#666666] text-center">
-                  앨범
-                </div>
-
-                <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {(albums.length ? albums : ALL_ALBUMS).map((a) => (
-                    <div
-                      key={a.id}
-                      className="rounded-2xl bg-white/60 p-4 hover:bg-white transition"
-                    >
-                      <div className="h-20 rounded-xl bg-[#D9D9D9]" />
-                      <div className="mt-3 text-sm text-[#666666] truncate">
-                        {a.name}
-                      </div>
-                      <div className="text-xs text-[#8A8A8A] truncate">
-                        {a.artist}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* 검색 결과 없음 */}
-            {q && tab === "곡" && songs.length === 0 && (
-              <div className="text-sm text-[#8A8A8A]">
-                해당 검색어의 곡이 없습니다.
-              </div>
-            )}
+        {/* ✅ 곡 탭에서만 액션 버튼 표시 (ChartTop100 스타일) */}
+        {isSongTab && (
+          <>
+          <div className="mt-4 flex flex-nowrap gap-3">
+            {actions.map((a) => (
+              <ActionPill key={a.key} icon={a.icon} label={a.label} />
+            ))}
           </div>
-        </main>
+          {/* ✅ 버튼 아래 고정 여백(투명 구분선) */}
+          <div className="h-4 border-b border-transparent" />
+          </>
+          
+        )}
+
+      </div>
+
+      {/* Outlet */}
+      <div className="flex-1 min-h-0 overflow-y-auto py-6">
+        {isSongTab && (
+    <div className="mt-2" />
+  )}
+
+        <Outlet />
       </div>
     </div>
   );

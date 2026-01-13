@@ -9,6 +9,11 @@ import AiCreatePage from "./pages/ai/AICreatePage";
 import PlaylistPage from "./pages/song/PlaylistPage";
 import MyPlaylistPage from "./pages/profile/MyPlaylistPage";
 import SearchPage from "./pages/search/SearchPage";
+import SearchAll from "./pages/search/SearchAll";
+import SearchArtist from "./pages/search/SearchArtist";
+import SearchAlbum from "./pages/search/SearchAlbum";
+import SearchSong from "./pages/search/SearchSong";
+
 
 import ChartTop100 from "./pages/chart/ChartTop100";
 import ChartDaily from "./pages/chart/ChartDaily";
@@ -32,9 +37,16 @@ export default function App() {
         <Route path="/ai" element={<AiCreatePage />} />
         <Route path="/playlist/:playlistId" element={<PlaylistPage />} />
         <Route path="/my-playlists" element={<MyPlaylistPage />} />
-        <Route path="/search" element={<SearchPage />} />
+        
+        <Route path="/search" element={<SearchPage />}>
+          <Route index element={<SearchAll />} />
+          <Route path="artist" element={<SearchArtist />} />
+          <Route path="album" element={<SearchAlbum />} />
+          <Route path="song" element={<SearchSong />} />
       </Route>
-
+      </Route>
+      
+      
       {/* ✅ 사이드바 없는 구간 (로그인/회원가입 같은 것만 두는 용도) */}
       <Route element={<PlainLayout />}>
         <Route path="/now-playing" element={<NowPlayingPage />} />
