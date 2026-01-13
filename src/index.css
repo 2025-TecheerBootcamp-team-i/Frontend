@@ -21,6 +21,29 @@
     scrollbar-width: none; /* Firefox */
 }
 
+/* 전체 스크롤바 */
+::-webkit-scrollbar {
+    width: 8px;      /* 세로 스크롤바 두께 */
+    height: 8px;     /* 가로 스크롤바 두께 */
+}
+
+/* 스크롤바 트랙(배경) */
+::-webkit-scrollbar-track {
+    background: transparent; /* or #2d2d2d */
+}
+
+/* 스크롤바 손잡이 */
+::-webkit-scrollbar-thumb {
+    background-color: #555555;
+    border-radius: 999px;
+}
+
+/* hover 시 */
+::-webkit-scrollbar-thumb:hover {
+    background-color: #777777;
+}
+
+
 @keyframes bgGradientMove {
     0% { background-position: 50% 0%; }
     50% { background-position: 50% 100%; }

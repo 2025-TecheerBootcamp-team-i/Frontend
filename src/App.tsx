@@ -8,6 +8,8 @@ import MyPage from "./pages/profile/MyPage";
 import AiCreatePage from "./pages/ai/AICreatePage";
 import PlaylistPage from "./pages/song/PlaylistPage";
 import MyPlaylistPage from "./pages/profile/MyPlaylistPage";
+import MyPlaylistPersonal from "./pages/profile/MyPlaylistPersonal";
+import MyPlaylistLiked from "./pages/profile/MyPlaylistLiked";
 import SearchPage from "./pages/search/SearchPage";
 import SearchAll from "./pages/search/SearchAll";
 import SearchArtist from "./pages/search/SearchArtist";
@@ -36,14 +38,16 @@ export default function App() {
         <Route path="/mypage" element={<MyPage />} />
         <Route path="/ai" element={<AiCreatePage />} />
         <Route path="/playlist/:playlistId" element={<PlaylistPage />} />
-        <Route path="/my-playlists" element={<MyPlaylistPage />} />
-        
+        <Route path="/my-playlists" element={<MyPlaylistPage />}>
+          <Route path="personal" element={<MyPlaylistPersonal />} />
+          <Route path="liked" element={<MyPlaylistLiked />} />
+        </Route>
         <Route path="/search" element={<SearchPage />}>
           <Route index element={<SearchAll />} />
           <Route path="artist" element={<SearchArtist />} />
           <Route path="album" element={<SearchAlbum />} />
           <Route path="song" element={<SearchSong />} />
-      </Route>
+        </Route>
       </Route>
       
       
