@@ -83,6 +83,7 @@ function HomePage() {
                     shrink-0 flex flex-col items-center animate-floatX">
                         <button 
                             type="button"
+                            onClick={() => navigate(`/artists/a${a.id}`)} // 임시
                             className="
                                 w-32 h-32 rounded-full bg-[#777777]
                                 transition-all duration-300
@@ -105,7 +106,7 @@ function HomePage() {
 
         {/* 차트 요약 */}
         <section className="mb-6">
-            <div className="rounded-2xl bg-[#2d2d2d]/80 p-6 pb-2">
+            <div className="rounded-3xl bg-[#2d2d2d]/80 p-6 pb-2">
             <div className="overflow-x-auto">
                 <div className="min-w-[980px]">
                 {/* 상단 헤더 */}

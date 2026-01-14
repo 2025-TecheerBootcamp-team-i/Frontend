@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import MainLayout from "./components/layout/MainLayout";
+import MainLayout2 from "./components/layout/MainLayout2";
 import PlainLayout from "./components/layout/PlainLayout";
 
 import HomePage from "./pages/home/HomePage";
@@ -10,6 +11,10 @@ import PlaylistPage from "./pages/song/PlaylistPage";
 import MyPlaylistPage from "./pages/profile/MyPlaylistPage";
 import MyPlaylistPersonal from "./pages/profile/MyPlaylistPersonal";
 import MyPlaylistLiked from "./pages/profile/MyPlaylistLiked";
+import ArtistPage from "./pages/artist/ArtistPage";
+import ArtistTracksPage from "./pages/artist/ArtistTracksPage";
+import ArtistAlbumsPage from "./pages/artist/ArtistAlbumsPage";
+import AlbumPage from "./pages/album/AlbumPage"
 import SearchPage from "./pages/search/SearchPage";
 import SearchAll from "./pages/search/SearchAll";
 import SearchArtist from "./pages/search/SearchArtist";
@@ -48,6 +53,14 @@ export default function App() {
           <Route path="album" element={<SearchAlbum />} />
           <Route path="song" element={<SearchSong />} />
         </Route>
+      </Route>
+
+      {/* ✅ 메인 레이아웃에 패딩이 없는 버전 */}
+      <Route element={<MainLayout2 />}>
+        <Route path="/artists/:artistId" element={<ArtistPage />} />
+        <Route path="/artists/:artistId/tracks" element={<ArtistTracksPage />} />
+        <Route path="/artists/:artistId/albums" element={<ArtistAlbumsPage />} />
+        <Route path="/album/:albumId" element={<AlbumPage />} />
       </Route>
       
       
