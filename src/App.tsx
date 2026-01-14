@@ -11,11 +11,15 @@ import PlaylistPage from "./pages/song/PlaylistPage";
 import MyPlaylistPage from "./pages/profile/MyPlaylistPage";
 import MyPlaylistPersonal from "./pages/profile/MyPlaylistPersonal";
 import MyPlaylistLiked from "./pages/profile/MyPlaylistLiked";
-import SearchPage from "./pages/search/SearchPage";
 import ArtistPage from "./pages/artist/ArtistPage";
 import ArtistTracksPage from "./pages/artist/ArtistTracksPage";
 import ArtistAlbumsPage from "./pages/artist/ArtistAlbumsPage";
 import AlbumPage from "./pages/album/AlbumPage"
+import SearchPage from "./pages/search/SearchPage";
+import SearchAll from "./pages/search/SearchAll";
+import SearchArtist from "./pages/search/SearchArtist";
+import SearchAlbum from "./pages/search/SearchAlbum";
+import SearchSong from "./pages/search/SearchSong";
 
 
 import ChartTop100 from "./pages/chart/ChartTop100";
@@ -43,7 +47,12 @@ export default function App() {
           <Route path="personal" element={<MyPlaylistPersonal />} />
           <Route path="liked" element={<MyPlaylistLiked />} />
         </Route>
-        <Route path="/search" element={<SearchPage />} />
+        <Route path="/search" element={<SearchPage />}>
+          <Route index element={<SearchAll />} />
+          <Route path="artist" element={<SearchArtist />} />
+          <Route path="album" element={<SearchAlbum />} />
+          <Route path="song" element={<SearchSong />} />
+        </Route>
       </Route>
 
       {/* ✅ 메인 레이아웃에 패딩이 없는 버전 */}
@@ -53,7 +62,8 @@ export default function App() {
         <Route path="/artists/:artistId/albums" element={<ArtistAlbumsPage />} />
         <Route path="/album/:albumId" element={<AlbumPage />} />
       </Route>
-
+      
+      
       {/* ✅ 사이드바 없는 구간 (로그인/회원가입 같은 것만 두는 용도) */}
       <Route element={<PlainLayout />}>
         <Route path="/now-playing" element={<NowPlayingPage />} />
