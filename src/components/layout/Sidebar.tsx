@@ -254,7 +254,7 @@ return (
                             text-xs
                             bg-[#AFDEE2]
                             text-[#1f2a2b]
-                            hover:bg-[#9fd3d9]
+                            hover:bg-[#87B2B6]
                             active:scale-[0.97]
                             transition
                             disabled:bg-[#5f7f83]

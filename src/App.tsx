@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import MainLayout from "./components/layout/MainLayout";
+import MainLayout2 from "./components/layout/MainLayout2";
 import PlainLayout from "./components/layout/PlainLayout";
 
 import HomePage from "./pages/home/HomePage";
@@ -11,6 +12,11 @@ import MyPlaylistPage from "./pages/profile/MyPlaylistPage";
 import MyPlaylistPersonal from "./pages/profile/MyPlaylistPersonal";
 import MyPlaylistLiked from "./pages/profile/MyPlaylistLiked";
 import SearchPage from "./pages/search/SearchPage";
+import ArtistPage from "./pages/artist/ArtistPage";
+import ArtistTracksPage from "./pages/artist/ArtistTracksPage";
+import ArtistAlbumsPage from "./pages/artist/ArtistAlbumsPage";
+import AlbumPage from "./pages/album/AlbumPage"
+
 
 import ChartTop100 from "./pages/chart/ChartTop100";
 import ChartDaily from "./pages/chart/ChartDaily";
@@ -34,10 +40,18 @@ export default function App() {
         <Route path="/ai" element={<AiCreatePage />} />
         <Route path="/playlist/:playlistId" element={<PlaylistPage />} />
         <Route path="/my-playlists" element={<MyPlaylistPage />}>
-        <Route path="personal" element={<MyPlaylistPersonal />} />
-        <Route path="liked" element={<MyPlaylistLiked />} />
-      </Route>
+          <Route path="personal" element={<MyPlaylistPersonal />} />
+          <Route path="liked" element={<MyPlaylistLiked />} />
+        </Route>
         <Route path="/search" element={<SearchPage />} />
+      </Route>
+
+      {/* ✅ 메인 레이아웃에 패딩이 없는 버전 */}
+      <Route element={<MainLayout2 />}>
+        <Route path="/artists/:artistId" element={<ArtistPage />} />
+        <Route path="/artists/:artistId/tracks" element={<ArtistTracksPage />} />
+        <Route path="/artists/:artistId/albums" element={<ArtistAlbumsPage />} />
+        <Route path="/album/:albumId" element={<AlbumPage />} />
       </Route>
 
       {/* ✅ 사이드바 없는 구간 (로그인/회원가입 같은 것만 두는 용도) */}
