@@ -75,7 +75,7 @@ export default function ChartAI() {
                 <div className="flex items-center justify-center">
                     <input
                     type="checkbox"
-                    className="accent-gray-600"
+                    className="accent-[#f6f6f6]"
                     checked={allChecked}
                     onChange={(e) => toggleAll(e.target.checked)}
                     aria-label="전체 선택"
@@ -111,7 +111,7 @@ export default function ChartAI() {
                     <div className="flex items-center justify-center">
                         <input
                         type="checkbox"
-                        className="accent-gray-600"
+                        className="accent-[#f6f6f6]"
                         checked={!!checkedIds[row.id]}
                         onChange={() => toggleOne(row.id)}
                         aria-label={`${row.rank}위 선택`}
