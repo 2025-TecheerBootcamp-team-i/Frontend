@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useOutletContext } from "react-router-dom";
 import {
   MdAccessTime,
   MdOutlineKeyboardArrowDown,
@@ -11,7 +11,11 @@ type Song = {
   artist: string;
   album: string;
   duration: string; // "2:27"
+  isAi?: boolean;
 };
+
+type SearchOutletCtx = { excludeAi: boolean };
+
 
 const ALL_SONGS: Song[] = Array.from({ length: 12 }).map((_, i) => ({
   id: String(i + 1),
@@ -19,15 +23,19 @@ const ALL_SONGS: Song[] = Array.from({ length: 12 }).map((_, i) => ({
   artist: "아티스트명",
   album: "앨범명",
   duration: "2:27",
+  isAi: i % 4 === 0,
 }));
 
 export default function SearchSong() {
   const [sp] = useSearchParams();
   const q = (sp.get("q") ?? "").trim();
+  const { excludeAi } = useOutletContext<SearchOutletCtx>();
 
   // ✅ 검색어(q)로 곡명/아티스트/앨범 모두 필터
   const songs = useMemo(() => {
-    if (!q) return ALL_SONGS;
+    let result = ALL_SONGS;
+
+    if (q) {      
     const lower = q.toLowerCase();
     return ALL_SONGS.filter(
       (s) =>
@@ -35,7 +43,15 @@ export default function SearchSong() {
         s.artist.toLowerCase().includes(lower) ||
         s.album.toLowerCase().includes(lower)
     );
-  }, [q]);
+  }
+  
+   if (excludeAi) {
+    result = result.filter((s) => !s.isAi);
+  }
+
+  return result;
+  },  [q, excludeAi]);
+  
 
   // ✅ 체크박스(선택) 상태
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -75,19 +91,19 @@ export default function SearchSong() {
   };
 
   return (
-    <section className="rounded-3xl bg-[#F3F3F3] p-6 min-h-[560px]">
+    <section className="w-full h-full flex flex-col rounded-3xl bg-[#2d2d2d]/80 p-2 min-h-[560px]">
 
       {/* ✅ 리스트 컨테이너 */}
-      <div className="rounded-2xl overflow-hidden bg-[#F3F3F3]">
+      <div className="rounded-2xl overflow-auto bg-transparent -mx-4">
         {/* 헤더 */}
         <div
           className="
             grid items-center
             grid-cols-[36px_52px_minmax(0,1fr)_56px]
             sm:grid-cols-[36px_52px_minmax(0,1.6fr)_minmax(0,1fr)_56px]
-            px-4 py-3
-            text-xs text-[#8A8A8A]
-            border-b border-[#e2e2e2]
+            px-8 py-4
+            text-xs text-[#f6f6f6]
+            border-b border-[#464646]
           "
         >
           <input
@@ -103,31 +119,32 @@ export default function SearchSong() {
           <div />
 
           {/* 곡정보 + 정렬 화살표 느낌 */}
-          <div className="flex items-center gap-1 text-[1em]">
-            <span>곡정보</span>
-            <MdOutlineKeyboardArrowDown/>
+          <div className="flex items-center justify-start gap-1 text-[1em]">
+            <span>| 곡정보</span>
+            <MdOutlineKeyboardArrowDown size={16}/>
           </div>
 
           {/* 앨범 헤더(작은 화면에선 숨김) */}
-          <div className="hidden sm:block text-center">앨범</div>
+          <div className="mr-20 hidden sm:block text-center">| 앨범</div>
 
           {/* 시간 아이콘 */}
-          <div className="flex justify-end text-[1em]">
-            <MdAccessTime/>
+          <div className="flex justify-center">
+            <MdAccessTime size={18}/>
           </div>
         </div>
 
         {/* 바디(행들) */}
-        <div className="divide-y divide-[#e2e2e2]">
+        <div className="divide-y divide-[#464646]">
           {songs.map((s) => (
             <div
               key={s.id}
               className="
                 grid items-center
+                w-full
                 grid-cols-[36px_52px_minmax(0,1fr)_56px]
                 sm:grid-cols-[36px_52px_minmax(0,1.6fr)_minmax(0,1fr)_56px]
-                px-4 py-3
-                hover:bg-white transition
+                px-4 py-4
+                hover:bg-black/20 transition
               "
             >
               <input
@@ -135,25 +152,25 @@ export default function SearchSong() {
                 checked={selected.has(s.id)}
                 onChange={() => toggleOne(s.id)}
                 aria-label={`select ${s.title}`}
-                className="h-4 w-4 accent-[#6B6B6B]"
+                className="h-4 w-12 accent-[#6B6B6B]"
               />
 
               {/* 커버 */}
-              <div className="h-10 w-10 rounded-xl bg-[#D9D9D9]" />
+              <div className="h-10 w-10 ml-16 rounded-xl bg-[#777777]" />
 
               {/* 곡정보(곡명/아티스트명) */}
-              <div className="min-w-0">
-                <div className="text-sm text-[#666666] truncate">{s.title}</div>
-                <div className="text-xs text-[#8A8A8A] truncate">{s.artist}</div>
+              <div className="min-w-0 ml-20">
+                <div className="text-sm text-[#f6f6f6] truncate">{s.title}</div>
+                <div className="text-xs text-[#f6f6f6] truncate">{s.artist}</div>
               </div>
 
               {/* 앨범명 */}
-              <div className="hidden sm:block text-center text-sm text-[#8A8A8A] truncate">
+              <div className="-ml-20 hidden sm:block text-center text-sm text-[#f6f6f6] truncate">
                 {s.album}
               </div>
 
               {/* 재생시간 */}
-              <div className="text-right text-sm text-[#8A8A8A]">{s.duration}</div>
+              <div className="-ml-8 text-center text-sm text-[#f6f6f6]">{s.duration}</div>
             </div>
           ))}
         </div>
@@ -162,7 +179,7 @@ export default function SearchSong() {
       {/* 검색 결과 없음 */}
       {q && songs.length === 0 && (
         <div className="mt-10 text-center text-sm text-[#8A8A8A]">
-          해당 검색어의 곡이 없습니다.
+          {q}에 해당 검색어의 곡이 없습니다.
         </div>
       )}
     </section>

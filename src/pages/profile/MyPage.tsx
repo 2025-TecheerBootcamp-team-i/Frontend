@@ -93,10 +93,11 @@ function HorizontalScroller({
                 bg-[#1d1d1d]/50 text-[#f6f6f6]
                 flex items-center justify-center
                 hover:bg-[#1d1d1d]/70 transition
+                rotate-180
             "
             aria-label="왼쪽으로 이동"
             >
-            <MdOutlineNavigateNext className="rotate-180" size={22} />
+            <MdOutlineNavigateNext size={22} />
             </button>
         )}
 
