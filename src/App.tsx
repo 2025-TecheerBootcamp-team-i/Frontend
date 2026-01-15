@@ -49,9 +49,9 @@ export default function App() {
         <Route path="/my-playlists" element={<MyPlaylistPage />}>
           <Route path="personal" element={<MyPlaylistPersonal />} />
           <Route path="liked" element={<MyPlaylistLiked />} />
-          <Route path="/ai" element={<AiCreatePage />} />
-          <Route path="/aisong/:id" element={<AiSongPage />} />
         </Route>
+        <Route path="/ai" element={<AiCreatePage />} />
+          <Route path="aisong/:id" element={<AiSongPage />} />
         <Route path="/search" element={<SearchPage />}>
           <Route index element={<SearchAll />} />
           <Route path="artist" element={<SearchArtist />} />

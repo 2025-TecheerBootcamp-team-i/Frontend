@@ -56,7 +56,7 @@ function HomePage() {
             "h-8 px-4 rounded-full text-sm transition whitespace-nowrap",
             active
                 ? "bg-[#E4524D] text-[#F6F6F6]"
-                : "bg-[#777777] text-[#F6F6F6] hover:bg-[#5d5d5d]",
+                : "bg-[#4d4d4d] text-[#F6F6F6] hover:bg-[#5d5d5d]",
             ].join(" ")}
         >
             {label}
@@ -176,7 +176,7 @@ function HomePage() {
                         {row.diff < 0 && (
                             <span className="text-blue-500">▼ {Math.abs(row.diff)}</span>
                         )}
-                        {row.diff === 0 && <span className="text-[#777777]">—</span>}
+                        {row.diff === 0 && <span className="text-[#AAAAAA]">—</span>}
                         </div>
 
                         <div className="ml-5 flex items-center gap-4 min-w-0 truncate">
