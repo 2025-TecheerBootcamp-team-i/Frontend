@@ -7,6 +7,7 @@ type Song = { id: string; title: string; artist: string; duration: string };
 type Artist = { id: string; name: string };
 type Album = { id: string; name: string; artist: string };
 
+
 // ✅ 더미 데이터 (나중에 API로 교체)
 const ALL_SONGS: Song[] = Array.from({ length: 8 }).map((_, i) => ({
   id: String(i + 1),
@@ -87,7 +88,8 @@ export default function SearchHome() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <section className="w-full h-full flex flex-col rounded-3xl bg-transparent p-4 min-h-[560px]">
+    <div className="space-y-6 overflow-auto">
       {/* ✅ 상단 2열 */}
       <div className="
     grid gap-6
@@ -95,76 +97,101 @@ export default function SearchHome() {
     lg:grid-cols-[minmax(280px,0.8fr)_minmax(520px,1.2fr)]
   ">
         {/* 대표 카드 */}
-        <section className="rounded-3xl bg-[#F3F3F3] p-6">
-          <div className="flex items-start justify-between gap-6">
-            <div className="flex flex-col">
-              <div className="h-44 w-44 rounded-2xl bg-[#D9D9D9]" />
-              <div className="mt-4">
-                <div className="text-lg font-semibold text-[#666666]">
+        <section
+          className="
+            group
+            rounded-3xl bg-[#2d2d2d]/80 p-8
+            transition-colors
+             hover:bg-black/20
+          "
+          >
+          {/* 2열: 왼쪽 커버 / 오른쪽 텍스트 */}
+          <div className="grid grid-cols-[176px_minmax(0,1fr)] gap-14 items-start">
+            {/* 커버 */}
+            <div className="w-52 h-52 rounded-2xl bg-[#7777]" />
+
+            {/* 오른쪽 영역: 텍스트 + 버튼(우하단) */}
+            <div className="min-w-0 flex flex-col h-full">
+              {/* 텍스트 (오른쪽에 위치) */}
+              <div className="min-w-0">
+                <div className="text-xl font-semibold text-[#f6f6f6] truncate">
                   {featured ? "곡 또는 아티스트명" : "곡 또는 아티스트명"}
                 </div>
-                <div className="mt-2 text-sm text-[#8A8A8A]">
+                <div className="mt-2 text-sm font-normal text-[#f6f6f6] truncate">
                   {featured ? "분류 (곡 or 아티스트)" : "분류 (곡 or 아티스트)"}
                 </div>
               </div>
-            </div>
 
-            <div className="ml-auto self-end">
-              <button
-                type="button"
-                className="flex items-center justify-center rounded-full
-                bg-[#6B6B6B] text-white hover:bg-[#5A5A5A]
-                w-[clamp(40px,4vw,56px)] h-[clamp(40px,4vw,56px)]
-                text-[clamp(24px,2.2vw,40px)]"
-                aria-label="play"
-              >
-                <MdPlayArrow size={40} />
-              </button>
+              {/* 버튼: 오른쪽 아래로 밀기 */}
+              <div className="mt-auto flex justify-end">
+                <button
+                  type="button"
+                  aria-label="play"
+                  className="
+                    flex items-center justify-center rounded-full
+                    bg-[#AFDEE2] text-[#2d2d2d]
+                    w-[clamp(40px,4vw,56px)] h-[clamp(40px,4vw,56px)]
+                    shadow-[0_12px_20px_rgba(0,0,0,0.35)]
+                    transition
+                    opacity-0 translate-y-3 pointer-events-none
+                    group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto
+                    hover:bg-opacity-70
+                    hover:scale-[1.03]
+                    
+                  "
+                >
+                  <MdPlayArrow size={40} />
+                </button>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* 곡 리스트 카드 */}
-        <section className="rounded-3xl bg-[#F3F3F3] p-6">
-          <div className="flex items-center justify-between">
-            <div className="text-base font-semibold text-[#666666]">곡</div>
 
+        {/* 곡 리스트 카드 */}
+        <section className="rounded-3xl bg-[#2d2d2d]/80 p-6">
+          <div className="flex items-center justify-between">
+            <div className="mx-4 text-xl font-semibold text-[#f6f6f6]">곡</div>
             <button
               type="button"
               onClick={() => navigate(`/search/song${search}`)}
-              className="text-[#666666] hover:text-[#888] transition"
+              className="text-[#f6f6f6] hover:text-[#888] text-xl leading-none"
               aria-label="open"
             >
-              <MdOutlineNavigateNext size={28} />
+              <MdOutlineNavigateNext size={40} />
             </button>
           </div>
 
-          <div className="mt-4 divide-y divide-[#e2e2e2] rounded-2xl overflow-hidden">
+          {/* 없는게 훨씬 괜찮은 것 같아서 뺐는데 어떠신가요? */}
+          {/* <div className="mx-4 border-t border-[#464646]" /> */}
+
+          <div className="-mx-6 -mb-4 divide-y divide-[#464646] rounded-2xl">
             {(songs.length ? songs : ALL_SONGS).slice(0, 3).map((s) => (
               <div
                 key={s.id}
-                className="flex items-center gap-3 px-3 py-3 hover:bg-white transition"
+                className="flex items-center gap-4 px-12 py-4 hover:bg-black/20 transition"
               >
-                <div className="h-10 w-10 rounded-xl bg-[#D9D9D9]" />
+                <div className="h-10 w-10 rounded-xl bg-[#777777]" />
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm text-[#666666]">{s.title}</div>
-                  <div className="truncate text-xs text-[#8A8A8A]">{s.artist}</div>
+                  <div className="truncate text-sm text-[#f6f6f6]">{s.title}</div>
+                  <div className="truncate text-xs text-[#f6f6f6]">{s.artist}</div>
                 </div>
-                <div className="w-12 text-right text-sm text-[#8A8A8A]">
+                <div className="w-12 text-right text-sm text-[#f6f6f6]">
                   {s.duration}
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="mt-2 flex justify-center text-[#8A8A8A]">
-            <button type="button" aria-label="more">
-              <MdMoreVert size={20} />
+          <div className="mt-2 flex justify-center text-[#f6f6f6]">
+            <button type="button" aria-label="more"
+            onClick={() => navigate(`/search/song${search}`)}>
+              <MdMoreVert size={24} />
             </button>
           </div>
 
           {q && songs.length === 0 && (
-            <div className="mt-3 text-sm text-[#8A8A8A]">
+            <div className="mt-3 text-sm text-[#f6f6f6]">
               해당 검색어의 곡이 없습니다.
             </div>
           )}
@@ -172,16 +199,16 @@ export default function SearchHome() {
       </div>
 
       {/* ✅ 아티스트 미리보기 */}
-      <section className="rounded-3xl bg-[#F3F3F3] p-6">
+      <section className="rounded-3xl bg-[#2d2d2d]/80 p-6">
         <div className="flex items-center justify-between">
-          <div className="text-base font-semibold text-[#666666]">아티스트</div>
+          <div className="text-xl font-semibold text-[#f6f6f6]">아티스트</div>
           <button
             type="button"
             onClick={() => navigate(`/search/artist${search}`)}
-            className="text-[#666666] hover:text-[#888] transition"
+            className="text-[#f6f6f6] hover:text-[#888] text-xl leading-none"
             aria-label="open"
           >
-            <MdOutlineNavigateNext size={28} />
+            <MdOutlineNavigateNext size={40} />
           </button>
         </div>
 
@@ -189,15 +216,15 @@ export default function SearchHome() {
           <div ref={scrollRef} className="flex gap-8 overflow-x-auto pb-2">
             {(artists.length ? artists : ALL_ARTISTS).slice(0, 6).map((a) => (
               <div key={a.id} className="shrink-0 flex flex-col items-center">
-                <div className="w-24 h-24 rounded-full bg-[#D9D9D9]" />
-                <div className="mt-3 text-sm font-semibold text-[#666666]">{a.name}</div>
-                <div className="mt-1 text-xs text-[#8A8A8A]">아티스트</div>
+                <div className="w-32 h-32 rounded-full bg-[#777777]" />
+                <div className="mt-3 text-sm font-semibold text-[#f6f6f6]">{a.name}</div>
+                <div className="mt-1 text-xs text-[#f6f6f6]">아티스트</div>
               </div>
             ))}
           </div>
 
           {showLeft && (
-            <div className="pointer-events-none absolute left-0 top-0 h-full w-12 bg-gradient-to-r from-[#F3F3F3] to-transparent" />
+            <div className="pointer-events-none absolute left-0 top-0 h-full w-12 bg-gradient-to-r from-[#F3F3F3]" />
           )}
           {showRight && (
             <div className="pointer-events-none absolute right-0 top-0 h-full w-12 bg-gradient-to-l from-[#F3F3F3] to-transparent" />
@@ -205,42 +232,41 @@ export default function SearchHome() {
         </div>
 
         {q && artists.length === 0 && (
-          <div className="mt-3 text-sm text-[#8A8A8A]">
+          <div className="mt-3 text-sm text-[#f6f6f6]">
             해당 검색어의 아티스트가 없습니다.
           </div>
         )}
       </section>
 
       {/* ✅ 앨범 미리보기 */}
-      <section className="rounded-3xl bg-[#F3F3F3] p-6">
+      <section className="rounded-3xl bg-[#2d2d2d]/80 p-6">
         <div className="flex items-center justify-between">
-          <div className="text-base font-semibold text-[#666666]">앨범</div>
+          <div className="text-xl font-semibold text-[#f6f6f6]">앨범</div>
           <button
             type="button"
             onClick={() => navigate(`/search/album${search}`)}
-            className="text-[#666666] hover:text-[#888] transition"
+            className="text-[#f6f6f6] hover:text-[#888] transition"
             aria-label="open"
           >
-            <MdOutlineNavigateNext size={28} />
+            <MdOutlineNavigateNext size={40} />
           </button>
         </div>
-
-        <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-          {(albums.length ? albums : ALL_ALBUMS).slice(0, 8).map((a) => (
-            <div key={a.id} className="rounded-2xl bg-white/60 p-4 hover:bg-white transition">
-              <div className="h-20 rounded-xl bg-[#D9D9D9]" />
-              <div className="mt-3 text-sm text-[#666666] truncate">{a.name}</div>
-              <div className="text-xs text-[#8A8A8A] truncate">{a.artist}</div>
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-6 gap-4">
+          {(albums.length ? albums : ALL_ALBUMS).slice(0, 6).map((a) => (
+            <div key={a.id} className="w-52 h-52 aspect-square rounded-2xl bg-[#777777] p-4">
+              <div className="mt-3 text-sm text-[#f6f6f6] truncate">{a.name}</div>
+              <div className="text-xs text-[#f6f6f6] truncate">{a.artist}</div>
             </div>
           ))}
         </div>
 
         {q && albums.length === 0 && (
-          <div className="mt-3 text-sm text-[#8A8A8A]">
+          <div className="mt-3 text-sm text-[#f6f6f6]">
             해당 검색어의 앨범이 없습니다.
           </div>
         )}
       </section>
     </div>
+  </section>
   );
 }

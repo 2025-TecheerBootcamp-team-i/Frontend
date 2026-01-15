@@ -6,15 +6,20 @@ import PlainLayout from "./components/layout/PlainLayout";
 import HomePage from "./pages/home/HomePage";
 import ChartPage from "./pages/chart/ChartPage";
 import MyPage from "./pages/profile/MyPage";
+
 import AiCreatePage from "./pages/ai/AICreatePage";
-import PlaylistPage from "./pages/song/PlaylistPage";
+import AiSongPage from "./pages/ai/AISongPage";
+
+import PlaylistPage from "./pages/album/PlaylistPage";
 import MyPlaylistPage from "./pages/profile/MyPlaylistPage";
 import MyPlaylistPersonal from "./pages/profile/MyPlaylistPersonal";
 import MyPlaylistLiked from "./pages/profile/MyPlaylistLiked";
+
 import ArtistPage from "./pages/artist/ArtistPage";
 import ArtistTracksPage from "./pages/artist/ArtistTracksPage";
 import ArtistAlbumsPage from "./pages/artist/ArtistAlbumsPage";
 import AlbumPage from "./pages/album/AlbumPage"
+
 import SearchPage from "./pages/search/SearchPage";
 import SearchAll from "./pages/search/SearchAll";
 import SearchArtist from "./pages/search/SearchArtist";
@@ -41,11 +46,11 @@ export default function App() {
           <Route path="ai" element={<ChartAI />} />
         </Route>
         <Route path="/mypage" element={<MyPage />} />
-        <Route path="/ai" element={<AiCreatePage />} />
-        <Route path="/playlist/:playlistId" element={<PlaylistPage />} />
         <Route path="/my-playlists" element={<MyPlaylistPage />}>
           <Route path="personal" element={<MyPlaylistPersonal />} />
           <Route path="liked" element={<MyPlaylistLiked />} />
+          <Route path="/ai" element={<AiCreatePage />} />
+          <Route path="/aisong/:id" element={<AiSongPage />} />
         </Route>
         <Route path="/search" element={<SearchPage />}>
           <Route index element={<SearchAll />} />
@@ -61,6 +66,7 @@ export default function App() {
         <Route path="/artists/:artistId/tracks" element={<ArtistTracksPage />} />
         <Route path="/artists/:artistId/albums" element={<ArtistAlbumsPage />} />
         <Route path="/album/:albumId" element={<AlbumPage />} />
+        <Route path="/playlist/:playlistId" element={<PlaylistPage />} />
       </Route>
       
       
