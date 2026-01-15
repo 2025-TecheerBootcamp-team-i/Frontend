@@ -18,7 +18,7 @@ import MyPlaylistLiked from "./pages/profile/MyPlaylistLiked";
 import ArtistPage from "./pages/artist/ArtistPage";
 import ArtistTracksPage from "./pages/artist/ArtistTracksPage";
 import ArtistAlbumsPage from "./pages/artist/ArtistAlbumsPage";
-import AlbumPage from "./pages/album/AlbumPage"
+import AlbumPage from "./pages/album/AlbumPage";
 
 import SearchPage from "./pages/search/SearchPage";
 import SearchAll from "./pages/search/SearchAll";
@@ -26,15 +26,16 @@ import SearchArtist from "./pages/search/SearchArtist";
 import SearchAlbum from "./pages/search/SearchAlbum";
 import SearchSong from "./pages/search/SearchSong";
 
-
 import ChartTop100 from "./pages/chart/ChartTop100";
 import ChartDaily from "./pages/chart/ChartDaily";
 import ChartAI from "./pages/chart/ChartAI";
 
 import NowPlayingPage from "./pages/song/NowPlayingPage";
+import { PlayerProvider } from "./player/PlayerContext";
 
 export default function App() {
   return (
+    <PlayerProvider>
     <Routes>
       {/* ✅ 사이드바가 필요한 모든 페이지 */}
       <Route element={<MainLayout />}>
@@ -78,5 +79,6 @@ export default function App() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </PlayerProvider>
   );
 }

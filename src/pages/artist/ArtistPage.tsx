@@ -230,7 +230,7 @@ export default function ArtistPage() {
                     <div className="w-48 h-48 shrink-0" />
 
                     {/* 텍스트 + 플레이 */}
-                    <div className="flex items-center gap-5">
+                    <div className="flex items-end gap-5">
                     <div>
                         <div className="text-3xl font-extrabold text-[#F6F6F6] leading-none">
                         {artist.name}
@@ -259,6 +259,7 @@ export default function ArtistPage() {
                 rounded-full bg-[#777777]
                 z-20
                 shadow-xl
+                pointer-events-none
                 "
             />
         </section>
