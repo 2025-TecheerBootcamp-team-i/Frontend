@@ -8,6 +8,7 @@ import ChartPage from "./pages/chart/ChartPage";
 import MyPage from "./pages/profile/MyPage";
 
 import AiCreatePage from "./pages/ai/AICreatePage";
+import AiSongPage from "./pages/ai/AISongPage";
 
 import PlaylistPage from "./pages/album/PlaylistPage";
 import MyPlaylistPage from "./pages/profile/MyPlaylistPage";
@@ -20,6 +21,10 @@ import ArtistAlbumsPage from "./pages/artist/ArtistAlbumsPage";
 import AlbumPage from "./pages/album/AlbumPage";
 
 import SearchPage from "./pages/search/SearchPage";
+import SearchAll from "./pages/search/SearchAll";
+import SearchArtist from "./pages/search/SearchArtist";
+import SearchAlbum from "./pages/search/SearchAlbum";
+import SearchSong from "./pages/search/SearchSong";
 
 import ChartTop100 from "./pages/chart/ChartTop100";
 import ChartDaily from "./pages/chart/ChartDaily";
@@ -42,12 +47,18 @@ export default function App() {
           <Route path="ai" element={<ChartAI />} />
         </Route>
         <Route path="/mypage" element={<MyPage />} />
-        <Route path="/ai" element={<AiCreatePage />} />
         <Route path="/my-playlists" element={<MyPlaylistPage />}>
           <Route path="personal" element={<MyPlaylistPersonal />} />
           <Route path="liked" element={<MyPlaylistLiked />} />
+          <Route path="/ai" element={<AiCreatePage />} />
+          <Route path="/aisong/:id" element={<AiSongPage />} />
         </Route>
-        <Route path="/search" element={<SearchPage />} />
+        <Route path="/search" element={<SearchPage />}>
+          <Route index element={<SearchAll />} />
+          <Route path="artist" element={<SearchArtist />} />
+          <Route path="album" element={<SearchAlbum />} />
+          <Route path="song" element={<SearchSong />} />
+        </Route>
       </Route>
 
       {/* ✅ 메인 레이아웃에 패딩이 없는 버전 */}
@@ -58,7 +69,8 @@ export default function App() {
         <Route path="/album/:albumId" element={<AlbumPage />} />
         <Route path="/playlist/:playlistId" element={<PlaylistPage />} />
       </Route>
-
+      
+      
       {/* ✅ 사이드바 없는 구간 (로그인/회원가입 같은 것만 두는 용도) */}
       <Route element={<PlainLayout />}>
         <Route path="/now-playing" element={<NowPlayingPage />} />

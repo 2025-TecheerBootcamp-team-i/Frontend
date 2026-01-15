@@ -18,22 +18,22 @@
     { key: "like", label: "좋아요", icon: <MdFavorite size={18} /> },
     ];
 
-    const toSeconds = (duration: string) => {
+   const toSeconds = (duration: string) => {
     const [m, s] = duration.split(":").map((v) => Number(v));
     if (!Number.isFinite(m) || !Number.isFinite(s)) return 0;
     return m * 60 + s;
-    };
+   };
 
-    const formatTotal = (sec: number) => {
+   const formatTotal = (sec: number) => {
     const h = Math.floor(sec / 3600);
     const m = Math.floor((sec % 3600) / 60);
     const s = sec % 60;
     if (h > 0) return `${h}시간 ${m}분 ${s}초`;
     if (m > 0) return `${m}분 ${s}초`;
     return `${s}초`;
-    };
+   };
 
-    export default function PlaylistDetailPage() {
+   export default function PlaylistDetailPage() {
     const { playlistId } = useParams();
     const navigate = useNavigate();
 
@@ -282,4 +282,4 @@
         </div>
         </div>
     );
-    }
+   }
