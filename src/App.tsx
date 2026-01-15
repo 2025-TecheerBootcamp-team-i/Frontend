@@ -6,26 +6,31 @@ import PlainLayout from "./components/layout/PlainLayout";
 import HomePage from "./pages/home/HomePage";
 import ChartPage from "./pages/chart/ChartPage";
 import MyPage from "./pages/profile/MyPage";
+
 import AiCreatePage from "./pages/ai/AICreatePage";
-import PlaylistPage from "./pages/song/PlaylistPage";
+
+import PlaylistPage from "./pages/album/PlaylistPage";
 import MyPlaylistPage from "./pages/profile/MyPlaylistPage";
 import MyPlaylistPersonal from "./pages/profile/MyPlaylistPersonal";
 import MyPlaylistLiked from "./pages/profile/MyPlaylistLiked";
-import SearchPage from "./pages/search/SearchPage";
+
 import ArtistPage from "./pages/artist/ArtistPage";
 import ArtistTracksPage from "./pages/artist/ArtistTracksPage";
 import ArtistAlbumsPage from "./pages/artist/ArtistAlbumsPage";
-import AlbumPage from "./pages/album/AlbumPage"
+import AlbumPage from "./pages/album/AlbumPage";
 
+import SearchPage from "./pages/search/SearchPage";
 
 import ChartTop100 from "./pages/chart/ChartTop100";
 import ChartDaily from "./pages/chart/ChartDaily";
 import ChartAI from "./pages/chart/ChartAI";
 
 import NowPlayingPage from "./pages/song/NowPlayingPage";
+import { PlayerProvider } from "./player/PlayerContext";
 
 export default function App() {
   return (
+    <PlayerProvider>
     <Routes>
       {/* ✅ 사이드바가 필요한 모든 페이지 */}
       <Route element={<MainLayout />}>
@@ -38,7 +43,6 @@ export default function App() {
         </Route>
         <Route path="/mypage" element={<MyPage />} />
         <Route path="/ai" element={<AiCreatePage />} />
-        <Route path="/playlist/:playlistId" element={<PlaylistPage />} />
         <Route path="/my-playlists" element={<MyPlaylistPage />}>
           <Route path="personal" element={<MyPlaylistPersonal />} />
           <Route path="liked" element={<MyPlaylistLiked />} />
@@ -52,6 +56,7 @@ export default function App() {
         <Route path="/artists/:artistId/tracks" element={<ArtistTracksPage />} />
         <Route path="/artists/:artistId/albums" element={<ArtistAlbumsPage />} />
         <Route path="/album/:albumId" element={<AlbumPage />} />
+        <Route path="/playlist/:playlistId" element={<PlaylistPage />} />
       </Route>
 
       {/* ✅ 사이드바 없는 구간 (로그인/회원가입 같은 것만 두는 용도) */}
@@ -62,5 +67,6 @@ export default function App() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </PlayerProvider>
   );
 }

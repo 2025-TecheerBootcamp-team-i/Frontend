@@ -1,19 +1,22 @@
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { useMemo } from "react";
-import { MdOutlineNavigateNext } from "react-icons/md";
-import React, { useEffect, useRef, useState } from "react";
+    import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+    import React, { useState, useEffect, useRef, useMemo } from "react";
+    import { MdOutlineNavigateNext } from "react-icons/md";
+    import {
+    getAllPlaylists,
+    subscribePlaylists,
+    getLikedPlaylistIds,
+    LIKED_SYSTEM_ID,
+    } from "../../mocks/playlistMock";
 
-type PlaylistItem = {
+    type PlaylistItem = {
     id: string;
     title: string;
     owner: string;
     scope: "personal" | "shared";
     liked?: boolean;
-};
+    };
 
-const LIKED_SYSTEM_ID = "liked"; // ✅ "나의 좋아요 목록" 고정 ID
-
-function Tab({ to, label }: { to: string; label: string }) {
+    function Tab({ to, label }: { to: string; label: string }) {
     return (
         <NavLink
         to={to}
@@ -30,125 +33,117 @@ function Tab({ to, label }: { to: string; label: string }) {
         {label}
         </NavLink>
     );
-}
+    }
 
-type HorizontalScrollerProps = {
-        children: React.ReactNode;
-        scrollStep?: number;
-        gradientFromClass?: string; // 배경색 맞추기
+    type HorizontalScrollerProps = {
+    children: React.ReactNode;
+    scrollStep?: number;
+    gradientFromClass?: string;
     };
-    
+
     function HorizontalScroller({
-        children,
-        scrollStep = 300,
-        gradientFromClass = "from-[#2d2d2d]/80", // ✅ Section 배경이랑 맞춤
+    children,
+    scrollStep = 300,
+    gradientFromClass = "from-[#2d2d2d]/80",
     }: HorizontalScrollerProps) {
-        const ref = useRef<HTMLDivElement>(null);
-        const [canScroll, setCanScroll] = useState(false);
-        const [showLeft, setShowLeft] = useState(false);
-        const [showRight, setShowRight] = useState(false);
-    
-        const update = () => {
+    const ref = useRef<HTMLDivElement>(null);
+    const [canScroll, setCanScroll] = useState(false);
+    const [showLeft, setShowLeft] = useState(false);
+    const [showRight, setShowRight] = useState(false);
+
+    const update = () => {
         const el = ref.current;
         if (!el) return;
-    
+
         const can = el.scrollWidth > el.clientWidth + 1;
         setCanScroll(can);
-    
+
         if (!can) {
-            setShowLeft(false);
-            setShowRight(false);
-            return;
+        setShowLeft(false);
+        setShowRight(false);
+        return;
         }
-    
+
         const left = el.scrollLeft;
         const max = el.scrollWidth - el.clientWidth;
-    
+
         setShowLeft(left > 4);
         setShowRight(left < max - 4);
-        };
-    
-        useEffect(() => {
+    };
+
+    useEffect(() => {
         update();
         window.addEventListener("resize", update);
         return () => window.removeEventListener("resize", update);
-        }, []);
-    
-        return (
+    }, []);
+
+    return (
         <div className="relative mt-2">
-            {/* 스크롤 영역 */}
-            <div
-            ref={ref}
-            onScroll={update}
-            className="overflow-x-auto overflow-y-hidden no-scrollbar"
-            >
+        <div ref={ref} onScroll={update} className="overflow-x-auto overflow-y-hidden no-scrollbar">
             {children}
-            </div>
-    
-            {/* 왼쪽 화살표 */}
-            {canScroll && showLeft && (
+        </div>
+
+        {canScroll && showLeft && (
             <button
-                type="button"
-                onClick={() => {
+            type="button"
+            onClick={() => {
                 ref.current?.scrollBy({ left: -scrollStep, behavior: "smooth" });
                 setTimeout(update, 250);
-                }}
-                className="
+            }}
+            className="
                 absolute left-1 top-1/2 -translate-y-1/2 z-10
                 h-9 w-9 rounded-full
                 bg-[#1d1d1d]/50 text-[#f6f6f6]
                 flex items-center justify-center
                 hover:bg-[#1d1d1d]/70 transition
-                "
-                aria-label="왼쪽으로 이동"
+            "
+            aria-label="왼쪽으로 이동"
             >
-                <MdOutlineNavigateNext className="rotate-180" size={22} />
+            <MdOutlineNavigateNext className="rotate-180" size={22} />
             </button>
-            )}
-    
-            {/* 오른쪽 화살표 */}
-            {canScroll && showRight && (
+        )}
+
+        {canScroll && showRight && (
             <button
-                type="button"
-                onClick={() => {
+            type="button"
+            onClick={() => {
                 ref.current?.scrollBy({ left: scrollStep, behavior: "smooth" });
                 setTimeout(update, 250);
-                }}
-                className="
+            }}
+            className="
                 absolute right-1 top-1/2 -translate-y-1/2 z-10
                 h-9 w-9 rounded-full
                 bg-[#1d1d1d]/50 text-[#f6f6f6]
                 flex items-center justify-center
                 hover:bg-[#1d1d1d]/70 transition
-                "
-                aria-label="오른쪽으로 이동"
+            "
+            aria-label="오른쪽으로 이동"
             >
-                <MdOutlineNavigateNext size={22} />
+            <MdOutlineNavigateNext size={22} />
             </button>
-            )}
-    
-            {/* 그라데이션 힌트 */}
-            {canScroll && showRight && (
+        )}
+
+        {canScroll && showRight && (
             <div
-                className={[
+            className={[
                 "pointer-events-none absolute right-0 top-0 h-full w-16 bg-gradient-to-l to-transparent",
                 gradientFromClass,
-                ].join(" ")}
+            ].join(" ")}
             />
-            )}
-            {canScroll && showLeft && (
+        )}
+        {canScroll && showLeft && (
             <div
-                className={[
+            className={[
                 "pointer-events-none absolute left-0 top-0 h-full w-16 bg-gradient-to-r to-transparent",
                 gradientFromClass,
-                ].join(" ")}
+            ].join(" ")}
             />
-            )}
+        )}
         </div>
-        );
-}
+    );
+    }
 
-function Section({
+    function Section({
     title,
     items,
     onMore,
@@ -162,16 +157,20 @@ function Section({
     return (
         <section className="rounded-3xl bg-[#2d2d2d]/80 border border-[#464646]">
         <div className="px-8 pt-6 pb-2 flex items-center justify-between">
-            <button 
-                type="button"
-                onClick={onMore}
-                className="text-lg font-semibold hover:text-[#888] text-[#F6F6F6]">{title}</button>
             <button
-                type="button"
-                onClick={onMore}
-                className="text-[#F6F6F6] hover:text-[#888] transition text-xl leading-none"
-                aria-label={`${title} 더보기`}
-                title="더보기"
+            type="button"
+            onClick={onMore}
+            className="text-lg font-semibold hover:text-[#888] text-[#F6F6F6]"
+            >
+            {title}
+            </button>
+
+            <button
+            type="button"
+            onClick={onMore}
+            className="text-[#F6F6F6] hover:text-[#888] transition text-xl leading-none"
+            aria-label={`${title} 더보기`}
+            title="더보기"
             >
             <MdOutlineNavigateNext size={30} />
             </button>
@@ -180,74 +179,101 @@ function Section({
         <div className="mb-4 mx-4 border-b border-[#464646]" />
 
         <div className="px-6 pb-6">
-        <HorizontalScroller gradientFromClass="from-[#2d2d2d]/80">
+            <HorizontalScroller gradientFromClass="from-[#2d2d2d]/80">
             <div className="flex gap-5 min-w-max pr-2">
-            {items.map((it) => (
+                {items.map((it) => (
                 <button
-                key={it.id}
-                type="button"
-                onClick={() => onClickItem?.(it.id)}
-                className="w-[220px] text-left group shrink-0"
+                    key={it.id}
+                    type="button"
+                    onClick={() => onClickItem?.(it.id)}
+                    className="w-[220px] text-left group shrink-0"
                 >
-                <div className="aspect-square rounded-2xl bg-[#6b6b6b]/40 border border-[#464646] group-hover:bg-[#6b6b6b]/55 transition" />
-                <div className="mt-3 text-sm font-semibold text-[#F6F6F6] truncate">
-                    {it.title}
-                </div>
-                <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">
-                    {it.owner}
-                </div>
+                    <div className="relative aspect-square rounded-2xl bg-[#6b6b6b]/40 border border-[#464646] group-hover:bg-[#6b6b6b]/55 transition">
+                    {/* ❤️ 좋아요 하트 */}
+                    {it.id === "liked" || it.liked ? (
+                    <div className={[
+                        "absolute top-2 right-3 text-xl drop-shadow",
+                        it.id === LIKED_SYSTEM_ID ? "text-[#E4524D]" : "text-[#AFDEE2]"].join(" ")}
+                    >♥
+                    </div>
+                    ) : null}
+                    </div>
+
+                    <div className="mt-3 text-sm font-semibold text-[#F6F6F6] truncate">
+                        {it.title}
+                    </div>
+                    <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">
+                        {it.owner}
+                    </div>
                 </button>
-            ))}
+                ))}
             </div>
             </HorizontalScroller>
         </div>
         </section>
     );
-}
+    }
 
-export default function MyPlaylistPage() {
+    export default function MyPlaylistPage() {
     const navigate = useNavigate();
     const { pathname } = useLocation();
-
-    // ✅ /my-playlists 일 때만 "모두(Top)" 렌더
     const isRoot = pathname === "/my-playlists";
 
-    // TODO: 나중에 실제 데이터로 교체
-    const all = useMemo<PlaylistItem[]>(
-        () => [
-        { id: "p1", title: "플레이리스트명", owner: "제작자", scope: "personal" },
-        { id: "p2", title: "플레이리스트명", owner: "제작자", scope: "personal" },
-        { id: "p3", title: "플레이리스트명", owner: "제작자", scope: "personal" },
-        { id: "41", title: "플레이리스트명", owner: "제작자", scope: "personal" },
-        { id: "p5", title: "플레이리스트명", owner: "제작자", scope: "personal" },
-        { id: "p6", title: "플레이리스트명", owner: "제작자", scope: "personal" },
+    const [personalAll, setPersonalAll] = useState<PlaylistItem[]>([]);
+    const [likedAll, setLikedAll] = useState<PlaylistItem[]>([]);
 
-        { id: "s1", title: "플레이리스트명", owner: "제작자", scope: "shared", liked: true },
-        { id: "s2", title: "플레이리스트명", owner: "제작자", scope: "shared" },
-        { id: "s3", title: "플레이리스트명", owner: "제작자", scope: "shared", liked: true },
-        { id: "s4", title: "플레이리스트명", owner: "제작자", scope: "shared" },
-        ],
-        []
-    );
+    useEffect(() => {
+        const sync = () => {
+        const all = getAllPlaylists();
 
-    // ✅ Top(모두)에서 보여줄 데이터
-    const personalTop = all.filter((p) => p.scope === "personal").slice(0, 6);
+        // ✅ 개인 목록(= 시스템 liked 제외한 전체)
+        const personal = all
+            .filter((p) => p.id !== LIKED_SYSTEM_ID)
+            .map((p) => ({
+            id: p.id,
+            title: p.title,
+            owner: p.owner,
+            scope: "personal" as const,
+            }));
 
-    // ✅ "좋아요" 섹션은 첫 카드가 항상 "나의 좋아요 목록"
-    const likedTop: PlaylistItem[] = [
-        { id: LIKED_SYSTEM_ID, title: "나의 좋아요 목록", owner: "—", scope: "personal" },
-        ...all.filter((p) => p.liked).slice(0, 5),
-    ];
+        // ✅ 좋아요한 플레이리스트 목록
+        const likedMap = getLikedPlaylistIds(); // { [id]: true/false }
+        const likedIds = Object.keys(likedMap).filter((id) => likedMap[id]);
+
+        const likedPlaylists = all
+            .filter((p) => p.id !== LIKED_SYSTEM_ID)
+            .filter((p) => likedIds.includes(p.id))
+            .map((p) => ({
+            id: p.id,
+            title: p.title,
+            owner: p.owner,
+            scope: "personal" as const,
+            liked: true,
+            }));
+
+        // ✅ 좋아요 섹션은 항상 첫 카드: "나의 좋아요 목록" + 그 뒤에 좋아요한 플리들
+        const likedList: PlaylistItem[] = [
+            { id: LIKED_SYSTEM_ID, title: "나의 좋아요 목록", owner: "—", scope: "personal" },
+            ...likedPlaylists,
+        ];
+
+        setPersonalAll(personal);
+        setLikedAll(likedList);
+        };
+
+        sync();
+        return subscribePlaylists(sync);
+    }, []);
+
+    const personalTop = useMemo(() => personalAll.slice(0, 6), [personalAll]);
+    const likedTop = useMemo(() => likedAll.slice(0, 6), [likedAll]);
 
     const handleClickPlaylist = (id: string) => {
-        // ✅ 나의 좋아요 목록은 고정 상세로 보냄(원하면 나중에 /liked로 바꾸면 됨)
-        if (id === LIKED_SYSTEM_ID) navigate(`/playlist/${LIKED_SYSTEM_ID}`);
-        else navigate(`/playlist/${id}`);
+        navigate(`/playlist/${id}`);
     };
 
     return (
         <div className="w-full min-w-0 h-full flex flex-col">
-        {/* ✅ 상단 탭 고정 */}
         <div className="sticky top-0 z-20 pt-2">
             <div className="mt-2 px-4 flex gap-3 items-center">
             <Tab to="" label="모두" />
@@ -257,7 +283,6 @@ export default function MyPlaylistPage() {
             <div className="mt-4 border-b border-[#464646]" />
         </div>
 
-        {/* ✅ 아래만 스크롤 */}
         <div className="flex-1 min-h-0 overflow-y-auto py-4">
             <div className="px-0">
             {isRoot ? (
@@ -283,4 +308,4 @@ export default function MyPlaylistPage() {
         </div>
         </div>
     );
-}
+    }
