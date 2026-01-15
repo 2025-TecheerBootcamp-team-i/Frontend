@@ -1,64 +1,29 @@
-    import { useEffect, useMemo, useState } from "react";
-    import { useNavigate } from "react-router-dom";
-    import { FaPlus } from "react-icons/fa6";
-    import {
-    createPlaylist,
-    getAllPlaylists,
-    subscribePlaylists,
-    } from "../../mocks/playlistMock";
+import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { FaPlus } from "react-icons/fa6";
 
-    type PlaylistItem = {
+type PlaylistItem = {
     id: string;
     title: string;
     owner: string;
-    };
+};
 
-    const LIKED_SYSTEM_ID = "liked";
-
-    export default function MyPlaylistsPersonal() {
+export default function MyPlaylistsPersonal() {
     const navigate = useNavigate();
 
-    const [items, setItems] = useState<PlaylistItem[]>([]);
-
-    useEffect(() => {
-        const sync = () => {
-        // ✅ liked 시스템 플리는 개인 목록에서 제외
-        const list = getAllPlaylists()
-            .filter((p) => p.id !== LIKED_SYSTEM_ID)
-            .map((p) => ({
-            id: p.id,
-            title: p.title,
-            owner: p.owner,
-            }));
-
-        setItems(list);
-        };
-
-        sync();
-        return subscribePlaylists(sync);
-    }, []);
-
-    const handleCreate = () => {
-        const p = createPlaylist({
-        title: "새 플레이리스트",
-        owner: "사용자",
-        isPublic: false,
-        });
-
-        // ✅ 생성 직후 상세로 이동 (원하면 주석 처리하면 목록에만 추가됨)
-        navigate(`/playlist/${p.id}`);
-    };
-
-    // ✅ 스타일 string은 useMemo로 고정(선택)
-    const gridClass = useMemo(
-        () =>
-        `
-            grid
-            gap-x-6
-            gap-y-12
-            justify-between
-            [grid-template-columns:repeat(4,220px)]
-        `,
+    const items = useMemo<PlaylistItem[]>(
+        () => [
+        { id: "p1", title: "플레이리스트명", owner: "제작자" },
+        { id: "p2", title: "플레이리스트명", owner: "제작자" },
+        { id: "p3", title: "플레이리스트명", owner: "제작자" },
+        { id: "p4", title: "플레이리스트명", owner: "제작자" },
+        { id: "p5", title: "플레이리스트명", owner: "제작자" },
+        { id: "p6", title: "플레이리스트명", owner: "제작자" },
+        { id: "p7", title: "플레이리스트명", owner: "제작자" },
+        { id: "p8", title: "플레이리스트명", owner: "제작자" },
+        { id: "p9", title: "플레이리스트명", owner: "제작자" },
+        // 더 늘어나면 자동으로 다음 줄로 내려감
+        ],
         []
     );
 
@@ -70,7 +35,6 @@
 
             <button
             type="button"
-            onClick={handleCreate}
             className="w-9 h-9 rounded-full border border-[#464646] bg-[#3f3f3f] text-[#F6F6F6] grid place-items-center hover:bg-[#4a4a4a] transition"
             aria-label="새 플레이리스트"
             title="새 플레이리스트"
@@ -79,12 +43,20 @@
             </button>
         </div>
 
-        {/* 헤더랑 같은 기준선 */}
+        {/* ✅ 헤더랑 같은 기준선 */}
         <div className="mb-4 mx-4 border-b border-[#464646]" />
 
-        {/* 스크롤 없음: 늘어나면 섹션 자체가 커짐 */}
+        {/* ✅ 스크롤 없음: 늘어나면 섹션(배경박스) 자체가 커짐 */}
         <div className="px-6 pb-8 overflow-x-auto">
-            <div className={gridClass}>
+            <div
+            className="
+                grid
+                gap-x-6
+                gap-y-12
+                justify-between
+                [grid-template-columns:repeat(4,220px)]
+            "
+            >
             {items.map((it) => (
                 <button
                 key={it.id}
@@ -106,4 +78,4 @@
         </div>
         </section>
     );
-    }
+}

@@ -535,7 +535,7 @@ function HorizontalScroller({
                         ].join(" ")}
                         >
                         {/* ✅ 순위 (행 hover 시 아이콘으로 전환) */}
-                        <div className="pl-2 border-l border-[#464646] text-left font-semibold text-[#F6F6F6]">
+                        <div className="pl-2 text-left font-semibold text-[#F6F6F6]">
                             <div className="flex items-center gap-3">
                             <div className="relative w-8 flex items-center justify-center">
                                 {/* 기본: 순위 */}
@@ -556,7 +556,7 @@ function HorizontalScroller({
                         </div>
 
                         {/* 곡정보 */}
-                        <div className="pl-4 min-w-0 border-l border-[#464646]">
+                        <div className="pl-4 min-w-0">
                             <div className="flex items-center gap-5 min-w-0">
                             <div className="h-12 w-12 shrink-0 rounded-xl bg-[#777777]" />
                             <div className="min-w-0">
