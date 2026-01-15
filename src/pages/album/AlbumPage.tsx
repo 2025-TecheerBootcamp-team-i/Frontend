@@ -1,17 +1,11 @@
-    import { useEffect, useState } from "react";
+    import { useState } from "react";
     import { useNavigate, useParams } from "react-router-dom";
     import { IoChevronBack } from "react-icons/io5";
     import { IoPlayCircle, IoShuffle } from "react-icons/io5";
     import { MdPlaylistAdd, MdFavorite } from "react-icons/md";
     import { FaPlay } from "react-icons/fa6";
 
-    import {
-    ARTISTS,
-    subscribeAlbums,
-    isAlbumLiked,
-    getAlbumLikeCount,
-    toggleAlbumLike,
-    } from "../../mocks/artistsMock";
+    import { ARTISTS } from "../../mocks/artistsMock";
 
     type Track = { id: string; title: string; album: string; duration: string };
     type Album = { id: string; title: string; year: string };
@@ -27,6 +21,7 @@
     ];
 
     const toSeconds = (duration: string) => {
+    // "m:ss" 형태 처리 (예: "3:12")
     const [m, s] = duration.split(":").map((v) => Number(v));
     if (!Number.isFinite(m) || !Number.isFinite(s)) return 0;
     return m * 60 + s;
@@ -64,29 +59,8 @@
 
     // found가 null이어도 hooks는 항상 같은 순서로 호출되어야 하므로 여기서 먼저 준비
     const [checkedIds, setCheckedIds] = useState<Record<string, boolean>>({});
-
-    // ✅ 앨범 좋아요/카운트는 store 기반 (페이지 이동해도 유지)
-    const INITIAL_LIKE_COUNT = 12345;
-
-    const [liked, setLiked] = useState(() =>
-        albumId ? isAlbumLiked(albumId) : false
-    );
-
-    const [likeCount, setLikeCount] = useState(() =>
-        albumId ? getAlbumLikeCount(albumId, INITIAL_LIKE_COUNT) : INITIAL_LIKE_COUNT
-    );
-
-    useEffect(() => {
-        if (!albumId) return;
-
-        const sync = () => {
-        setLiked(isAlbumLiked(albumId));
-        setLikeCount(getAlbumLikeCount(albumId, INITIAL_LIKE_COUNT));
-        };
-
-        sync();
-        return subscribeAlbums(sync);
-    }, [albumId]);
+    const [liked, setLiked] = useState(false);
+    const [likeCount, setLikeCount] = useState(12345);
 
     const tracks = found?.tracks ?? [];
 
@@ -120,8 +94,7 @@
             <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
             <div className="text-xl font-semibold">앨범을 찾을 수 없어요.</div>
             <div className="mt-2 text-sm text-[#aaa]">
-                요청한 ID:{" "}
-                <span className="text-white">{albumId ?? "(없음)"}</span>
+                요청한 ID: <span className="text-white">{albumId ?? "(없음)"}</span>
             </div>
             </div>
         </div>
@@ -151,39 +124,37 @@
                 <div className="w-48 h-48 shrink-0" />
 
                 {/* 타이틀/메타 + 버튼 */}
-                <div className="flex items-end gap-5">
+                <div className="flex items-center gap-5">
                     <div className="min-w-0">
-                    {/* ✅ 좋아요 (store 토글) */}
-                    <button
+                        {/* 좋아요 */}
+                        <button
                         type="button"
                         onClick={() => {
-                        if (!albumId) return;
-                        toggleAlbumLike(albumId, INITIAL_LIKE_COUNT);
+                            setLiked((v) => !v);
+                            setLikeCount((c) => (liked ? c - 1 : c + 1));
                         }}
                         className={[
-                        "h-11 rounded-2xl",
-                        "flex items-center gap-2",
-                        "transition",
-                        liked ? "text-[#AFDEE2]" : "text-[#F6F6F6]/80",
+                            "h-11 rounded-2xl",
+                            "flex items-center gap-2",
+                            "transition",
+                            liked
+                            ? "text-[#AFDEE2]"
+                            : "text-[#F6F6F6]/80",
                         ].join(" ")}
                         aria-label="좋아요"
                         title="좋아요"
-                    >
+                        >
                         <MdFavorite
-                        size={22}
-                        className={liked ? "text-[#AFDEE2]" : "text-[#F6F6F6]/70"}
+                            size={22}
+                            className={liked ? "text-[#AFDEE2]" : "text-[#F6F6F6]/70"}
                         />
-                        <span className="text-sm tabular-nums">
-                        {likeCount.toLocaleString()}
-                        </span>
-                    </button>
-
+                        <span className="text-sm tabular-nums">{likeCount.toLocaleString()}</span>
+                        </button>
                     <div className="text-3xl font-extrabold text-[#F6F6F6] leading-none truncate">
                         {album.title}
                     </div>
                     <div className="mt-2 text-sm text-[#F6F6F6]/60 truncate">
-                        {artist.name} · {album.year} · {tracks.length}곡 ·{" "}
-                        {totalPlaytime}
+                        {artist.name} · {album.year} · {tracks.length}곡 · {totalPlaytime}
                     </div>
                     </div>
 
@@ -220,9 +191,7 @@
             <div className="px-8 py-6 border-b border-[#464646]">
                 <div className="flex items-end justify-between gap-4">
                 <div className="flex items-center gap-6">
-                    <h2 className="text-xl font-semibold text-[#F6F6F6]">
-                    곡 전체보기
-                    </h2>
+                    <h2 className="text-xl font-semibold text-[#F6F6F6]">곡 전체보기</h2>
                     <div className="text-sm text-[#999999]">총 {tracks.length}곡</div>
                 </div>
                 </div>
@@ -242,17 +211,7 @@
                         flex items-center gap-2
                     "
                     onClick={() => {
-                        const selectedIds = Object.keys(checkedIds).filter(
-                        (id) => checkedIds[id]
-                        );
-
-                        // ✅ 액션바에서도 like 누르면 앨범 좋아요 토글되게(원하면 유지)
-                        if (a.key === "like") {
-                        if (!albumId) return;
-                        toggleAlbumLike(albumId, INITIAL_LIKE_COUNT);
-                        return;
-                        }
-
+                        const selectedIds = Object.keys(checkedIds).filter((id) => checkedIds[id]);
                         console.log(a.key, selectedIds);
                     }}
                     >
@@ -285,12 +244,8 @@
                     />
                 </label>
 
-                <div className="col-span-2 border-l px-2 border-[#464646]">
-                    곡정보
-                </div>
-                <div className="text-right border-r px-2 border-[#464646]">
-                    길이
-                </div>
+                <div className="col-span-2 border-l px-2 border-[#464646]">곡정보</div>
+                <div className="text-right border-r px-2 border-[#464646]">길이</div>
                 </div>
             </div>
 
