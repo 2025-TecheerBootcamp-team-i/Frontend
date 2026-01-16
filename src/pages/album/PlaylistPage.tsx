@@ -17,6 +17,7 @@ import { MdDelete, MdFavorite } from "react-icons/md";
 import { FaPlay } from "react-icons/fa6";
 import { FiEdit3 } from "react-icons/fi";
 
+
 const actions = [
     { key: "play", label: "재생", icon: <IoPlayCircle size={18} /> },
     { key: "shuffle", label: "셔플", icon: <IoShuffle size={18} /> },
@@ -46,14 +47,14 @@ export default function PlaylistDetailPage() {
     // store 변경(emit)에도 반응하게 playlist를 state로 들고 sync
     const [playlist, setPlaylist] = useState(() => getPlaylistById(playlistId));
 
+
     useEffect(() => {
         const sync = () => setPlaylist(getPlaylistById(playlistId));
         sync();
         return subscribePlaylists(sync);
     }, [playlistId]);
-
     
-
+    
     const [checkedIds, setCheckedIds] = useState<Record<string, boolean>>({});
 
     const tracks = playlist?.tracks ?? [];
@@ -156,7 +157,7 @@ export default function PlaylistDetailPage() {
                 <IoChevronBack size={22} />
             </button>
 
-            {/* 편집 버튼 */}
+             {/* 편집 버튼 */}
             <button
                 type="button"
                 onClick={() => navigate(`/playlist/${playlist.id}/edit`)}
@@ -174,7 +175,7 @@ export default function PlaylistDetailPage() {
 
                 <div className="flex items-end gap-5">
                     <div className="min-w-0">
-                    {/* ✅ 좋아요 (플리 좋아요 토글) */} 
+                   {/* ✅ 좋아요 (플리 좋아요 토글) */} 
                     {playlist.isPublic && 
                     ( <button 
                         type="button" 
@@ -198,7 +199,7 @@ export default function PlaylistDetailPage() {
                     </div>
                     </div>
 
-                    <button
+                   <button
                     type="button"
                     onClick={() => {
                         if (tracks.length === 0) return;
@@ -230,6 +231,7 @@ export default function PlaylistDetailPage() {
             />
         </section>
 
+
         {/* 본문 */}
         <div className="mt-12 px-4 space-y-6">
             <section className="rounded-3xl bg-[#2d2d2d]/80 border border-[#2d2d2d] overflow-hidden">
@@ -241,7 +243,7 @@ export default function PlaylistDetailPage() {
                 </div>
                 </div>
 
-                <div className="mt-4 flex flex-nowrap gap-3 overflow-x-auto no-scrollbar">
+               <div className="mt-4 flex flex-nowrap gap-3 overflow-x-auto no-scrollbar">
                 {actions.filter((a) => !(isLikedSystem && a.key === "delete")).map((a) => {
                     const disabled =
                     (a.key === "play" || a.key === "shuffle"|| a.key === "delete") && selectedCount === 0;

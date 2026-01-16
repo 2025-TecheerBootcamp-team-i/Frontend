@@ -87,8 +87,10 @@ type ArtistData = {
                 hover:bg-[#1d1d1d]/70 transition
                 "
                 aria-label="왼쪽으로 이동"
-            >
-                <MdOutlineNavigateNext className="rotate-180" size={22} />
+            >   
+                <span className="rotate-180">
+                    <MdOutlineNavigateNext size={22} />
+                </span>    
             </button>
             )}
     

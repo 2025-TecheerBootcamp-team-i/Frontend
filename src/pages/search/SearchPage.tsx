@@ -17,7 +17,7 @@ function Tab({ to, label, end }: { to: string; label: string; end?: boolean }) {
             : "bg-[#4d4d4d] text-[#f6f6f6] hover:bg-[#5d5d5d]",
         ].join(" ")
       }
-    >
+    > 
       {label}
     </NavLink>
   );
