@@ -18,31 +18,54 @@ export default function SearchArtist() {
     return ALL_ARTISTS.filter((a) => a.name.toLowerCase().includes(lower));
   }, [q]);
 
-  const gridItems = artists;
-
   return (
-    <section className="w-full h-full flex flex-col rounded-3xl bg-[#2d2d2d]/80 px-10 py-12 min-h-[560px]">
-        <div  className="
-                grid
-                grid-cols-[repeat(auto-fit,minmax(180px,1fr))]
-                gap-x-10 gap-y-14
-                overflow-auto
+    <section className="w-full mt-4 rounded-3xl bg-[#2d2d2d]/80 border border-[#464646] px-8 py-10 min-h-[560px]">
+      {/* 아티스트 그리드 */}
+      <div
+        className="
+          grid
+          [grid-template-columns:repeat(4,220px)]
+          justify-center
+          gap-x-8 gap-y-12
+        "
+      >
+        {artists.map((a) => (
+          <button
+            key={a.id}
+            type="button"
+            className="
+              group
+              rounded-2xl
+              p-2
+              flex flex-col items-center text-center
+              transition
+            "
+          >
+            {/* 썸네일 */}
+            <div
+              className="
+                w-52 h-52
+                rounded-full
+                bg-[#777777]
+                border border-[#464646]
+                transition
+                hover:shadow-[0_10px_28px_rgba(0,0,0,0.38)]
               "
-            >
-            {gridItems.map((a) => (
-              <div key={a.id} className="w-full max-w-[300px] flex flex-col items-center">
-                <div className="w-40  sm:w-44 md:w-48">
-                  <div className="w-44 h-44 rounded-full bg-[#777777]" />
-                  <div className="mt-6 text-lg font-semibold text-[#f6f6f6]">{a.name}</div>
-                  <div className="mt-2 text-sm text-[#f6f6f6]">아티스트</div>
-                </div>
-              </div>
-            ))}
-        </div>
+            />
 
+            {/* 텍스트 */}
+            <div className="mt-5 text-base font-semibold text-[#f6f6f6] truncate w-full">
+              {a.name}
+            </div>
+            <div className="mt-1 text-sm text-[#f6f6f6]/60">아티스트</div>
+          </button>
+        ))}
+      </div>
+
+      {/* 결과 없음 */}
       {q && artists.length === 0 && (
-        <div className="mt-10 text-center text-sm text-[#8A8A8A]">
-          {q}에 해당 검색어의 아티스트가 없습니다.
+        <div className="mt-12 text-center text-sm text-[#8A8A8A]">
+          <span className="text-[#f6f6f6]/80">{q}</span>에 해당하는 아티스트가 없습니다.
         </div>
       )}
     </section>

@@ -1,22 +1,25 @@
-    import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-    import React, { useState, useEffect, useRef, useMemo } from "react";
-    import { MdOutlineNavigateNext } from "react-icons/md";
-    import {
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { MdOutlineNavigateNext } from "react-icons/md";
+import {
     getAllPlaylists,
     subscribePlaylists,
     getLikedPlaylistIds,
     LIKED_SYSTEM_ID,
-    } from "../../mocks/playlistMock";
+    getLikedAlbumIds,
+} from "../../mocks/playlistMock";
+import { ARTISTS } from "../../mocks/artistsMock";
 
-    type PlaylistItem = {
+type PlaylistItem = {
     id: string;
     title: string;
     owner: string;
     scope: "personal" | "shared";
     liked?: boolean;
-    };
+    kind?: "playlist" | "album" | "system";
+};
 
-    function Tab({ to, label }: { to: string; label: string }) {
+function Tab({ to, label }: { to: string; label: string }) {
     return (
         <NavLink
         to={to}
@@ -212,15 +215,26 @@
         </div>
         </section>
     );
-    }
+}
 
-    export default function MyPlaylistPage() {
+export default function MyPlaylistPage() {
     const navigate = useNavigate();
     const { pathname } = useLocation();
     const isRoot = pathname === "/my-playlists";
 
     const [personalAll, setPersonalAll] = useState<PlaylistItem[]>([]);
     const [likedAll, setLikedAll] = useState<PlaylistItem[]>([]);
+
+    const albumIndex = useMemo(() => {
+        const map = new Map<string, { title: string; owner: string }>();
+        Object.values(ARTISTS).forEach((artist) => {
+            artist.albums.forEach((alb) => {
+                map.set(alb.id, { title: alb.title, owner: artist.name });
+            });
+            });
+        return map;
+    }, []);
+
 
     useEffect(() => {
         const sync = () => {
@@ -235,6 +249,21 @@
             owner: p.owner,
             scope: "personal" as const,
             }));
+
+            const albumLikedMap = getLikedAlbumIds();
+            const albumIds = Object.keys(albumLikedMap).filter((id) => albumLikedMap[id]);
+
+            const likedAlbums: PlaylistItem[] = albumIds.map((albumId) => {
+            const meta = albumIndex.get(albumId);
+            return {
+                id: albumId,
+                title: meta?.title ?? `앨범 (${albumId})`,
+                owner: meta?.owner ?? "알 수 없음",
+                scope: "shared" as const, // 의미 없으면 personal로 둬도 됨
+                liked: true,
+                kind: "album",
+            };
+            });
 
         // ✅ 좋아요한 플레이리스트 목록
         const likedMap = getLikedPlaylistIds(); // { [id]: true/false }
@@ -253,7 +282,8 @@
 
         // ✅ 좋아요 섹션은 항상 첫 카드: "나의 좋아요 목록" + 그 뒤에 좋아요한 플리들
         const likedList: PlaylistItem[] = [
-            { id: LIKED_SYSTEM_ID, title: "나의 좋아요 목록", owner: "—", scope: "personal" },
+            { id: LIKED_SYSTEM_ID, title: "나의 좋아요 목록", owner: "—", scope: "personal", kind: "system" },
+            ...likedAlbums,
             ...likedPlaylists,
         ];
 
@@ -263,14 +293,21 @@
 
         sync();
         return subscribePlaylists(sync);
-    }, []);
+    }, [albumIndex]);
 
     const personalTop = useMemo(() => personalAll.slice(0, 6), [personalAll]);
     const likedTop = useMemo(() => likedAll.slice(0, 6), [likedAll]);
 
     const handleClickPlaylist = (id: string) => {
+        const it = likedAll.find((x) => x.id === id) || personalAll.find((x) => x.id === id);
+
+        if (it?.kind === "album") {
+            navigate(`/album/${id}`);
+            return;
+        }
         navigate(`/playlist/${id}`);
     };
+
 
     return (
         <div className="w-full min-w-0 h-full flex flex-col">

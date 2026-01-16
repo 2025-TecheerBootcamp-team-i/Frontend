@@ -72,7 +72,7 @@ function MainLayout() {
                 className="flex-1 min-h-0 overflow-auto p-4 pt-3"
                 style={{ paddingBottom: PLAYER_H }}
             >
-                <Outlet />
+                <Outlet context= {{playlists}} />
             </main>
             </div>
         </div>
@@ -80,6 +80,6 @@ function MainLayout() {
         <Player height={PLAYER_H} />
         </div>
     );
-    }
+}
 
-    export default MainLayout;
+export default MainLayout;
