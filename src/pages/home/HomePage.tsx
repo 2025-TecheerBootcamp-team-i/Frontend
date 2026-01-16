@@ -1,19 +1,28 @@
-    import { useRef, useState, useEffect } from "react";
-    import { useNavigate } from "react-router-dom";
-    import { TOP100, DAILY, AI } from "../../mocks/chart";
+import { useRef, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { TOP100, DAILY, AI } from "../../mocks/chart";
+import { usePlayer } from "../../player/PlayerContext";
+import type { PlayerTrack } from "../../player/PlayerContext";
 
-    import { MdOutlineNavigateNext } from "react-icons/md";
-    import { FaPlay } from "react-icons/fa6";
+import { MdOutlineNavigateNext } from "react-icons/md";
+import { FaPlay } from "react-icons/fa6";
 
-    type Artist = { id: string; name: string };
+type Artist = { id: string; name: string };
 
-    const artists: Artist[] = Array.from({ length: 8 }).map((_, i) => ({
+const artists: Artist[] = Array.from({ length: 8 }).map((_, i) => ({
     id: String(i + 1),
     name: `인기 아티스트 ${i + 1}`,
-    }));
+}));
+
+type ChartRow =
+    | (typeof TOP100)[number]
+    | (typeof DAILY)[number]
+    | (typeof AI)[number];
+
 
 function HomePage() {
     const navigate = useNavigate();
+    const { setTrackAndPlay } = usePlayer();
 
     const goChart = () => {
         const map = { TOP100: "top100", DAILY: "daily", AI: "ai" } as const;
@@ -67,6 +76,27 @@ function HomePage() {
     const currentChart = tab === "DAILY" ? DAILY : tab === "AI" ? AI : TOP100;
     const previewRows = currentChart.slice(0, 6);
 
+    const toTrack = (row: ChartRow): PlayerTrack => {
+            const coverUrl =
+            "coverUrl" in row && typeof row.coverUrl === "string" ? row.coverUrl : undefined;
+        
+            const audioUrl =
+            "audioUrl" in row && typeof row.audioUrl === "string"
+                ? row.audioUrl
+                : "/audio/sample.mp3";
+        
+            return {
+            id: row.id,
+            title: row.title,
+            artist: row.artist,
+            coverUrl,
+            audioUrl,
+            duration: row.duration,
+            // album 있으면 추가 가능:
+            // album: "album" in row && typeof row.album === "string" ? row.album : undefined,
+            };
+    };
+    
     return (
         <>
         {/* 인기 아티스트 */}
@@ -164,7 +194,7 @@ function HomePage() {
                             type="button"
                             onClick={(e) => {
                                 e.stopPropagation();
-                                navigate(`/track/${row.id}`)
+                                setTrackAndPlay(toTrack(row));
                             }}
                             className="absolute opacity-0 transition-opacity group-hover:opacity-100 text-[#AFDEE2]">
                             <FaPlay />
@@ -219,6 +249,6 @@ function HomePage() {
         </section>
         </>
     );
-    }
+}
 
-    export default HomePage;
+export default HomePage;

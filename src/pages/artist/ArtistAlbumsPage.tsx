@@ -1,10 +1,10 @@
-    import { useMemo } from "react";
-    import { useNavigate, useParams } from "react-router-dom";
-    import { IoChevronBack } from "react-icons/io5";
+import { useMemo } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { IoChevronBack } from "react-icons/io5";
 
-    import { ARTISTS } from "../../mocks/artistsMock";
+import { ARTISTS } from "../../mocks/artistsMock";
 
-    export default function ArtistAlbumsPage() {
+export default function ArtistAlbumsPage() {
     const navigate = useNavigate();
     const { artistId } = useParams();
 
@@ -35,7 +35,7 @@
         <div className="w-full min-w-0">
         {/* 상단 간단 헤더(뒤로 + 타이틀) */}
         {/* 타이틀 라인 */}
-        <div className="sticky top-0 z-20 pt-5 px-4 mb-4">
+        <div className="sticky bg-[#2d2d2d] border-b border-[#464646] pb-4 top-0 z-20 pt-5 px-4 mb-4">
             <div className="flex items-center gap-3">
             <button
                 type="button"
@@ -92,4 +92,4 @@
         </section>
         </div>
     );
-    }
+}

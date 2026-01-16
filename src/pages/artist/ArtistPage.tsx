@@ -289,10 +289,8 @@ export default function ArtistPage() {
             {/* 테이블 */}
             <div className="px-6 pb-3">
                 {artist.tracks.map((t) => (
-                <button
+                <div
                     key={t.id}
-                    type="button"
-                    onClick={() => navigate(`/track/${t.id}`)}
                     className={[
                     "w-full text-left",
                     "grid grid-cols-[56px_1fr_90px] min-[1200px]:grid-cols-[56px_1fr_100px_450px] items-center",
@@ -313,7 +311,7 @@ export default function ArtistPage() {
                     </div>
                     <div className="hidden min-[1200px]:block text-sm text-[#F6F6F6]/70 text-right">{t.album}</div>
                     <div className="text-sm text-[#F6F6F6]/70 text-right">{t.duration}</div>
-                </button>
+                </div>
                 ))}
                 <div className="flex justify-center border-[#464646] p-4 text-[#D9D9D9]">
                     <button

@@ -14,6 +14,7 @@ import PlaylistPage from "./pages/album/PlaylistPage";
 import MyPlaylistPage from "./pages/profile/MyPlaylistPage";
 import MyPlaylistPersonal from "./pages/profile/MyPlaylistPersonal";
 import MyPlaylistLiked from "./pages/profile/MyPlaylistLiked";
+import PlaylistEdit from "./pages/album/PlaylistEdit";
 
 import ArtistPage from "./pages/artist/ArtistPage";
 import ArtistTracksPage from "./pages/artist/ArtistTracksPage";
@@ -52,7 +53,7 @@ export default function App() {
           <Route path="liked" element={<MyPlaylistLiked />} />
         </Route>
         <Route path="/ai" element={<AiCreatePage />} />
-          <Route path="aisong/:id" element={<AiSongPage />} />
+        <Route path="aisong/:id" element={<AiSongPage />} />
         <Route path="/search" element={<SearchPage />}>
           <Route index element={<SearchAll />} />
           <Route path="artist" element={<SearchArtist />} />
@@ -68,6 +69,8 @@ export default function App() {
         <Route path="/artists/:artistId/albums" element={<ArtistAlbumsPage />} />
         <Route path="/album/:albumId" element={<AlbumPage />} />
         <Route path="/playlist/:playlistId" element={<PlaylistPage />} />
+        <Route path="/playlist/:playlistId/edit" element={<PlaylistEdit />} />
+        
       </Route>
       
       

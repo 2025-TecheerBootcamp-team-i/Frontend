@@ -1,11 +1,16 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 
 import { IoChevronBack } from "react-icons/io5";
 import { IoIosSettings } from "react-icons/io";
-import { FaUserFriends } from "react-icons/fa";
 import { MdOutlineNavigateNext } from "react-icons/md";
 import { FaPlay } from "react-icons/fa6";
+
+import { usePlayer } from "../../player/PlayerContext";
+import type { PlayerTrack } from "../../player/PlayerContext";
+import type { Playlist } from "../../components/layout/MainLayout";
+
+type LayoutCtx = { playlists: Playlist[] };
 
 type TopRow = {
     id: string;
@@ -143,8 +148,21 @@ function HorizontalScroller({
     );
     }
 
-    export default function MyPage() {
+export default function MyPage() {
+    const { playlists } = useOutletContext<LayoutCtx>();
     const navigate = useNavigate();
+
+    const { setTrackAndPlay } = usePlayer();
+
+    const toTrack = (r: TopRow): PlayerTrack => ({
+    id: r.id,
+    title: r.title,
+    artist: r.artist,
+    audioUrl: "/audio/sample.mp3", // ✅ 임시(나중에 실제 URL로 교체)
+    // coverUrl 필요하면 추가:
+    // coverUrl: "/images/sample.jpg",
+    });
+
 
     // ✅ 추가: 분석 대시보드 탭 상태
     const [range, setRange] = useState<"month" | "all">("month");
@@ -236,15 +254,6 @@ function HorizontalScroller({
                             >
                             <IoIosSettings size={20} />
                             수정 및 설정
-                            </button>
-
-                            <button
-                            type="button"
-                            onClick={() => alert("친구 목록(준비중)")}
-                            className="flex items-center gap-2 hover:underline text-[#F6F6F6]"
-                            >
-                            <FaUserFriends size={20} />
-                            친구 목록
                             </button>
                         </div>
                         </div>
@@ -408,11 +417,11 @@ function HorizontalScroller({
 
                     <HorizontalScroller gradientFromClass="from-[#2d2d2d]">
                     <div className="flex gap-1 w-max">
-                        {Array.from({ length: 12 }).map((_, i) => (
+                        {playlists.slice(0, 12).map((p) => (
                         <button
-                            key={i}
+                            key={p.id}
                             type="button"
-                            onClick={() => alert("플레이리스트 상세(준비중)")}
+                            onClick={() => navigate(`/playlist/${p.id}`)}   // ✅ 상세 연결
                             className="
                             w-[145px]
                             shrink-0
@@ -424,20 +433,20 @@ function HorizontalScroller({
                             text-left
                             "
                         >
-                            <div className="w-full aspect-square rounded-xl bg-[#777777]" />
+                            <div className="w-full aspect-square rounded-xl bg-[#777777] overflow-hidden">
+                                {p.coverUrl ? (
+                                    <img src={p.coverUrl} alt={p.title} className="w-full h-full object-cover" />
+                                ) : null}
+                            </div>
 
                             <div className="mt-3">
-                            <div className="text-sm font-medium text-[#F6F6F6] truncate">
-                                플리명
-                            </div>
-                            <div className="mt-1 text-xs text-[#999999] truncate">
-                                by 제작자
-                            </div>
+                                <div className="text-sm font-medium text-[#F6F6F6] truncate">{p.title}</div>
                             </div>
                         </button>
                         ))}
                     </div>
                     </HorizontalScroller>
+
                 </div>
 
                 {/* 나의 AI 생성곡 */}
@@ -520,6 +529,7 @@ function HorizontalScroller({
                 <div className="divide-y divide-[#464646]">
                     {top50Preview.map((r, idx) => (
                     <div
+                        key={r.id}
                         className="
                         group
                         w-full
@@ -546,10 +556,13 @@ function HorizontalScroller({
                                 {/* hover: 재생 아이콘 */}
                                 <button 
                                     type="button"
-                                    key={r.id}
-                                    onClick={() => navigate(`/track/${r.id}`)}
-                                    className="absolute opacity-0 transition-opacity group-hover:opacity-100 text-[#AFDEE2]">
-                                <FaPlay />
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setTrackAndPlay(toTrack(r)); // ✅ 하단 플레이어 세팅+재생
+                                    }}
+                                    className="absolute opacity-0 transition-opacity group-hover:opacity-100 text-[#AFDEE2]"
+                                    aria-label={`${r.title} 재생`}
+                                    title="재생"><FaPlay />
                                 </button>
                             </div>
                             </div>
