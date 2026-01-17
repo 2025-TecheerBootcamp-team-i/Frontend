@@ -45,7 +45,7 @@ function Header() {
 
       <button
         type="button"
-        onClick={() => navigate("/HomePage")}
+        onClick={() => navigate("/home")}
         aria-label="홈으로 이동"
         title="홈"
         className="
@@ -59,6 +59,7 @@ function Header() {
             "
       >
         <TiHome size={25} />
+
       </button>
       {/* ✅ form으로 감싸면 Enter 키 입력이 "submit"으로 동작함 */}
       {/* 검색바 */}
