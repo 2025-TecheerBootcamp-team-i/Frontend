@@ -5,10 +5,19 @@ import { IoChevronBack } from "react-icons/io5";
 import { IoIosSettings } from "react-icons/io";
 import { MdOutlineNavigateNext } from "react-icons/md";
 import { FaPlay } from "react-icons/fa6";
+import { MdEdit } from "react-icons/md";
 
 import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
 import type { Playlist } from "../../components/layout/MainLayout";
+
+type Profile = {
+  name: string;
+  avatar?: string; // dataURL(base64) 또는 이미지 URL(나중에 백엔드 붙이면 URL로 교체)
+};
+
+const PROFILE_KEY = "profile";
+
 
 type LayoutCtx = { playlists: Playlist[] };
 
@@ -152,6 +161,51 @@ export default function MyPage() {
     const { playlists } = useOutletContext<LayoutCtx>();
     const navigate = useNavigate();
 
+     // ✅ 프로필(실제 반영 값)
+    const [profile, setProfile] = useState<Profile>(() => {
+        const raw = localStorage.getItem(PROFILE_KEY);
+        if (raw) {
+        try {
+            return JSON.parse(raw) as Profile;
+        } catch {}
+        }
+        return {
+        name: "Name",
+        avatar: "", // 기본 비워두면 회색 원 표시
+        };
+    });
+
+    // ✅ 모달 열림/닫힘
+    const [editOpen, setEditOpen] = useState(false);
+
+    // ✅ 모달에서 편집 중인 임시 값(draft)
+    const [draft, setDraft] = useState<Profile>(profile);
+
+    // ✅ 모달 열릴 때 현재 profile 값을 draft로 복사
+    useEffect(() => {
+        if (editOpen) setDraft(profile);
+    }, [editOpen, profile]);
+
+    // ✅ 모달 열려있을 때 스크롤 잠금 (배경 스크롤 방지)
+    useEffect(() => {
+        if (!editOpen) return;
+        const prev = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        return () => {
+        document.body.style.overflow = prev;
+        };
+    }, [editOpen]);
+
+    const saveProfile = () => {
+        const next = {
+        ...draft,
+        name: draft.name.trim() || "Name",
+        };
+        setProfile(next);
+        localStorage.setItem(PROFILE_KEY, JSON.stringify(next));
+        setEditOpen(false);
+    };
+
     const { setTrackAndPlay } = usePlayer();
 
     const toTrack = (r: TopRow): PlayerTrack => ({
@@ -212,7 +266,7 @@ export default function MyPage() {
     };
 
     return (
-        <div className="w-full h-full flex flex-col">
+    <div className="w-full h-full flex flex-col">
         {/* 타이틀 라인 */}
         <div className="sticky top-0 z-20 pt-2 mb-4">
             <div className="flex items-center gap-3">
@@ -238,26 +292,32 @@ export default function MyPage() {
                 <div className="space-y-6">
                     {/* 프로필 카드 */}
                     <div className="rounded-3xl border border-[#2d2d2d] bg-[#2d2d2d]/80 p-6">
-                    <div className="flex items-center gap-6">
-                        <div className="w-28 h-28 rounded-full bg-[#777777]" />
-
-                        <div className="min-w-0">
-                        <div className="text-2xl font-semibold text-[#F6F6F6]">
-                            Name
+                        <div className="flex items-center gap-6">
+                                <div className="w-28 h-28 rounded-full bg-[#777777] overflow-hidden">
+                                    {profile.avatar ? (
+                                    <img
+                                        src={profile.avatar}
+                                        alt="profile"
+                                        className="w-full h-full object-cover"
+                                    />
+                                    ) : null}
+                                </div>
+                                <div className="min-w-0 flex flex-col">
+                                    <div className="text-2xl font-semibold text-[#F6F6F6]">
+                                        {profile.name}
+                                    </div>
+                                <div className="mt-3 text-sm text-[#F6F6F6]">
+                                    <button
+                                    type="button"
+                                    onClick={() => setEditOpen(true)}
+                                    className="flex items-center gap-1 hover:underline text-[#F6F6F6]"
+                                    >
+                                    <IoIosSettings size={20} />
+                                    수정 및 설정
+                                    </button>
+                                </div>
+                                </div>
                         </div>
-
-                        <div className="mt-3 text-sm text-[#F6F6F6] space-y-2">
-                            <button
-                            type="button"
-                            onClick={() => alert("수정 및 설정(준비중)")}
-                            className="flex items-center gap-1 hover:underline text-[#F6F6F6]"
-                            >
-                            <IoIosSettings size={20} />
-                            수정 및 설정
-                            </button>
-                        </div>
-                        </div>
-                    </div>
                     </div>
 
                     {/* 분석 대시보드 카드 */}
@@ -592,9 +652,124 @@ export default function MyPage() {
                     ))}
                 </div>
                 </aside>
-            </div>
-            </div>
-        </div>
+                {/* /우측 */}
+                </div>
+                {/* /grid */}
+                </div>
+                {/* /min-w container */}
+                </div>
+                {/* /scroll 영역 */}
+                
+                {/* =======================
+                    ✅ 프로필 편집 모달
+                ======================= */}
+                {editOpen && (
+                <div className="fixed inset-0 z-50">
+                    {/* 딤/배경 */}
+                    <button
+                    type="button"
+                    className="absolute inset-0 bg-black/40"
+                    onClick={() => setEditOpen(false)}
+                    aria-label="닫기"
+                    />
+
+                    {/* 모달 카드 */}
+                    <div className="
+                            absolute left-1/2 top-1/2 w-[360px]
+                            -translate-x-1/2 -translate-y-1/2
+                            rounded-3xl bg-[#2d2d2d]
+                            border border-white/10 p-6
+                            shadow-[0_0px_200px_rgba(0,0,0,0.2)]
+                            ">
+
+                    <h2 className="text-center text-[#f6f6f6] text-xl font-semibold mb-4">
+                        프로필 세부 설정
+                    </h2>
+
+                    {/* 아바타 */}
+                    <div className="
+                            group
+                            relative mx-auto w-40 h-40
+                            rounded-full bg-[#777777]
+                            overflow-hidden
+                            flex items-center justify-center
+                            shadow-[0_0px_20px_rgba(0,0,0,0.55)]
+                            ">
+                        {draft.avatar ? (
+                        <img
+                            src={draft.avatar}
+                            alt="avatar"
+                            className="w-full h-full object-cover"
+                        />
+                        ) : null}
+
+                        {/* 이미지 변경 버튼(연필) */}
+                        <label className="absolute inset-0 flex items-center justify-center cursor-pointer">
+                        <span className="
+                            w-9 h-9 rounded-full 
+                            bg-black/35 text-white/90
+                            flex items-center justify-center
+                            opacity-0 group-hover:opacity-100
+                            transition-opacity duration-200">
+                            <MdEdit />
+                        </span>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                                setDraft((prev) => ({
+                                ...prev,
+                                avatar: String(reader.result || ""),
+                                }));
+                            };
+                            reader.readAsDataURL(file);
+                            }}
+                        />
+                        </label>
+                    </div>
+
+                    {/* 입력 */}
+                    <div className="mt-6 space-y-3">
+                        <input
+                        value={draft.name}
+                        onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))}
+                        placeholder="Name"
+                        className="
+                            w-full h-11 rounded-xl bg-[#777777]/70
+                            px-4 text-sm text-white
+                            placeholder:text-white/50
+                            outline-none
+                            focus:ring-2 focus:ring-white/30
+                        "
+                        />
+                    </div>
+
+                    {/* 버튼 */}
+                    <div className="mt-5 flex items-center justify-between">
+                        <button
+                        type="button"
+                        onClick={() => setEditOpen(false)}
+                        className="px-4 h-10 rounded-full bg-white/10 text-white/80 hover:bg-white/15 transition text-sm"
+                        >
+                        취소
+                        </button>
+                        <button
+                        type="button"
+                        onClick={saveProfile}
+                        className="px-4 h-10 rounded-full bg-white/10 text-white/80 hover:bg-white/15 transition text-sm"
+                        >
+                        저장
+                        </button>
+                    </div>
+                    </div>
+                </div>
+                )}
         </div>
     );
 }

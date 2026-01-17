@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import MainLayout from "./components/layout/MainLayout";
 import MainLayout2 from "./components/layout/MainLayout2";
 import PlainLayout from "./components/layout/PlainLayout";
+import Nolayout from "./components/layout/Nolayout";
 
 import LoginPage from "./pages/auth/LoginPage";
 import SignUpPage from "./pages/auth/SignupPage";
@@ -37,13 +38,10 @@ import ChartAI from "./pages/chart/ChartAI";
 import NowPlayingPage from "./pages/song/NowPlayingPage";
 import { PlayerProvider } from "./player/PlayerContext";
 
-
 export default function App() {
   return (
     <PlayerProvider>
      <Routes>
-    {/* ✅ 첫 진입: / -> /login */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
 
       {/* ✅ 사이드바가 필요한 모든 페이지 */}
       <Route element={<MainLayout />}>
@@ -78,15 +76,19 @@ export default function App() {
         <Route path="/album/:albumId" element={<AlbumPage />} />
         <Route path="/playlist/:playlistId" element={<PlaylistPage />} />
         <Route path="/playlist/:playlistId/edit" element={<PlaylistEdit />} />
-        
       </Route>
       
       
-      {/* ✅ 사이드바 없는 구간 (로그인/회원가입 같은 것만 두는 용도) */}
+      {/* ✅ 사이드바 없는 구간 (곡 상세보기 용도) */}
       <Route element={<PlainLayout />}>
+        <Route path="/now-playing" element={<NowPlayingPage />} />
+      </Route>
+
+      {/* ✅ 사이드바, 헤더, 플레이바 없는 구간 (로그인/회원가입 용도) */}
+      <Route element={<Nolayout />}>
+        <Route index element={<LoginPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />
-        <Route path="/now-playing" element={<NowPlayingPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
