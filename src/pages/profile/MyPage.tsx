@@ -586,9 +586,9 @@ export default function MyPage() {
                 <div className="mt-4 border-b border-[#464646]" />
 
                 <div className="mt-3 px-8 grid grid-cols-[100px_200px_1fr] items-center text-sm text-[#F6F6F6]/80">
-                    <div className="border-l border-[#f6f6f6]/20 pl-2">순위</div>
-                    <div className="border-l border-[#f6f6f6]/20 pl-2">곡정보</div>
-                    <div className="border-l border-[#f6f6f6]/20 pl-2">
+                    <div className="border-l border-[#f6f6f6]/60 pl-4">순위</div>
+                    <div className="border-l border-[#f6f6f6]/60 pl-4">곡정보</div>
+                    <div className="border-l border-[#f6f6f6]/60 pl-4">
                     총 들은 수
                     </div>
                 </div>
@@ -613,17 +613,17 @@ export default function MyPage() {
                             idx % 2 === 0 ? "bg-[#3d3d3d]/80" : "bg-[#2d2d2d]/80",
                             ].join(" ")}
                         >
-                        {/* ✅ 순위 (행 hover 시 아이콘으로 전환) */}
-                        <div className="border-l border-[#464646] text-left font-semibold text-[#F6F6F6]">
-                            <div className="flex items-center gap-3">
-                            <div className="relative w-8 flex items-center justify-center">
-                                {/* 기본: 순위 */}
-                                <span className="text-sm transition-opacity group-hover:opacity-0">
-                                {r.rank}
-                                </span>
+                            {/* ✅ 순위 (행 hover 시 아이콘으로 전환) */}
+                            <div className="pl-2 border-l border-[#464646] text-left font-semibold text-[#F6F6F6]">
+                                <div className="flex items-center gap-3">
+                                <div className="relative w-8 flex items-center justify-center">
+                                    {/* 기본: 순위 */}
+                                    <span className="text-sm transition-opacity group-hover:opacity-0">
+                                        {r.rank}
+                                    </span>
 
-                                {/* hover: 재생 아이콘 */}
-                                <button 
+                                    {/* hover: 재생 아이콘 */}
+                                    <button 
                                     type="button"
                                     onClick={(e) => {
                                         e.stopPropagation();
@@ -638,21 +638,26 @@ export default function MyPage() {
                                 </div>
                             </div>
 
-                        {/* 곡정보 */}
-                        <div className="pl-2 min-w-0 border-l border-[#464646]">
-                            <div className="flex items-center gap-5 min-w-0">
-                            <div className="h-12 w-12 shrink-0 rounded-xl bg-[#777777]" />
-                            <div className="min-w-0">
-                                <div className="truncate text-sm text-[#F6F6F6]">
-                                {r.title}
+                            {/* 곡정보 */}
+                            <div className="pl-4 min-w-0 border-l border-[#464646]">
+                                <div className="flex items-center gap-5 min-w-0">
+                                <div className="h-12 w-12 shrink-0 rounded-xl bg-[#777777]" />
+                                <div className="min-w-0">
+                                    <div className="truncate text-sm text-[#F6F6F6]">
+                                    {r.title}
+                                    </div>
+                                    <div className="truncate text-xs text-[#999999]">
+                                    {r.artist}
+                                    </div>
                                 </div>
                                 </div>
                             </div>
 
-                        {/* 총 들은 수 */}
-                        <div className="border-l border-[#464646] pl-2 text-left text-sm font-semibold text-[#F6F6F6] whitespace-nowrap">
-                            {r.total}번
-                        </div>
+                            {/* 총 들은 수 */}
+                            <div className="border-l border-[#464646] pl-4 text-left text-sm font-semibold text-[#F6F6F6] whitespace-nowrap">
+                                {r.total}번
+                            </div>
+                            </div>
                         </div>
                     ))}
                 </div>
