@@ -5,10 +5,18 @@ import { IoChevronBack } from "react-icons/io5";
 import { IoIosSettings } from "react-icons/io";
 import { MdOutlineNavigateNext } from "react-icons/md";
 import { FaPlay } from "react-icons/fa6";
+import { MdEdit } from "react-icons/md";
 
 import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
 import type { Playlist } from "../../components/layout/MainLayout";
+
+type Profile = {
+  name: string;
+  avatar?: string; // dataURL(base64) 또는 이미지 URL(나중에 백엔드 붙이면 URL로 교체)
+};
+
+const PROFILE_KEY = "profile";
 
 type LayoutCtx = { playlists: Playlist[] };
 
@@ -151,6 +159,55 @@ function HorizontalScroller({
 export default function MyPage() {
     const { playlists } = useOutletContext<LayoutCtx>();
     const navigate = useNavigate();
+    
+
+    // ✅ 프로필(실제 반영 값)
+    const [profile, setProfile] = useState<Profile>(() => {
+        const raw = localStorage.getItem(PROFILE_KEY);
+        if (raw) {
+        try {
+            return JSON.parse(raw) as Profile;
+        } catch {}
+        }
+        return {
+        name: "Name",
+        avatar: "", // 기본 비워두면 회색 원 표시
+        };
+    });
+
+    // ✅ 모달 열림/닫힘
+    const [editOpen, setEditOpen] = useState(false);
+
+    // ✅ 모달에서 편집 중인 임시 값(draft)
+    const [draft, setDraft] = useState<Profile>(profile);
+
+    // ✅ 모달 열릴 때 현재 profile 값을 draft로 복사
+    useEffect(() => {
+        if (editOpen) setDraft(profile);
+    }, [editOpen, profile]);
+
+    // ✅ 모달 열려있을 때 스크롤 잠금 (배경 스크롤 방지)
+    useEffect(() => {
+        if (!editOpen) return;
+        const prev = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        return () => {
+        document.body.style.overflow = prev;
+        };
+    }, [editOpen]);
+
+    const saveProfile = () => {
+        const next = {
+        ...draft,
+        name: draft.name.trim() || "Name",
+        };
+        setProfile(next);
+        localStorage.setItem(PROFILE_KEY, JSON.stringify(next));
+        setEditOpen(false);
+    };
+
+    
+
 
     const { setTrackAndPlay } = usePlayer();
 
@@ -212,210 +269,220 @@ export default function MyPage() {
     };
 
     return (
-        <div className="w-full h-full flex flex-col">
+    <div className="w-full h-full flex flex-col">
         {/* 타이틀 라인 */}
         <div className="sticky top-0 z-20 pt-2 mb-4">
-            <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3">
             <button
-                type="button"
-                onClick={() => navigate(-1)}
-                className="p-2 text-[#F6F6F6] rounded-full hover:bg-white/10 transition"
-                aria-label="뒤로가기"
+            type="button"
+            onClick={() => navigate(-1)}
+            className="p-2 text-[#F6F6F6] rounded-full hover:bg-white/10 transition"
+            aria-label="뒤로가기"
             >
-                <IoChevronBack size={22} />
+            <IoChevronBack size={22} />
             </button>
             <h1 className="text-2xl font-semibold text-[#F6F6F6]">마이페이지</h1>
-            </div>
+        </div>
         </div>
 
+        {/* ✅ 스크롤 영역 */}
         <div className="flex-1 overflow-y-auto overflow-x-auto">
-            <div className="w-full min-w-[1050px] mx-auto">
+        <div className="w-full min-w-[1050px] mx-auto">
             {/* 본문: 고정 2컬럼 */}
             <div className="pt-6 grid grid-cols-12 gap-6">
-                {/* 좌측 */}
-                <section className="col-span-6 space-y-6">
+            {/* 좌측 */}
+            <section className="col-span-6 space-y-6">
                 {/* ✅ 프로필 + 분석 */}
                 <div className="space-y-6">
-                    {/* 프로필 카드 */}
-                    <div className="rounded-3xl border border-[#2d2d2d] bg-[#2d2d2d]/80 p-6">
+                {/* 프로필 카드 */}
+                <div className="rounded-3xl border border-[#2d2d2d] bg-[#2d2d2d]/80 p-6">
                     <div className="flex items-center gap-6">
-                        <div className="w-28 h-28 rounded-full bg-[#777777]" />
+                    <div className="w-28 h-28 rounded-full bg-[#777777] overflow-hidden">
+                        {profile.avatar ? (
+                        <img
+                            src={profile.avatar}
+                            alt="profile"
+                            className="w-full h-full object-cover"
+                        />
+                        ) : null}
+                    </div>
+                        <div className="min-w-0 flex flex-col">
+                            <div className="text-2xl font-semibold text-[#F6F6F6]">
+                                {profile.name}
+                            </div>
+                       
 
-                        <div className="min-w-0">
-                        <div className="text-2xl font-semibold text-[#F6F6F6]">
-                            Name
-                        </div>
-
-                        <div className="mt-3 text-sm text-[#F6F6F6] space-y-2">
+                        <div className="mt-3 text-sm text-[#F6F6F6]">
                             <button
-                            type="button"
-                            onClick={() => alert("수정 및 설정(준비중)")}
-                            className="flex items-center gap-1 hover:underline text-[#F6F6F6]"
+                                type="button"
+                                onClick={() => setEditOpen(true)}
+                                className="flex items-center gap-1 hover:underline text-[#F6F6F6]"
                             >
-                            <IoIosSettings size={20} />
-                            수정 및 설정
+                                <IoIosSettings size={20} />
+                                수정 및 설정
                             </button>
-                        </div>
-                        </div>
-                    </div>
-                    </div>
-
-                    {/* 분석 대시보드 카드 */}
-                    <div
-                    className="
-                        rounded-3xl p-[2px]
-                        bg-gradient-to-r
-                        from-[#2d2d2d]
-                        via-[#5a5a5a]
-                        to-[#2d2d2d]
-                    "
-                    >
-                    <div className="rounded-3xl bg-[#2d2d2d]/80 p-6">
-                        <div className="flex items-center justify-between">
-                        <div className="px-2 text-2xl font-semibold text-[#F6F6F6]">
-                            개인 음악 분석 데이터
-                        </div>
-
-                        {/* ✅ 여기: 버튼 클릭하면 탭 넘어가게 */}
-                        <div className="px-2 flex gap-2">
-                            {tabBtn("month", "이번 달")}
-                            {tabBtn("all", "전체")}
-                        </div>
-                        </div>
-
-                        <div className="mt-4 grid grid-cols-3 gap-4">
-                        <div className="rounded-3xl bg-[#4b4b4b] border border-[#2d2d2d] p-4">
-                            <div className="text-sm text-[#999999]">
-                            {range === "month" ? "이번 달 청취" : "누적 청취"}
-                            </div>
-                            <div className="mt-2 text-2xl font-semibold text-[#F6F6F6]">
-                            {dashboard.listen.value}
-                            </div>
-                            <div className="mt-2 text-xs text-[#999999]">
-                            {dashboard.listen.sub}
-                            </div>
-                        </div>
-
-                        <div className="rounded-3xl bg-[#4b4b4b] border border-[#2d2d2d] p-4">
-                            <div className="text-sm text-[#999999]">Top 장르</div>
-                            <div className="mt-2 text-2xl font-semibold text-[#AFDEE2]">
-                            {dashboard.genre.value}
-                            </div>
-                            <div className="mt-2 text-xs text-[#999999]">
-                            {dashboard.genre.sub}
-                            </div>
-                        </div>
-
-                        <div className="rounded-3xl bg-[#4b4b4b] border border-[#2d2d2d] p-4">
-                            <div className="text-sm text-[#999999]">
-                            AI 생성 활동
-                            </div>
-                            <div className="mt-2 text-2xl font-semibold text-[#F6F6F6]">
-                            {dashboard.ai.value}
-                            </div>
-                            <div className="mt-2 text-xs text-[#999999]">
-                            {dashboard.ai.sub}
-                            </div>
-                        </div>
-                        </div>
-
-                        <div className="mt-5 grid grid-cols-2 gap-4">
-                        <div className="rounded-3xl bg-[#4b4b4b] border border-[#2d2d2d] p-4">
-                            <div className="text-base font-semibold text-[#F6F6F6] mb-3">
-                            Top 아티스트
-                            </div>
-
-                            <div className="space-y-3">
-                            {["아티스트A", "아티스트B", "아티스트C"].map((name, i) => (
-                                <div key={name} className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-xl bg-[#777777]" />
-
-                                <div className="flex-1 min-w-0">
-                                    <div className="text-sm text-[#F6F6F6] truncate">
-                                    {i + 1}. {name}
-                                    </div>
-                                    <div className="text-xs text-[#999999]">
-                                    반복 재생 높음
-                                    </div>
-                                </div>
-
-                                <div className="text-sm font-semibold text-[#F6F6F6]/80 whitespace-nowrap">
-                                    {Math.max(1, 12 - i * 4)}%
-                                </div>
-                                </div>
-                            ))}
-                            </div>
-                        </div>
-
-                        <div className="rounded-3xl bg-[#4b4b4b] border border-[#2d2d2d] p-4">
-                            <div className="text-base font-semibold text-[#F6F6F6] mb-3">
-                            분위기/키워드
-                            </div>
-
-                            <div className="flex flex-wrap gap-2">
-                            {["새벽감성", "잔잔함", "집중", "드라이브", "감성팝", "힐링"].map(
-                                (t) => (
-                                <span
-                                    key={t}
-                                    className="
-                                    px-3 py-2 rounded-full
-                                    bg-[#3d3d3d] border border-[#2d2d2d]
-                                    text-sm text-[#AFDEE2]/85
-                                    "
-                                >
-                                    {t}
-                                </span>
-                                )
-                            )}
-                            </div>
-                        </div>
-                        </div>
-
-                        <div className="mt-5 rounded-3xl bg-[#4b4b4b] border border-[#2d2d2d] p-4 text-center">
-                        <div className="text-sm text-[#999999]">
-                            {range === "month" ? "이번 달 인사이트" : "전체 인사이트"}
-                        </div>
-                        <div className="mt-2 text-base text-[#F6F6F6]">
-                            {dashboard.insight.text}{" "}
-                            <span className="font-semibold text-[#AFDEE2]">
-                            {dashboard.insight.main1}
-                            </span>
-                            에{" "}
-                            <span className="font-semibold text-[#AFDEE2]">
-                            {dashboard.insight.main2}
-                            </span>
-                            을(를) 더 자주 들었어요 🎧
-                        </div>
                         </div>
                     </div>
                     </div>
                 </div>
+                {/* /프로필 카드 */}
+
+                {/* 분석 대시보드 카드 */}
+                <div
+                    className="
+                    rounded-3xl p-[2px]
+                    bg-gradient-to-r
+                    from-[#2d2d2d]
+                    via-[#5a5a5a]
+                    to-[#2d2d2d]
+                    "
+                >
+                    <div className="rounded-3xl bg-[#2d2d2d]/80 p-6">
+                    <div className="flex items-center justify-between">
+                        <div className="px-2 text-2xl font-semibold text-[#F6F6F6]">
+                        개인 음악 분석 데이터
+                        </div>
+
+                        {/* ✅ 여기: 버튼 클릭하면 탭 넘어가게 */}
+                        <div className="px-2 flex gap-2">
+                        {tabBtn("month", "이번 달")}
+                        {tabBtn("all", "전체")}
+                        </div>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-3 gap-4">
+                        <div className="rounded-3xl bg-[#4b4b4b] border border-[#2d2d2d] p-4">
+                        <div className="text-sm text-[#999999]">
+                            {range === "month" ? "이번 달 청취" : "누적 청취"}
+                        </div>
+                        <div className="mt-2 text-2xl font-semibold text-[#F6F6F6]">
+                            {dashboard.listen.value}
+                        </div>
+                        <div className="mt-2 text-xs text-[#999999]">
+                            {dashboard.listen.sub}
+                        </div>
+                        </div>
+
+                        <div className="rounded-3xl bg-[#4b4b4b] border border-[#2d2d2d] p-4">
+                        <div className="text-sm text-[#999999]">Top 장르</div>
+                        <div className="mt-2 text-2xl font-semibold text-[#AFDEE2]">
+                            {dashboard.genre.value}
+                        </div>
+                        <div className="mt-2 text-xs text-[#999999]">
+                            {dashboard.genre.sub}
+                        </div>
+                        </div>
+
+                        <div className="rounded-3xl bg-[#4b4b4b] border border-[#2d2d2d] p-4">
+                        <div className="text-sm text-[#999999]">AI 생성 활동</div>
+                        <div className="mt-2 text-2xl font-semibold text-[#F6F6F6]">
+                            {dashboard.ai.value}
+                        </div>
+                        <div className="mt-2 text-xs text-[#999999]">
+                            {dashboard.ai.sub}
+                        </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-5 grid grid-cols-2 gap-4">
+                        <div className="rounded-3xl bg-[#4b4b4b] border border-[#2d2d2d] p-4">
+                        <div className="text-base font-semibold text-[#F6F6F6] mb-3">
+                            Top 아티스트
+                        </div>
+
+                        <div className="space-y-3">
+                            {["아티스트A", "아티스트B", "아티스트C"].map((name, i) => (
+                            <div key={name} className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-xl bg-[#777777]" />
+
+                                <div className="flex-1 min-w-0">
+                                <div className="text-sm text-[#F6F6F6] truncate">
+                                    {i + 1}. {name}
+                                </div>
+                                <div className="text-xs text-[#999999]">
+                                    반복 재생 높음
+                                </div>
+                                </div>
+
+                                <div className="text-sm font-semibold text-[#F6F6F6]/80 whitespace-nowrap">
+                                {Math.max(1, 12 - i * 4)}%
+                                </div>
+                            </div>
+                            ))}
+                        </div>
+                        </div>
+
+                        <div className="rounded-3xl bg-[#4b4b4b] border border-[#2d2d2d] p-4">
+                        <div className="text-base font-semibold text-[#F6F6F6] mb-3">
+                            분위기/키워드
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                            {["새벽감성", "잔잔함", "집중", "드라이브", "감성팝", "힐링"].map(
+                            (t) => (
+                                <span
+                                key={t}
+                                className="
+                                    px-3 py-2 rounded-full
+                                    bg-[#3d3d3d] border border-[#2d2d2d]
+                                    text-sm text-[#AFDEE2]/85
+                                "
+                                >
+                                {t}
+                                </span>
+                            )
+                            )}
+                        </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-5 rounded-3xl bg-[#4b4b4b] border border-[#2d2d2d] p-4 text-center">
+                        <div className="text-sm text-[#999999]">
+                        {range === "month" ? "이번 달 인사이트" : "전체 인사이트"}
+                        </div>
+                        <div className="mt-2 text-base text-[#F6F6F6]">
+                        {dashboard.insight.text}{" "}
+                        <span className="font-semibold text-[#AFDEE2]">
+                            {dashboard.insight.main1}
+                        </span>
+                        에{" "}
+                        <span className="font-semibold text-[#AFDEE2]">
+                            {dashboard.insight.main2}
+                        </span>
+                        을(를) 더 자주 들었어요 🎧
+                        </div>
+                    </div>
+                    </div>
+                </div>
+                {/* /분석 대시보드 카드 */}
+                </div>
+                {/* /프로필 + 분석 */}
 
                 {/* 나의 플레이리스트 */}
                 <div className="rounded-3xl border border-[#2d2d2d] bg-[#2d2d2d]/80 p-6">
-                    <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between">
                     <button
-                        type="button"
-                        onClick={() => navigate("/my-playlists")}
-                        className="px-1 text-xl hover:text-white transition font-semibold text-[#F6F6F6]"
+                    type="button"
+                    onClick={() => navigate("/my-playlists")}
+                    className="px-1 text-xl hover:text-white transition font-semibold text-[#F6F6F6]"
                     >
-                        나의 플레이리스트
+                    나의 플레이리스트
                     </button>
 
                     <button
-                        type="button"
-                        onClick={() => navigate("/my-playlists")}
-                        className="px-1 text-[#F6F6F6] hover:text-white transition"
-                        aria-label="플레이리스트 더보기"
-                        title="더보기"
+                    type="button"
+                    onClick={() => navigate("/my-playlists")}
+                    className="px-1 text-[#F6F6F6] hover:text-white transition"
+                    aria-label="플레이리스트 더보기"
+                    title="더보기"
                     >
-                        <MdOutlineNavigateNext size={30} />
+                    <MdOutlineNavigateNext size={30} />
                     </button>
-                    </div>
+                </div>
 
-                    <div className="mt-3 border-b border-[#464646]" />
+                <div className="mt-3 border-b border-[#464646]" />
 
-                    <HorizontalScroller gradientFromClass="from-[#2d2d2d]">
+                <HorizontalScroller gradientFromClass="from-[#2d2d2d]">
                     <div className="flex gap-1 w-max">
                         {playlists.slice(0, 12).map((p) => (
                         <button
@@ -431,7 +498,7 @@ export default function MyPage() {
                             transition
                             p-2
                             text-left
-                            "
+                        "
                         >
                             <div className="w-full aspect-square rounded-xl bg-[#777777] overflow-hidden">
                                 {p.coverUrl ? (
@@ -442,45 +509,45 @@ export default function MyPage() {
                             <div className="mt-3">
                                 <div className="text-sm font-medium text-[#F6F6F6] truncate">{p.title}</div>
                             </div>
-                        </button>
-                        ))}
-                    </div>
-                    </HorizontalScroller>
-
+                        </button>   
+                    ))}
                 </div>
+                </HorizontalScroller>
+                </div>
+                {/* /나의 플레이리스트 */}
 
                 {/* 나의 AI 생성곡 */}
                 <div className="rounded-3xl border border-[#2d2d2d] bg-[#2d2d2d]/80 p-6">
-                    <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between">
                     <button
-                        type="button"
-                        onClick={() => navigate("/ai")}
-                        className="px-1 text-xl hover:text-white transition font-semibold text-[#F6F6F6]"
+                    type="button"
+                    onClick={() => navigate("/ai")}
+                    className="px-1 text-xl hover:text-white transition font-semibold text-[#F6F6F6]"
                     >
-                        나의 AI 생성곡
+                    나의 AI 생성곡
                     </button>
 
                     <button
-                        type="button"
-                        onClick={() => navigate("/ai")}
-                        className="px-1 text-[#F6F6F6] hover:text-white transition"
-                        aria-label="AI 생성곡 더보기"
-                        title="더보기"
+                    type="button"
+                    onClick={() => navigate("/ai")}
+                    className="px-1 text-[#F6F6F6] hover:text-white transition"
+                    aria-label="AI 생성곡 더보기"
+                    title="더보기"
                     >
-                        <MdOutlineNavigateNext size={30} />
+                    <MdOutlineNavigateNext size={30} />
                     </button>
-                    </div>
+                </div>
 
-                    <div className="mt-3 border-b border-[#464646]" />
+                <div className="mt-3 border-b border-[#464646]" />
 
-                    <HorizontalScroller gradientFromClass="from-[#2d2d2d]">
+                <HorizontalScroller gradientFromClass="from-[#2d2d2d]">
                     <div className="flex gap-1 w-max">
-                        {Array.from({ length: 12 }).map((_, i) => (
+                    {Array.from({ length: 12 }).map((_, i) => (
                         <button
-                            key={i}
-                            type="button"
-                            onClick={() => alert("AI 곡 상세(준비중)")}
-                            className="
+                        key={i}
+                        type="button"
+                        onClick={() => alert("AI 곡 상세(준비중)")}
+                        className="
                             w-[145px]
                             shrink-0
                             flex flex-col
@@ -489,29 +556,31 @@ export default function MyPage() {
                             transition
                             p-2
                             text-left
-                            "
+                        "
                         >
                             <div className="w-full aspect-square rounded-xl bg-[#777777]" />
 
                             <div className="mt-3">
                             <div className="text-sm font-medium text-[#F6F6F6] truncate">
-                                곡 명
+                            곡 명
                             </div>
                             <div className="mt-1 text-xs text-[#999999] truncate">
-                                생성일
+                            생성일
                             </div>
-                            </div>
+                        </div>
                         </button>
-                        ))}
+                    ))}
                     </div>
-                    </HorizontalScroller>
+                </HorizontalScroller>
                 </div>
-                </section>
+                {/* /나의 AI 생성곡 */}
+            </section>
+            {/* /좌측 */}
 
-                {/* 우측 */}
-                <aside className="col-span-6 rounded-3xl border border-[#2d2d2d] bg-[#2d2d2d]/80">
+            {/* 우측 */}
+            <aside className="col-span-6 rounded-3xl border border-[#2d2d2d] bg-[#2d2d2d]/80">
                 <h2 className="px-8 pt-6 text-xl font-semibold text-[#F6F6F6]">
-                    실시간 나의 TOP 50 차트
+                실시간 나의 TOP 50 차트
                 </h2>
 
                 <div className="mt-4 border-b border-[#464646]" />
@@ -528,33 +597,33 @@ export default function MyPage() {
 
                 <div className="divide-y divide-[#464646]">
                     {top50Preview.map((r, idx) => (
-                    <div
-                        key={r.id}
-                        className="
-                        group
-                        w-full
-                        text-left
-                        transition
-                        hover:bg-white/5
-                        "
-                    >
                         <div
-                        className={[
+                            key={r.id}
+                            className="
+                            group
+                            w-full
+                            text-left
+                            transition
+                            hover:bg-white/5
+                        "
+                        >
+                            <div
+                            className={[
                             "grid grid-cols-[100px_200px_1fr] items-center px-8 py-2.5",
                             idx % 2 === 0 ? "bg-[#3d3d3d]/80" : "bg-[#2d2d2d]/80",
-                        ].join(" ")}
+                            ].join(" ")}
                         >
-                        {/* ✅ 순위 (행 hover 시 아이콘으로 전환) */}
-                        <div className="pl-2 border-l border-[#464646] text-left font-semibold text-[#F6F6F6]">
-                            <div className="flex items-center gap-3">
-                            <div className="relative w-8 flex items-center justify-center">
-                                {/* 기본: 순위 */}
-                                <span className="text-sm transition-opacity group-hover:opacity-0">
-                                {r.rank}
-                                </span>
+                            {/* ✅ 순위 (행 hover 시 아이콘으로 전환) */}
+                            <div className="pl-2 border-l border-[#464646] text-left font-semibold text-[#F6F6F6]">
+                                <div className="flex items-center gap-3">
+                                <div className="relative w-8 flex items-center justify-center">
+                                    {/* 기본: 순위 */}
+                                    <span className="text-sm transition-opacity group-hover:opacity-0">
+                                        {r.rank}
+                                    </span>
 
-                                {/* hover: 재생 아이콘 */}
-                                <button 
+                                    {/* hover: 재생 아이콘 */}
+                                    <button 
                                     type="button"
                                     onClick={(e) => {
                                         e.stopPropagation();
@@ -563,38 +632,158 @@ export default function MyPage() {
                                     className="absolute opacity-0 transition-opacity group-hover:opacity-100 text-[#AFDEE2]"
                                     aria-label={`${r.title} 재생`}
                                     title="재생"><FaPlay />
-                                </button>
-                            </div>
-                            </div>
-                        </div>
-
-                        {/* 곡정보 */}
-                        <div className="pl-4 min-w-0 border-l border-[#464646]">
-                            <div className="flex items-center gap-5 min-w-0">
-                            <div className="h-12 w-12 shrink-0 rounded-xl bg-[#777777]" />
-                            <div className="min-w-0">
-                                <div className="truncate text-sm text-[#F6F6F6]">
-                                {r.title}
+                                    </button>
+    
                                 </div>
-                                <div className="truncate text-xs text-[#999999]">
-                                {r.artist}
                                 </div>
                             </div>
+
+                            {/* 곡정보 */}
+                            <div className="pl-4 min-w-0 border-l border-[#464646]">
+                                <div className="flex items-center gap-5 min-w-0">
+                                <div className="h-12 w-12 shrink-0 rounded-xl bg-[#777777]" />
+                                <div className="min-w-0">
+                                    <div className="truncate text-sm text-[#F6F6F6]">
+                                    {r.title}
+                                    </div>
+                                    <div className="truncate text-xs text-[#999999]">
+                                    {r.artist}
+                                    </div>
+                                </div>
+                                </div>
+                            </div>
+
+                            {/* 총 들은 수 */}
+                            <div className="border-l border-[#464646] pl-4 text-left text-sm font-semibold text-[#F6F6F6] whitespace-nowrap">
+                                {r.total}번
+                            </div>
                             </div>
                         </div>
-
-                        {/* 총 들은 수 */}
-                        <div className="border-l border-[#464646] pl-4 text-left text-sm font-semibold text-[#F6F6F6] whitespace-nowrap">
-                            {r.total}번
-                        </div>
-                        </div>
-                    </div>
                     ))}
                 </div>
                 </aside>
+        {/* /우측 */}
+        </div>
+        {/* /grid */}
+        </div>
+        {/* /min-w container */}
+        </div>
+        {/* /scroll 영역 */}
+        
+        {/* =======================
+            ✅ 프로필 편집 모달
+        ======================= */}
+        {editOpen && (
+        <div className="fixed inset-0 z-50">
+            {/* 딤/배경 */}
+            <button
+            type="button"
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setEditOpen(false)}
+            aria-label="닫기"
+            />
+
+            
+
+            {/* 모달 카드 */}
+            <div className="
+                    absolute left-1/2 top-1/2 w-[360px]
+                    -translate-x-1/2 -translate-y-1/2
+                    rounded-3xl bg-[#2d2d2d]
+                    border border-white/10 p-6
+                    shadow-[0_0px_200px_rgba(0,0,0,0.2)]
+                    ">
+
+            <h2 className="text-center text-[#f6f6f6] text-xl font-semibold mb-4">
+                프로필 세부 설정
+            </h2>
+
+            {/* 아바타 */}
+            <div className="
+                    group
+                    relative mx-auto w-40 h-40
+                    rounded-full bg-[#777777]
+                    overflow-hidden
+                    flex items-center justify-center
+                    shadow-[0_0px_20px_rgba(0,0,0,0.55)]
+                    ">
+                
+                {draft.avatar ? (
+                <img
+                    src={draft.avatar}
+                    alt="avatar"
+                    className="w-full h-full object-cover"
+                />
+                ) : null}
+
+                {/* 이미지 변경 버튼(연필) */}
+                <label className="absolute inset-0 flex items-center justify-center cursor-pointer">
+                <span className="
+                    w-9 h-9 rounded-full 
+                    bg-black/35 text-white/90
+                    flex items-center justify-center
+                    opacity-0 group-hover:opacity-100
+                    transition-opacity duration-200">
+                    <MdEdit />
+                </span>
+                <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        setDraft((prev) => ({
+                        ...prev,
+                        avatar: String(reader.result || ""),
+                        }));
+                    };
+                    reader.readAsDataURL(file);
+                    }}
+                />
+                </label>
+            </div>
+
+            {/* 입력 */}
+            <div className="mt-6 space-y-3">
+                <input
+                value={draft.name}
+                onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))}
+                placeholder="Name"
+                className="
+                    w-full h-11 rounded-xl bg-[#777777]/70
+                    px-4 text-sm text-white
+                    placeholder:text-white/50
+                    outline-none
+                    focus:ring-2 focus:ring-white/30
+                "
+                />
+            </div>
+
+            {/* 버튼 */}
+            <div className="mt-5 flex items-center justify-between">
+                <button
+                type="button"
+                onClick={() => setEditOpen(false)}
+                className="px-4 h-10 rounded-full bg-white/10 text-white/80 hover:bg-white/15 transition text-sm"
+                >
+                취소
+                </button>
+                <button
+                type="button"
+                onClick={saveProfile}
+                className="px-4 h-10 rounded-full bg-white/10 text-white/80 hover:bg-white/15 transition text-sm"
+                >
+                저장
+                </button>
             </div>
             </div>
         </div>
-        </div>
+        // 여기까지가 프로필 편집 모달 파트
+        )}
+    </div>
     );
 }

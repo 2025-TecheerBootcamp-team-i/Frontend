@@ -259,7 +259,7 @@ function findAlbumById(albumId: string | undefined): Found {
                         ].join(" ")}
                         aria-label="앨범 좋아요"
                         title="앨범 좋아요"
-                    >
+                    >   
                         <MdFavorite
                         size={22}
                         className={albumLiked ? "text-[#AFDEE2]" : "text-[#F6F6F6]/70"}

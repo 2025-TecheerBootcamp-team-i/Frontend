@@ -1,118 +1,161 @@
-import { FcGoogle } from 'react-icons/fc';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  MdOutlineMail,
+  MdLockOutline,
+  MdVisibility,
+  MdVisibilityOff,
+} from "react-icons/md";
 
-function LoginPage() {
+export default function LoginPage() {
+  const navigate = useNavigate();
+
+  const [id, setId] = useState("");
+  const [pw, setPw] = useState("");
+  const [showPw, setShowPw] = useState(false);
+
+
+  // TODO: 실제 로그인 API 성공 시에만 이동
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    navigate("/home");
+  };
+
+
+
   return (
-    // 배경
-    <div
-      className="
-        min-h-screen
-        flex
-        items-center
-        justify-center
-        bg-[#ffffff]
-        "
-    >
-      {/* 가운데 박스 */}
-      <div
-        className="
-            w-[800px] h-[450px]
-            p-[70px]
-            bg-[#f2f2f2]
-            rounded-[50px]
-            shadow-md
-        "
+      <div className="h-screen flex items-center justify-center">
+        <div
+            className="
+            pointer-events-none absolute inset-0
+            bg-[linear-gradient(180deg,#2D2D2D_30%,#5D5D5D_100%)]
+            bg-[length:200%_200%]
+            animate-bgGradient
+            "
+        />
+ 
+      {/* ✅ 중앙 폼(카드 없음) */}
+      <form
+        onSubmit={onSubmit}
+        className="relative z-10 w-[340px] flex flex-col items-center"
       >
-        {/* 입력 칸 */}
-        <div className="mb-3">
+
+        {/* ===== ID 입력 (아이콘 포함) ===== */}
+        <div className="relative w-full">
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#f6f6f6]">
+          <MdOutlineMail  size={18} />
+          </div>
           <input
-            type="email"
-            placeholder="email@example.com"
+            type="text"
+            value={id}
+            onChange={(e) => setId(e.target.value)}
+            placeholder="Email ID"
             className="
-                w-[280px] h-[40px]
-                px-4 py-2
-                rounded-[15px]
-                border
-                border-[#D9D9D9]
-                bg-[#ffffff]
-                text-[#666666]"
-          />
-        </div>
-        <div className="mb-8">
-          <input
-            type="password"
-            placeholder="PW"
-            className="
-                w-[280px] h-[40px]
-                px-4 py-2
-                rounded-[15px]
-                border
-                border-[#D9D9D9]
-                bg-[#ffffff]
-                text-[#666666]"
+              w-full h-12
+              rounded-md
+              bg-[#777777]
+              pl-11 pr-4
+              text-sm text-[#f6f6f6]
+              placeholder:text-[#f6f6f6]/40
+              outline-none
+              focus:ring-2 focus:ring-white/70
+            "
           />
         </div>
 
-        <button
-          className="
-                w-[280px] h-[40px]
-                bg-[#D9D9D9]
-                rounded-[15px]
-                text-[#666666]
-                text-sm
-                hover:bg-[#6666]
-                transition
+        {/* ===== PW 입력 (아이콘 + 눈 버튼 포함) ===== */}
+        <div className="relative w-full mt-3">
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#f6f6f6]">
+            <MdLockOutline size={18} />
+          </div>
+          <input
+            type={showPw ? "text" : "password"}
+            value={pw}
+            onChange={(e) => setPw(e.target.value)}
+            placeholder="Password"
+            className="
+              w-full h-12
+              rounded-md
+              bg-[#777777]/80
+              pl-11 pr-11
+              text-sm text-[#f6f6f6]
+              placeholder:text-[#f6f6f6]/40
+              outline-none
+              focus:ring-2 focus:ring-white/70
             "
+          />
+          <button
+            type="button"
+            onClick={() => setShowPw((v) => !v)}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white transition"
+            aria-label={showPw ? "비밀번호 숨기기" : "비밀번호 보기"}
+          >
+            {showPw ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
+          </button>
+        </div>
+
+        {/* ===== Login 버튼 ===== */}
+        <button
+          type="submit"
+          className="
+            mt-12
+            w-full h-12
+            rounded-full
+            bg-[#777777]/80
+            text-sm text-[#f6f6f6]
+            hover:bg-[#8a8a8a]/70
+            transition
+          "
         >
           Login
         </button>
 
-        <div
-          className="
-            w-[280px]
-            mt-4
-            mb-4
-            text-center 
-            text-[#666666]
-            text-xs
-            "
-        >
-          또는
+        {/* ===== 구분선 + 텍스트 (이미지처럼) ===== */}
+        <div className="w-full mt-4 flex">
+          <div className="flex-1 h-px bg-white/20" />
         </div>
 
+        {/* ===== Sign up 버튼 ===== */}
+          <span className="mt-4 text-[10px] text-white/60 whitespace-nowrap">
+            계정이 없으신가요?
+          </span>
+
         <button
+          type="button"
+          onClick={() => navigate("/signup")}
           className="
-                block
-                w-[280px] h-[40px]
-                bg-[#D9D9D9]
-                rounded-[15px]
-                text-[#666666]
-                text-sm
-                hover:bg-[#6666]
-                transition
-                mb-3
-            "
+            mt-4
+            w-full h-12
+            rounded-full
+            bg-[#777777]/80
+            text-sm text-[#f6f6f6]
+            hover:bg-[#8a8a8a]/70
+            transition
+          "
         >
           Sign up
         </button>
 
-        <button
-          className="
-                w-[280px] h-[40px]
-                bg-[#D9D9D9]
-                flex items-center justify-center gap-2
-                rounded-[15px]
-                text-[#666666]
-                text-sm
-                hover:bg-[#6666]
-                transition
-            "
-        >
-          <FcGoogle size={18} />
-          Google로 Login
+        <button 
+          type="button"
+          onClick={() => navigate("/home")}
+           className="
+            mt-12
+            w-full h-12
+            rounded-full
+            bg-[#777777]/80
+            text-sm text-[#f6f6f6]
+            hover:bg-[#8a8a8a]/70
+            transition
+          ">
+          바로 서비스로 들어가기
         </button>
-      </div>
+
+      </form>
+
+        
+
     </div>
   );
 }
-
-export default LoginPage;
