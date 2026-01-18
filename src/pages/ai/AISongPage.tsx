@@ -1,5 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { getAiSongById, updateAiSong } from "../../mocks/aiSongMock";
+import { usePlayer } from "../../player/PlayerContext";
+import type { PlayerTrack } from "../../player/PlayerContext";
+
+import {
+  getPlaylistById,
+  getUserPlaylists,
+  subscribePlaylists,
+  updatePlaylist,
+  LIKED_SYSTEM_ID,
+} from "../../mocks/playlistMock";
+
 import {
   MdPlayArrow,
   MdShare,
@@ -7,6 +19,7 @@ import {
   MdFavoriteBorder,
   MdFileUpload,
   MdContentCopy,
+  MdFavorite,
 } from "react-icons/md";
 import { IoChevronBack } from "react-icons/io5";
 
@@ -26,43 +39,9 @@ type AiTrack = {
   audioUrl?: string;
   prompt?: string;
 
-  // ✅ 소유자 판별용(너희 데이터에 맞게 필드명 조정)
   ownerId?: string;
   ownerName?: string;
 };
-
-const DUMMY_TRACKS: AiTrack[] = [
-  {
-    id: "t1",
-    status: "Upload",
-    title: "테커의 새벽",
-    desc: "rap, Boom-bap inspired hip-hop with crisp drums, round bass, and warm synth pads over a steady 110 groove, Piano chords punctuate the pocket while male vocals deliver storytelling verses up front",
-    duration: "2:27",
-    createdAt: "2026년 1월 10일",
-    isAi: true,
-    artist: "Andrew Park",
-    plays: 100,
-    lyrics: `[Verse 1]\n퇴근 시간 한참 전에\n우리 하루 이제 시작\n모니터 불빛 아래\n눈은 빨갛지만 입꼬린 살아 있어\n\n커피 줄 서 있는 사이에러 메시지 또 뜨네\n“이건 어제도 봤는데”\n웃으면서 다시 로그를 따라가\n\n[Chorus]`,
-    prompt: "새벽 감성, 로파이 힙합, 잔잔한 피아노와 드럼, 한국어 보컬...",
-    ownerId: "me", // ✅ 더미: 내 곡이라고 가정
-    ownerName: "나",
-  },
-  ...Array.from({ length: 10 }).map((_, i) => ({
-    id: `t${i + 2}`,
-    status: "Draft" as const,
-    title: "곡 이름",
-    desc: "곡 설명",
-    duration: "2:27",
-    createdAt: "2026년 1월 10일",
-    isAi: true,
-    artist: "Unknown",
-    plays: 0,
-    lyrics: "가사가 아직 없습니다.",
-    prompt: "예시 프롬프트",
-    ownerId: "other", // ✅ 더미: 남의 곡
-    ownerName: "누군가",
-  })),
-];
 
 const FADE_STYLE = `
 @keyframes fadeSlideIn {
@@ -71,7 +50,7 @@ const FADE_STYLE = `
 }
 `;
 
-function ActionSquare({
+function ActionCircle({
   icon,
   label,
   onClick,
@@ -90,13 +69,19 @@ function ActionSquare({
       disabled={disabled}
       className={`
         shrink-0
-        h-9 w-9 rounded-lg
-        inline-flex items-center justify-center
-        transition
+        w-9 h-9 rounded-full
+        flex items-center justify-center
+        transition-all duration-200
         ${
           disabled
-            ? "bg-[#555555] text-[#999999] cursor-not-allowed"
-            : "bg-[#777777] hover:bg-white/25 text-[#d9d9d9]"
+            ? "bg-[#444444] text-white/30 cursor-not-allowed"
+            : `
+              bg-[#3d3d3d]
+              text-[#f6f6f6]
+              hover:bg-[#AFDEE2]
+              hover:text-[#1f1f1f]
+              active:scale-95
+            `
         }
       `}
     >
@@ -111,6 +96,9 @@ export default function AiSongPage() {
 
   const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
 
+  // ✅ 업로드 확인 모달
+  const [uploadConfirmOpen, setUploadConfirmOpen] = useState(false);
+
   const [track, setTrack] = useState<AiTrack | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -119,6 +107,19 @@ export default function AiSongPage() {
   const [titleDraft, setTitleDraft] = useState("");
 
   const [copyToast, setCopyToast] = useState<string | null>(null);
+
+  // ✅ 좋아요 여부(= liked 시스템 플리에 존재하는지)
+  const [liked, setLiked] = useState(false);
+
+  // ✅ 담기 모달 상태
+  const [addOpen, setAddOpen] = useState(false);
+  const [addTargets, setAddTargets] = useState(() => getUserPlaylists());
+
+  useEffect(() => {
+    const syncTargets = () => setAddTargets(getUserPlaylists());
+    syncTargets();
+    return subscribePlaylists(syncTargets);
+  }, []);
 
   useEffect(() => {
     if (!copyToast) return;
@@ -134,7 +135,8 @@ export default function AiSongPage() {
   };
 
   const styleText = track?.desc ?? "";
-  const styleTextToShow = mode === "summary" ? clampText(styleText, 50) : styleText;
+  const styleTextToShow =
+    mode === "summary" ? clampText(styleText, 50) : styleText;
 
   const artist = track?.artist ?? "Unknown Artist";
   const plays = track?.plays ?? 0;
@@ -142,7 +144,7 @@ export default function AiSongPage() {
 
   const dummyFound = useMemo(() => {
     if (!id) return null;
-    return DUMMY_TRACKS.find((t) => t.id === id) ?? null;
+    return getAiSongById(id);
   }, [id]);
 
   useEffect(() => {
@@ -156,9 +158,53 @@ export default function AiSongPage() {
   // ✅ 소유자 여부
   const isOwner = track?.ownerId ? track.ownerId === CURRENT_USER_ID : false;
 
+  // ✅ liked 동기화
+  useEffect(() => {
+    if (!track) return;
+
+    const syncLiked = () => {
+      const likedPl = getPlaylistById(LIKED_SYSTEM_ID);
+      const isLiked = !!likedPl?.tracks?.some((t) => t.id === track.id);
+      setLiked(isLiked);
+    };
+
+    syncLiked();
+    return subscribePlaylists(syncLiked);
+  }, [track]);
+
+  const toggleLike = () => {
+    if (!track) return;
+
+    const likedPl = getPlaylistById(LIKED_SYSTEM_ID);
+    if (!likedPl) {
+      console.warn("liked 시스템 플레이리스트를 찾지 못했습니다.");
+      return;
+    }
+
+    const exists = likedPl.tracks.some((t) => t.id === track.id);
+
+    if (exists) {
+      const next = likedPl.tracks.filter((t) => t.id !== track.id);
+      updatePlaylist(LIKED_SYSTEM_ID, { tracks: next });
+      return;
+    }
+
+    const incoming = {
+      id: track.id,
+      title: track.title,
+      artist: track.artist ?? "AI Artist",
+      album: "",
+      duration: track.duration ?? "0:00",
+      likeCount: 0,
+      kind: "track" as const,
+    };
+
+    updatePlaylist(LIKED_SYSTEM_ID, { tracks: [...likedPl.tracks, incoming] });
+  };
+
   const commitTitle = async () => {
     if (!track) return;
-    if (!isOwner) return; // ✅ 남의 곡이면 저장 자체 금지
+    if (!isOwner) return;
 
     const nextTitle = titleDraft.trim() || "제목 없음";
     setTrack((prev) => (prev ? { ...prev, title: nextTitle } : prev));
@@ -183,6 +229,7 @@ export default function AiSongPage() {
     setIsEditingTitle(false);
   };
 
+  // ✅ 데이터 로딩
   useEffect(() => {
     if (!id) {
       setError("잘못된 접근입니다. (id 없음)");
@@ -225,17 +272,15 @@ export default function AiSongPage() {
           artist: data.artist ?? "Unknown",
           plays: typeof data.plays === "number" ? data.plays : 0,
           lyrics: data.lyrics ?? data.prompt ?? "내용이 없습니다.",
-
-          // ✅ 소유자 정보 매핑(너희 응답에 맞게 수정)
           ownerId: data.ownerId,
           ownerName: data.ownerName,
         };
 
         setTrack(mapped);
-      } catch (e: any) {
-        if (e?.name === "AbortError") return;
+      } catch (e: unknown) {
+        if ((e as DOMException)?.name === "AbortError") return;
         if (dummyFound) setTrack(dummyFound);
-        setError(e?.message ?? "알 수 없는 오류");
+        setError(e instanceof Error ? e.message : "알 수 없는 오류");
       } finally {
         setLoading(false);
       }
@@ -246,13 +291,127 @@ export default function AiSongPage() {
 
   // ✅ 남의 곡 보고 있을 때 편집모드가 켜져있으면 자동 종료
   useEffect(() => {
-    if (!isOwner && isEditingTitle) {
-      setIsEditingTitle(false);
-    }
+    if (!isOwner && isEditingTitle) setIsEditingTitle(false);
   }, [isOwner, isEditingTitle]);
 
+  /** =========================
+   * ✅ 액션버튼 패턴 (단일 곡 = 현재곡 1개)
+   ========================= */
+  const { playTracks } = usePlayer();
+
+  const selectedTracks = useMemo<PlayerTrack[]>(() => {
+    if (!track) return [];
+    return [
+      {
+        id: track.id,
+        title: track.title,
+        artist: track.artist ?? "AI Artist",
+        duration: track.duration,
+        audioUrl: track.audioUrl ?? "/audio/sample.mp3",
+        coverUrl: track.coverUrl,
+      },
+    ];
+  }, [track]);
+
+  const selectedCount = selectedTracks.length;
+
+  // ✅ 담기(현재 곡 1개 → 특정 플리)
+  const addSelectedToPlaylist = (playlistId: string) => {
+    if (selectedCount === 0) return;
+
+    const curr = getPlaylistById(playlistId);
+    if (!curr) return;
+
+    const incoming = selectedTracks.map((t) => ({
+      id: t.id,
+      title: t.title,
+      artist: t.artist,
+      album: "",
+      duration: t.duration ?? "0:00",
+      likeCount: 0,
+      kind: "track" as const,
+    }));
+
+    const exists = new Set(curr.tracks.map((x) => x.id));
+    const merged = [...curr.tracks];
+
+    for (const tr of incoming) {
+      if (exists.has(tr.id)) continue;
+      merged.push(tr);
+      exists.add(tr.id);
+    }
+
+    updatePlaylist(playlistId, { tracks: merged });
+    setAddOpen(false);
+  };
+
+  const shareSelected = async () => {
+    if (selectedCount === 0) return;
+
+    const text = `- ${track?.title ?? ""} (${track?.duration ?? ""})`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "AI 곡 공유", text });
+        return;
+      }
+    } catch {
+      // ignore
+    }
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyToast("곡 정보를 복사했어요!");
+    } catch {
+      setCopyToast("공유에 실패했습니다. (클립보드 권한 확인)");
+    }
+  };
+
+  type ActionKey = "play" | "add" | "share";
+
+  const handleAction = (key: ActionKey) => {
+    if (selectedCount === 0) return;
+
+    if (key === "play") playTracks(selectedTracks);
+    if (key === "add") setAddOpen(true);
+    if (key === "share") shareSelected();
+  };
+
+  /** =========================
+   * ✅ 업로드 확정 (모달의 “업로드” 버튼에서만 실행)
+   ========================= */
+  const confirmUpload = async () => {
+    if (!track || track.status === "Upload") return;
+
+    // 1) UI 반영
+    setTrack((prev) => (prev ? { ...prev, status: "Upload" } : prev));
+
+    // 2) 모달 닫기
+    setUploadConfirmOpen(false);
+
+    // 3) mock 반영
+    try {
+      updateAiSong(track.id, { status: "Upload" });
+    } catch (e) {
+      console.error("mock upload failed", e);
+    }
+
+    // 4) 서버 반영
+    if (API_BASE) {
+      try {
+        await fetch(`${API_BASE}/alsong/${track.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "Upload" }),
+        });
+      } catch (e) {
+        console.error("api upload failed", e);
+      }
+    }
+  };
+
   return (
-    <div className="w-full h-full overflow-x-auto">
+    <div className="w-full h-full overflow-x-auto pr-10">
       <section className="text-[#f6f6f6] min-w-[1000px]">
         <style className="whitespace-none">{FADE_STYLE}</style>
 
@@ -293,7 +452,11 @@ export default function AiSongPage() {
                   style={{ aspectRatio: "2 / 3" }}
                 >
                   {track.coverUrl ? (
-                    <img src={track.coverUrl} alt="cover" className="h-full w-full object-cover" />
+                    <img
+                      src={track.coverUrl}
+                      alt="cover"
+                      className="h-full w-full object-cover"
+                    />
                   ) : (
                     <div className="h-full w-full flex items-center justify-center text-[#777777] text-sm">
                       커버 없음
@@ -318,10 +481,10 @@ export default function AiSongPage() {
                       >
                         <input
                           value={titleDraft}
-                          readOnly={!isEditingTitle || !isOwner} // ✅ 남의 곡이면 항상 readOnly
+                          readOnly={!isEditingTitle || !isOwner}
                           onChange={(e) => setTitleDraft(e.target.value)}
                           onClick={() => {
-                            if (!isOwner) return; // ✅ 남의 곡이면 편집 시작 금지
+                            if (!isOwner) return;
                             if (!isEditingTitle) setIsEditingTitle(true);
                           }}
                           onBlur={() => {
@@ -351,7 +514,11 @@ export default function AiSongPage() {
                             }
                             ${!isEditingTitle ? "truncate" : ""}
                           `}
-                          title={!isOwner ? "다른 사용자가 만든 곡은 제목을 수정할 수 없습니다." : undefined}
+                          title={
+                            !isOwner
+                              ? "다른 사용자가 만든 곡은 제목을 수정할 수 없습니다."
+                              : undefined
+                          }
                         />
                       </div>
 
@@ -427,17 +594,16 @@ export default function AiSongPage() {
                             disabled={track.status === "Upload"}
                             onClick={() => {
                               if (track.status === "Upload") return;
-                              console.log("업로드하기", track.id);
+                              // ✅ 여기서는 “모달만 열기”
+                              setUploadConfirmOpen(true);
                             }}
                             className={`
-                              shrink-0
-                              inline-flex items-center justify-center gap-1
-                              w-[120px] h-9 px-3 rounded-full text-sm
-                              transition
+                              shrink-0 inline-flex items-center justify-center gap-1
+                              w-[120px] h-9 px-3 rounded-full text-sm transition
                               ${
                                 track.status === "Upload"
                                   ? "bg-[#555555] text-[#999999] cursor-not-allowed"
-                                  : "bg-[#777777] text-[#f6f6f6] hover:bg-white/25"
+                                  : "bg-[#AFDEE2] text-[#1f1f1f] hover:bg-[#87B2B6]"
                               }
                             `}
                             aria-label="upload"
@@ -447,23 +613,36 @@ export default function AiSongPage() {
                           </button>
                         )}
 
-                        {/* ✅ 나머지는 공용(원하면 이것도 소유자/로그인 유저만 허용 가능) */}
-                        <ActionSquare icon={<MdPlayArrow size={20} />} label="재생" />
-                        <ActionSquare
+                        <ActionCircle
+                          icon={<MdPlayArrow size={20} />}
+                          label="재생"
+                          onClick={() => handleAction("play")}
+                          disabled={selectedCount === 0}
+                        />
+                        <ActionCircle
                           icon={<MdShare size={18} />}
                           label="공유"
-                          onClick={async () => {
-                            try {
-                              const url = window.location.href;
-                              await navigator.clipboard.writeText(url);
-                              setCopyToast("URL을 복사했습니다");
-                            } catch {
-                              setCopyToast("복사에 실패했습니다");
-                            }
-                          }}
+                          onClick={() => handleAction("share")}
+                          disabled={selectedCount === 0}
                         />
-                        <ActionSquare icon={<MdAdd size={20} />} label="담기" />
-                        <ActionSquare icon={<MdFavoriteBorder size={18} />} label="좋아요" />
+                        <ActionCircle
+                          icon={<MdAdd size={20} />}
+                          label="담기"
+                          onClick={() => handleAction("add")}
+                          disabled={selectedCount === 0}
+                        />
+                        <ActionCircle
+                          icon={
+                            liked ? (
+                              <MdFavorite size={18} />
+                            ) : (
+                              <MdFavoriteBorder size={18} />
+                            )
+                          }
+                          label="좋아요"
+                          onClick={toggleLike}
+                          disabled={selectedCount === 0}
+                        />
                       </div>
                     </div>
                   </div>
@@ -475,6 +654,130 @@ export default function AiSongPage() {
                   {lyricsOrPrompt}
                 </pre>
                 <div />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ✅ 담기 모달 */}
+        {addOpen && (
+          <div className="fixed inset-0 z-[999] whitespace-normal">
+            <button
+              type="button"
+              className="absolute inset-0 bg-black/50"
+              onClick={() => setAddOpen(false)}
+              aria-label="닫기"
+            />
+            <div className="absolute inset-0 grid place-items-center p-6">
+              <div className="w-full max-w-[420px] rounded-3xl bg-[#2d2d2d] border border-[#464646] shadow-2xl overflow-hidden">
+                <div className="px-6 py-4 flex items-center justify-between border-b border-[#464646]">
+                  <div className="text-base font-semibold text-[#F6F6F6]">
+                    플레이리스트 선택
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAddOpen(false)}
+                    className="text-[#F6F6F6]/70 hover:text-white transition"
+                    aria-label="닫기"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="px-6 py-4 text-sm text-[#F6F6F6]/70">
+                  선택한 {selectedCount}곡을 담을 플레이리스트를 골라주세요
+                </div>
+
+                <div className="max-h-[360px] overflow-y-auto border-t border-[#464646]">
+                  {addTargets.length === 0 ? (
+                    <div className="px-6 py-6 text-sm text-[#aaa]">
+                      담을 수 있는 플레이리스트가 없어요.
+                      <div className="mt-2 text-xs text-[#777]">
+                        (liked 같은 시스템 플리는 제외됨)
+                      </div>
+                    </div>
+                  ) : (
+                    addTargets.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => addSelectedToPlaylist(p.id)}
+                        className="w-full text-left px-6 py-4 hover:bg-white/5 transition border-b border-[#464646]"
+                      >
+                        <div className="text-sm font-semibold text-[#F6F6F6] truncate">
+                          {p.title}
+                        </div>
+                        <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">
+                          {p.owner} · {p.isPublic ? "공개" : "비공개"}
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+
+                <div className="px-6 py-4 border-t border-[#464646] flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setAddOpen(false)}
+                    className="px-4 py-2 rounded-2xl text-sm text-[#F6F6F6] hover:bg-white/10 transition"
+                  >
+                    취소
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ✅ 업로드 확인 모달 */}
+        {uploadConfirmOpen && (
+          <div className="fixed inset-0 z-[999] whitespace-normal">
+            {/* 바깥 클릭 = 취소 */}
+            <button
+              type="button"
+              className="absolute inset-0 bg-black/50"
+              onClick={() => setUploadConfirmOpen(false)}
+              aria-label="닫기"
+            />
+
+            <div className="absolute inset-0 grid place-items-center p-6">
+              <div className="w-full max-w-[420px] rounded-3xl bg-[#2d2d2d] border border-[#464646] shadow-2xl overflow-hidden">
+                <div className="px-6 py-4 flex items-center justify-between border-b border-[#464646]">
+                  <div className="text-base font-semibold text-[#F6F6F6]">
+                    곡을 업로드하시겠습니까?
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setUploadConfirmOpen(false)}
+                    className="text-[#F6F6F6]/70 hover:text-white transition"
+                    aria-label="닫기"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="px-6 py-5 text-sm text-[#F6F6F6]/70 leading-relaxed">
+                  업로드된 곡은 다른 사용자에게 공개됩니다.
+                </div>
+
+                <div className="px-6 py-4 border-t border-[#464646] flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setUploadConfirmOpen(false)}
+                    className="px-4 py-2 rounded-2xl text-sm text-[#F6F6F6] hover:bg-white/10 transition"
+                  >
+                    취소
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={confirmUpload}
+                    className="px-4 py-2 rounded-2xl text-sm font-semibold
+                              bg-[#AFDEE2] text-[#1f1f1f] hover:bg-[#87B2B6] transition"
+                  >
+                    업로드
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -1,5 +1,5 @@
 import { useNavigate, useOutletContext } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import React,{ useEffect, useRef, useState } from "react";
 
 import { IoChevronBack } from "react-icons/io5";
 import { IoIosSettings } from "react-icons/io";
@@ -10,10 +10,12 @@ import { MdEdit } from "react-icons/md";
 import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
 import type { Playlist } from "../../components/layout/MainLayout";
+import { getMyAiSongs, subscribeAiSongs } from "../../mocks/aiSongMock";
+import type { AiTrack } from "../../mocks/aiSongMock";
 
 type Profile = {
-  name: string;
-  avatar?: string; // dataURL(base64) 또는 이미지 URL(나중에 백엔드 붙이면 URL로 교체)
+    name: string;
+    avatar?: string; // dataURL(base64) 또는 이미지 URL(나중에 백엔드 붙이면 URL로 교체)
 };
 
 const PROFILE_KEY = "profile";
@@ -167,7 +169,9 @@ export default function MyPage() {
         if (raw) {
         try {
             return JSON.parse(raw) as Profile;
-        } catch {}
+        } catch {
+            // ignore
+        }
         }
         return {
         name: "Name",
@@ -181,10 +185,12 @@ export default function MyPage() {
     // ✅ 모달에서 편집 중인 임시 값(draft)
     const [draft, setDraft] = useState<Profile>(profile);
 
-    // ✅ 모달 열릴 때 현재 profile 값을 draft로 복사
-    useEffect(() => {
-        if (editOpen) setDraft(profile);
-    }, [editOpen, profile]);
+    const openEdit = () => {
+        setDraft(profile);     // 현재 프로필 → draft 복사
+        setEditOpen(true);
+    };
+
+    const closeEdit = () => setEditOpen(false);
 
     // ✅ 모달 열려있을 때 스크롤 잠금 (배경 스크롤 방지)
     useEffect(() => {
@@ -207,6 +213,23 @@ export default function MyPage() {
     };
 
     const { setTrackAndPlay } = usePlayer();
+
+    // ✅ 너희 로그인 유저로 교체
+    const CURRENT_USER_ID = "me";
+
+    // ✅ 마이페이지 프리뷰용 AI곡
+    const [myAiPreview, setMyAiPreview] = useState<AiTrack[]>([]);
+
+    useEffect(() => {
+    const syncAi = () => {
+        setMyAiPreview(getMyAiSongs(CURRENT_USER_ID).slice(0, 12));
+    };
+
+    syncAi();
+    const off = subscribeAiSongs(syncAi);
+    return () => { off(); }; // ✅ boolean cleanup 방지
+    }, [CURRENT_USER_ID]);
+
 
     const toTrack = (r: TopRow): PlayerTrack => ({
     id: r.id,
@@ -309,7 +332,7 @@ export default function MyPage() {
                                 <div className="mt-3 text-sm text-[#F6F6F6]">
                                     <button
                                     type="button"
-                                    onClick={() => setEditOpen(true)}
+                                    onClick={openEdit}
                                     className="flex items-center gap-1 hover:underline text-[#F6F6F6]"
                                     >
                                     <IoIosSettings size={20} />
@@ -514,7 +537,7 @@ export default function MyPage() {
                     <div className="flex items-center justify-between">
                     <button
                         type="button"
-                        onClick={() => navigate("/ai")}
+                        onClick={() => navigate("/my/ai-songs")}
                         className="px-1 text-xl hover:text-white transition font-semibold text-[#F6F6F6]"
                     >
                         나의 AI 생성곡
@@ -522,7 +545,7 @@ export default function MyPage() {
 
                     <button
                         type="button"
-                        onClick={() => navigate("/ai")}
+                        onClick={() => navigate("/my/ai-songs")}
                         className="px-1 text-[#F6F6F6] hover:text-white transition"
                         aria-label="AI 생성곡 더보기"
                         title="더보기"
@@ -535,11 +558,11 @@ export default function MyPage() {
 
                     <HorizontalScroller gradientFromClass="from-[#2d2d2d]">
                     <div className="flex gap-1 w-max">
-                        {Array.from({ length: 12 }).map((_, i) => (
+                        {myAiPreview.map((t) => (
                         <button
-                            key={i}
+                            key={t.id}
                             type="button"
-                            onClick={() => alert("AI 곡 상세(준비중)")}
+                            onClick={() => navigate(`/aisong/${t.id}`)} // ✅ 상세로 이동
                             className="
                             w-[145px]
                             shrink-0
@@ -551,20 +574,62 @@ export default function MyPage() {
                             text-left
                             "
                         >
-                            <div className="w-full aspect-square rounded-xl bg-[#777777]" />
+                            <div className="w-full aspect-square rounded-xl bg-[#777777] overflow-hidden">
+                            {t.coverUrl ? (
+                                <img
+                                src={t.coverUrl}
+                                alt={t.title}
+                                className="w-full h-full object-cover"
+                                />
+                            ) : null}
+                            </div>
 
                             <div className="mt-3">
                             <div className="text-sm font-medium text-[#F6F6F6] truncate">
-                                곡 명
+                                {t.title}
                             </div>
                             <div className="mt-1 text-xs text-[#999999] truncate">
-                                생성일
+                                {t.createdAt || "생성일 없음"}
                             </div>
                             </div>
                         </button>
                         ))}
+
+                        {/* ✅ 없을 때: 만들기 카드 */}
+                        {myAiPreview.length === 0 && (
+                        <button
+                            type="button"
+                            onClick={() => navigate("/ai/create")}
+                            className="
+                            w-[145px]
+                            shrink-0
+                            flex flex-col
+                            rounded-xl
+                            border border-[#464646]
+                            bg-white/5
+                            hover:bg-white/10
+                            transition
+                            p-2
+                            text-left
+                            "
+                        >
+                            <div className="w-full aspect-square rounded-xl bg-[#777777]/40 flex items-center justify-center text-[#F6F6F6]/70 text-sm">
+                            + 만들기
+                            </div>
+
+                            <div className="mt-3">
+                            <div className="text-sm font-medium text-[#F6F6F6] truncate">
+                                AI 곡 생성
+                            </div>
+                            <div className="mt-1 text-xs text-[#999999] truncate">
+                                아직 만든 곡이 없어요
+                            </div>
+                            </div>
+                        </button>
+                        )}
                     </div>
                     </HorizontalScroller>
+
                 </div>
                 </section>
 
@@ -669,7 +734,7 @@ export default function MyPage() {
                     <button
                     type="button"
                     className="absolute inset-0 bg-black/40"
-                    onClick={() => setEditOpen(false)}
+                    onClick={closeEdit}
                     aria-label="닫기"
                     />
 
