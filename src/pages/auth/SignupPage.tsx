@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MdVisibility, MdVisibilityOff } from "react-icons/md";
+import { MdVisibility, MdVisibilityOff, MdNavigateBefore } from "react-icons/md";
 
 
 export default function SignUpPage() {
@@ -21,12 +21,12 @@ export default function SignUpPage() {
     return pw !== pw2;
   }, [pw, pw2]);
 
+  
    // ✅ 비밀번호 규칙 검사 (문자/숫자/특수기호)
   const pwRules = useMemo(() => {
     const hasLetter = /[A-Za-z]/.test(pw);
     const hasNumber = /\d/.test(pw);
-    // "특수기호"를 영문/숫자/공백 제외 문자로 정의
-    const hasSpecial = /[^A-Za-z0-9\s]/.test(pw);
+    const hasSpecial = /[!@#$%^&*()_+\-=\[\]{}|;:'",.<>\/?\`~]/.test(pw);
 
     return { hasLetter, hasNumber, hasSpecial };
   }, [pw]);
@@ -37,6 +37,9 @@ export default function SignUpPage() {
     if (!pw) return false;
     return pwRules.hasLetter && pwRules.hasNumber && pwRules.hasSpecial;
   }, [pw, pwRules]);
+
+  const pwInvalid = pw.length > 0 && !pwOk;
+  const pw2Invalid = pw2.length > 0 && pwMismatch;
 
     // ✅ 사용자에게 보여줄 규칙 안내 문구
   const pwRuleText = useMemo(() => {
@@ -71,66 +74,79 @@ export default function SignUpPage() {
   };
 
   return (
-   <div className="min-h-screen overflow-hidden flex items-center justify-center">
+   <div className="min-h-screen flex items-center justify-center -translate-y-6">
+    
 
-      <div
-        className="
-          pointer-events-none absolute inset-0
-          bg-[linear-gradient(180deg,#2D2D2D_30%,#5D5D5D_100%)]
-          bg-[length:200%_200%]
-          animate-bgGradient
-        "
-      />
-      
       {/* ✅ 폼: 가운데 정렬 + 폭 고정 (버튼 기준) */}
-      <div className="relative z-10 w-[340px]">
+
+      <div className="relative z-10 w-[340px] flex flex-col items-center">
         
+          <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="
+              -translate-y-1/2
+              self-start
+              text-[#f6f6f6]
+              rounded-full hover:bg-white/10 transition"
+              aria-label="뒤로 가기"
+              title="뒤로 가기"
+          >
+          <MdNavigateBefore size={24}/>
+          </button>
+          
+
         {/* Email */}
-        <label className="w-full text-left block text-[10px] text-white/70 mb-1">
-          Email Address
-        </label>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email ID@domain.com"
-          className="
-            w-full h-12
-            px-4
-            rounded-full
-            bg-[#777777]/80
-            text-[#f6f6f6] text-sm
-            placeholder:text-white/40
-            outline-none
-            focus:ring-2 focus:ring-white/70
-          "
-        />
-
-        {/* Password */}
-        <div className="h-2" />
-        <label className="w-full text-left block text-[10px] text-white/70 mb-1">
-          Password
-        </label>
-
-        <div className="relative">
+        <div className="relative w-full">
+          <label className="w-full text-left block text-[12px] text-white/70 mb-1">
+            Email Address
+          </label>
           <input
-            type="password"
-            value={pw}
-            onChange={(e) => setPw(e.target.value)}
-            placeholder="문자와 숫자, 특수기호 포함"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email ID@domain.com"
             className="
               w-full h-12
               px-4
-              rounded-full
+              rounded-md
+              bg-[#777777]/80
+              text-[#f6f6f6] text-sm
+              placeholder:text-white/40
+              outline-none
+              focus:ring-2 focus:ring-white/70
+            "
+          />
+        </div>
+
+        {/* Password */}
+        <div className="relative w-full mt-3">
+          <label className="w-full text-left block text-[12px] text-white/70 mb-1">
+            Password
+          </label>
+
+          <input
+            type={showPw ? "password" : "text"}
+            value={pw}
+            onChange={(e) => setPw(e.target.value)}
+            placeholder="문자와 숫자, 특수기호 포함"
+            className={[`
+              w-full h-12
+              px-4
+              rounded-md
               bg-[#777777]/80
               text-[#f6f6f6] text-sm
               placeholder:text-white/70
               outline-none
               focus:ring-2 focus:ring-white/70
-            "
+              `,
+              pwInvalid
+                ? "ring-2 ring-red-600 focus:ring-2 focus:ring-red-600"
+                : "focus:ring-2 focus:ring-white/70",
+            ].join(" ")}
           />
-
-        <button
+      
+          <button
             type="button"
             onClick={() => setShowPw((v) => !v)}
             className="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white transition"
@@ -138,73 +154,79 @@ export default function SignUpPage() {
           >
             {showPw ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
           </button>
-        </div>
+
+        
 
         {/* ✅ 규칙 안내 문구 */}
         {pw && !pwOk && (
           <p className="mt-2 text-[10px] text-red-600 text-center">{pwRuleText}</p>
         )}
-
-        {/* Password Check */}
-        <div className="h-4" />
-        <label className="w-full text-left block text-[10px] text-white/70 mb-1">
-          Check your Password
-        </label>
-
-        <div className="relative">
-          <input
-            type="password"
-            value={pw2}
-            onChange={(e) => setPw2(e.target.value)}
-            className={[
-              `
-              w-full h-12
-              px-4
-              rounded-full
-              bg-[#777777]/80
-              text-white/90 text-sm
-              placeholder:text-white/70
-              outline-none
-              focus:ring-2 focus:ring-white/70
-              `,
-              pwMismatch ? "ring-2 ring-red-600" : "",
-            ].join(" ")}
-            autoComplete="new-password"
-          />
-
-          <button
-            type="button"
-            onClick={() => setShowPw2((v) => !v)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white transition"
-            aria-label={showPw2 ? "비밀번호 숨기기" : "비밀번호 보기"}
-          >
-            {showPw2 ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
-          </button>
         </div>
+
+        
+        {/* Password Check */}
+        <div className="relative w-full mt-3">
+          <label className="w-full text-left block text-[12px] text-white/70 mb-1">
+            Check your Password
+          </label>
+
+          <div className="relative w-full">
+            <input
+              type={showPw2 ? "password" : "text"}
+              value={pw2}
+              onChange={(e) => setPw2(e.target.value)}
+              className={[
+                `
+                w-full h-12
+                px-4
+                rounded-md
+                bg-[#777777]/80
+                text-white/90 text-sm
+                placeholder:text-white/70
+                outline-none
+                focus:ring-2 focus:ring-white/70
+                `,
+                pw2Invalid
+                  ? "ring-2 ring-red-600 focus:ring-2 focus:ring-red-600"
+                  : "focus:ring-2 focus:ring-white/70",
+              ].join(" ")}
+              autoComplete="new-password"
+            />
+
+            <button
+              type="button"
+              onClick={() => setShowPw2((v) => !v)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white transition"
+              aria-label={showPw2 ? "비밀번호 숨기기" : "비밀번호 보기"}
+            >
+              {showPw2 ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
+            </button>
+          </div>
 
         {pwMismatch && (
           <p className="flex flex-1 justify-center mt-2 text-[10px] text-red-600">
             비밀번호가 일치하지 않습니다.
           </p>
         )}
+        </div>
           
-        {/* Sign up 버튼 */}
-        <button
-          type="button"
-          onClick={onSubmit}
-          disabled={!canSubmit}
-          className={[
-            `
-            mt-8 block mx-auto w-[220px] h-12 rounded-full
-            bg-[#777777]/80 text-white text-sm
-            transition
-            `,
-            canSubmit ? "hover:bg-[#8a8a8a]/70" : "opacity-40 cursor-not-allowed",
-          ].join(" ")}
-        >
-          Sign up
-        </button>
-      </div>
+          {/* Sign up 버튼 */}
+          <button
+            type="button"
+            onClick={onSubmit}
+            disabled={!canSubmit}
+            className={[
+              `
+              mt-8 block mx-auto w-[220px] h-12 rounded-full
+              bg-[#777777]/80 text-white text-sm
+              transition
+              `,
+              canSubmit ? "hover:bg-[#8a8a8a]/70" : "opacity-40 cursor-not-allowed",
+            ].join(" ")}
+          >
+            Sign up
+          </button>
     </div>
+  </div>
   );
 }

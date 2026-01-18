@@ -25,15 +25,7 @@ export default function LoginPage() {
 
 
   return (
-      <div className="h-screen flex items-center justify-center">
-        <div
-            className="
-            pointer-events-none absolute inset-0
-            bg-[linear-gradient(180deg,#2D2D2D_30%,#5D5D5D_100%)]
-            bg-[length:200%_200%]
-            animate-bgGradient
-            "
-        />
+      <div className="relative min-h-[100dvh] flex items-center justify-center">
  
       {/* ✅ 중앙 폼(카드 없음) */}
       <form
@@ -70,7 +62,7 @@ export default function LoginPage() {
             <MdLockOutline size={18} />
           </div>
           <input
-            type={showPw ? "text" : "password"}
+            type={showPw ? "password" : "text"}
             value={pw}
             onChange={(e) => setPw(e.target.value)}
             placeholder="Password"
