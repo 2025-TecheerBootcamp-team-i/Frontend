@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams, useOutletContext } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 
 import { IoPlayCircle, IoShuffle } from "react-icons/io5";
 import { MdPlaylistAdd, MdFavorite } from "react-icons/md";
@@ -25,11 +25,6 @@ type Song = {
   album: string;
   duration: string;
   isAi?: boolean;
-};
-
-type SearchOutletCtx = {
-  excludeAi: boolean;
-  setExcludeAi: (v: boolean) => void;
 };
 
 /* ===================== 더미 데이터 ===================== */
@@ -58,10 +53,17 @@ type ActionKey = (typeof actions)[number]["key"];
 
 export default function SearchSong() {
   const { playTracks } = usePlayer();
-  const { excludeAi, setExcludeAi } = useOutletContext<SearchOutletCtx>();
-  const [sp] = useSearchParams();
-  const q = (sp.get("q") ?? "").trim();
 
+  const [sp, setSp] = useSearchParams();
+  const q = (sp.get("q") ?? "").trim();
+  const excludeAi = sp.get("noai") === "1";
+
+  const toggleExcludeAi = () => {
+    const next = new URLSearchParams(sp);
+    if (excludeAi) next.delete("noai");
+    else next.set("noai", "1");
+    setSp(next, { replace: true }); // ✅ 뒤로가기 히스토리 지저분해지는 거 싫으면 replace
+  };
   /* ===================== 검색/필터 ===================== */
 
   const songs = useMemo(() => {
@@ -225,11 +227,11 @@ export default function SearchSong() {
         <div className="mt-4 flex gap-3">
           <button
             type="button"
-            onClick={() => setExcludeAi(!excludeAi)}
+            onClick={toggleExcludeAi}
             className={[
               "shrink-0 px-4 py-2 rounded-2xl text-sm flex items-center gap-2 outline outline-1",
               excludeAi
-                ? "bg-[#f6f6f6] text-[#4e4e4e]"
+                ? "outline-[#AFDEE2] text-[#AFDEE2]"
                 : "outline-[#f6f6f6] text-[#f6f6f6]",
             ].join(" ")}
           >

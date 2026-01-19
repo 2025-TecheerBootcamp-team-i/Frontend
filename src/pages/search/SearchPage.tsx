@@ -1,23 +1,20 @@
 import { NavLink, Outlet, useSearchParams } from "react-router-dom";
 
-function Tab({ to, label, end }: { to: string; label: string; end?: boolean }) {
-  const [sp] = useSearchParams();
-  const searchStr = sp.toString();
-  const search = searchStr ? `?${searchStr}` : "";
 
+function Tab({ to, label }: { to: string; label: string }) {
   return (
     <NavLink
-      to={`${to}${search}`}
-      end={end}
+      to={to}
+      end
       className={({ isActive }) =>
         [
           "px-4 py-2 rounded-full text-base transition whitespace-nowrap",
           isActive
-            ? "bg-[#E4524D] text-[#f6f6f6]"
-            : "bg-[#4d4d4d] text-[#f6f6f6] hover:bg-[#5d5d5d]",
+            ? "bg-[#E4524D] text-[#F6F6F6]"
+            : "bg-[#4d4d4d] text-[#F6F6F6] hover:bg-[#5d5d5d]",
         ].join(" ")
       }
-    > 
+    >
       {label}
     </NavLink>
   );
@@ -25,16 +22,20 @@ function Tab({ to, label, end }: { to: string; label: string; end?: boolean }) {
 
 export default function SearchPage() {
   const [sp] = useSearchParams();
-  const excludeAi = sp.get("noai") === "1";
+
+  // ✅ 현재 쿼리 전체 유지 (q, noai 등 전부)
+  const searchStr = sp.toString();
+  const search = searchStr ? `?${searchStr}` : "";
 
   return (
     <div className="w-full min-w-0 h-full flex flex-col">
       <div className="sticky top-0 z-20 pt-2">
         <div className="mt-2 px-4 flex gap-3 items-center">
-          <Tab to="." label="모두" end />
-          <Tab to="song" label="곡" />
-          <Tab to="artist" label="아티스트" />
-          <Tab to="album" label="앨범" />
+          {/* ✅ MyPlaylistPage처럼: 루트는 "" + end */}
+          <Tab to={`all${search}`} label="모두" />
+          <Tab to={`song${search}`} label="곡" />
+          <Tab to={`artist${search}`} label="아티스트" />
+          <Tab to={`album${search}`} label="앨범" />
         </div>
 
         <div className="mt-4 border-b border-[#464646]" />
@@ -42,7 +43,7 @@ export default function SearchPage() {
 
       <div className="flex-1 min-h-0 overflow-y-auto py-0">
         <div className="px-0">
-          <Outlet context={{ excludeAi }} />
+          <Outlet />
         </div>
       </div>
     </div>

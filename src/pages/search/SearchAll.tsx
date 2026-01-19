@@ -224,6 +224,7 @@ export default function SearchHome() {
               <div
                 className="
                   group relative
+                  h-full
                   w-full
                   rounded-3xl
                   hover:bg-[#1d1d1d]/45 transition
@@ -332,6 +333,18 @@ export default function SearchHome() {
               {q && songs.length === 0 && (
                 <div className="px-8 pb-6 text-sm text-[#F6F6F6]/60">해당 검색어의 곡이 없습니다.</div>
               )}
+
+              <div className="flex justify-center border-t border-[#464646] p-4 text-[#D9D9D9]">
+                    <button
+                    type="button"
+                    onClick={() => navigate(`/search/song${search}`)}
+                    aria-label="곡 더보기"
+                    title="더보기"
+                    className="text-xs text-[#f6f6f6]/40 hover:text-[#aaaaaa] transition"
+                    >
+                    더보기
+                    </button>
+                </div>
             </section>
           </div>
           </div>
