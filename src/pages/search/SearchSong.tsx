@@ -443,6 +443,7 @@ export default function SearchSong() {
       duration: s.duration,
       audioUrl: audioUrl || undefined,
       coverUrl: coverUrl,
+      musicId: musicId || undefined, // music_id 저장
     };
   };
 
