@@ -1,5 +1,6 @@
-    // src/mocks/chart.ts
-    export type ChartRow = {
+
+// Chart.ts 코드
+export type ChartRow = {
         id: string;
         rank: number;
         title: string;
