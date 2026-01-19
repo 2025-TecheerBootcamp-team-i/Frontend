@@ -226,7 +226,7 @@ function findAlbumById(albumId: string | undefined): Found {
     return (
         <div className="w-full min-w-0 overflow-x-auto">
         {/* 상단 */}
-        <section className="relative mb-16 overflow-visible">
+        <section className="relative overflow-visible">
             <div className="relative h-72 bg-[#1D1D1D]/70 border-b border-[#3D3D3D] overflow-hidden">
             <button
                 type="button"
@@ -239,8 +239,8 @@ function findAlbumById(albumId: string | undefined): Found {
             </button>
 
             <div className="absolute inset-0 flex items-end">
-                <div className="px-12 pb-8 flex items-end gap-10 min-w-[1100px] shrink-0">
-                <div className="w-48 h-48 shrink-0" />
+                <div className="px-12 pb-8 flex items-end gap-8 min-w-[1100px] shrink-0">
+                <div className="w-[228px] h-[228px] shrink-0" />
 
                 <div className="flex items-end gap-5">
                     <div className="min-w-0">
@@ -294,11 +294,11 @@ function findAlbumById(albumId: string | undefined): Found {
             </div>
             </div>
 
-            <div className="absolute left-12 top-32 w-52 h-52 rounded-3xl bg-[#777777] z-20 shadow-xl" />
+            <div className="absolute left-12 top-28 w-[228px] h-[228px] rounded-3xl bg-[#777777] z-20 shadow-xl" />
         </section>
 
         {/* 본문 */}
-        <div className="mt-12 px-4 space-y-6">
+        <div className="mt-[70px] px-4 space-y-6">
             <section className="rounded-3xl bg-[#2d2d2d]/80 border border-[#2d2d2d] overflow-hidden">
             <div className="px-8 py-6 border-b border-[#464646]">
                 <div className="flex items-end justify-between gap-4">

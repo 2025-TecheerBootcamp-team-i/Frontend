@@ -212,7 +212,7 @@ export default function ArtistPage() {
     return (
         <div className="w-full min-w-0 overflow-x-auto">
         {/* 상단 */}
-        <section className="relative mb-16 overflow-visible">
+        <section className="relative overflow-visible">
             <div className="relative h-72 bg-[#1D1D1D]/70 border-b border-[#3D3D3D] overflow-hidden">
                 {/* 상단 왼쪽 뒤로 */}
                 <button
@@ -227,9 +227,9 @@ export default function ArtistPage() {
 
                 {/* 내용 */}
                 <div className="absolute inset-0 flex items-end">
-                <div className="px-10 pb-8 flex items-end gap-10 min-w-[1100px] shrink-0">
+                <div className="px-10 pb-8 flex items-end gap-8 min-w-[1100px] shrink-0">
                     {/* ✅ 이미지 자리는 유지(레이아웃 안 흔들리게) */}
-                    <div className="w-48 h-48 shrink-0" />
+                    <div className="w-[228px] h-[228px] shrink-0" />
 
                     {/* 텍스트 + 플레이 */}
                     <div className="flex items-end gap-5">
@@ -256,8 +256,8 @@ export default function ArtistPage() {
             {/* ✅ 헤더 밖에서 그리기: 아래 컨텐츠까지 걸치게 */}
             <div
                 className="
-                absolute left-10 top-32
-                w-52 h-52
+                absolute left-10 top-28
+                w-[228px] h-[228px]
                 rounded-full bg-[#777777]
                 z-20
                 shadow-xl
@@ -268,7 +268,7 @@ export default function ArtistPage() {
 
 
         {/* 아래 컨텐츠 */}
-        <div className="mt-6 px-4 space-y-6">
+        <div className="mt-[70px] px-4 space-y-6">
             {/* 곡 카드 */}
             <section className="rounded-3xl bg-[#2d2d2d]/80 border border-[#2d2d2d] overflow-hidden">
             <div className="px-6 pt-6 pb-3 flex items-center justify-between">

@@ -238,7 +238,7 @@ export default function SearchHome() {
                       {/* 커버 */}
                       <div
                         className={[
-                          "w-[200px] h-[200px] bg-[#777777]",
+                          "w-[228px] h-[228px] bg-[#777777]",
                           featuredKind === "artist" ? "rounded-full" : "rounded-2xl",
                         ].join(" ")}
                       />
@@ -352,7 +352,7 @@ export default function SearchHome() {
           {/* ✅ 아티스트 미리보기 (MyPlaylistPage 가로 스크롤 카드 스타일) */}
           <SectionShell title="아티스트" onMore={() => navigate(`/search/artist${search}`)}>
             <HorizontalScroller gradientFromClass="from-[#2d2d2d]/80">
-              <div className="flex gap-2 min-w-max px-2">
+              <div className="flex gap-4 min-w-max px-2">
                 {(artists.length ? artists : ALL_ARTISTS).slice(0, 8).map((a) => (
                   <button
                     key={a.id}
@@ -360,7 +360,7 @@ export default function SearchHome() {
                     onClick={() => navigate(`/search/artist${search}`)}
                     className="w-[220px] text-left group shrink-0"
                   >
-                    <div className="w-48 h-48 ml-2 rounded-full bg-[#6b6b6b]/40 border border-[#464646] group-hover:bg-[#6b6b6b]/55 transition" />
+                    <div className="w-[208px] h-[208px] ml-2 rounded-full bg-[#6b6b6b]/40 border border-[#464646] group-hover:bg-[#6b6b6b]/55 transition" />
                     <div className="mt-3 text-sm ml-2 font-semibold text-[#F6F6F6] truncate">{a.name}</div>
                     <div className="mt-1 text-xs ml-2 text-[#F6F6F6]/60 truncate">아티스트</div>
                   </button>
@@ -376,7 +376,7 @@ export default function SearchHome() {
           {/* ✅ 앨범 미리보기 (가로 스크롤 카드 스타일로 통일) */}
           <SectionShell title="앨범" onMore={() => navigate(`/search/album${search}`)}>
             <HorizontalScroller gradientFromClass="from-[#2d2d2d]/80">
-              <div className="flex gap-2 min-w-max px-2">
+              <div className="flex gap-4 min-w-max px-2">
                 {(albums.length ? albums : ALL_ALBUMS).slice(0, 10).map((a) => (
                   <button
                     key={a.id}
@@ -384,7 +384,7 @@ export default function SearchHome() {
                     onClick={() => navigate(`/search/album${search}`)}
                     className="w-[220px] text-left group shrink-0"
                   >
-                    <div className="w-48 h-48 rounded-2xl bg-[#6b6b6b]/40 border border-[#464646] group-hover:bg-[#6b6b6b]/55 transition" />
+                    <div className="w-[208px] h-[208px] rounded-2xl bg-[#6b6b6b]/40 border border-[#464646] group-hover:bg-[#6b6b6b]/55 transition" />
                     <div className="mt-3 ml-1 text-sm font-semibold text-[#F6F6F6] truncate">{a.name}</div>
                     <div className="mt-1 ml-1 text-xs text-[#F6F6F6]/60 truncate">{a.artist}</div>
                   </button>
