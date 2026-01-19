@@ -19,7 +19,21 @@ const fmt = (s: number) => {
 export default function Player({ height = 92 }: Props) {
     const navigate = useNavigate();
 
-    const { current, isPlaying, toggle, progress, duration, seek, volume, setVolume } = usePlayer();
+    const { 
+        current, 
+        isPlaying, 
+        toggle, 
+        progress, 
+        duration, 
+        seek, 
+        volume, 
+        setVolume,
+        shuffleQueue,
+        previousTrack,
+        nextTrack,
+        toggleRepeat,
+        repeatMode,
+    } = usePlayer();
 
     const hasTrack = !!current;
     const pct = duration > 0 ? Math.min(100, (progress / duration) * 100) : 0;
@@ -113,11 +127,14 @@ export default function Player({ height = 92 }: Props) {
             {/* 셔플 */}
             <button
                 type="button"
-                className="
-                text-[#999] hover:text-[#F6F6F6]
-                transition
-                "
+                onClick={shuffleQueue}
+                disabled={!hasTrack}
+                className={[
+                    "transition",
+                    hasTrack ? "text-[#999] hover:text-[#F6F6F6]" : "text-white/30 cursor-not-allowed",
+                ].join(" ")}
                 aria-label="셔플"
+                title="재생 대기 곡들 셔플"
             >
                 <MdShuffle size={22} />
             </button>
@@ -125,11 +142,14 @@ export default function Player({ height = 92 }: Props) {
             {/* 이전 */}
             <button
                 type="button"
-                className="
-                text-[#999] hover:text-[#F6F6F6]
-                transition
-                "
+                onClick={previousTrack}
+                disabled={!hasTrack}
+                className={[
+                    "transition",
+                    hasTrack ? "text-[#999] hover:text-[#F6F6F6]" : "text-white/30 cursor-not-allowed",
+                ].join(" ")}
                 aria-label="이전 곡"
+                title="이전 곡"
             >
                 <MdSkipPrevious size={26} />
             </button>
@@ -153,11 +173,14 @@ export default function Player({ height = 92 }: Props) {
             {/* 다음 */}
             <button
                 type="button"
-                className="
-                text-[#999] hover:text-[#F6F6F6]
-                transition
-                "
+                onClick={nextTrack}
+                disabled={!hasTrack}
+                className={[
+                    "transition",
+                    hasTrack ? "text-[#999] hover:text-[#F6F6F6]" : "text-white/30 cursor-not-allowed",
+                ].join(" ")}
                 aria-label="다음 곡"
+                title="다음 곡"
             >
                 <MdSkipNext size={26} />
             </button>
@@ -165,11 +188,18 @@ export default function Player({ height = 92 }: Props) {
             {/* 반복 */}
             <button
                 type="button"
-                className="
-                text-[#999] hover:text-[#F6F6F6]
-                transition
-                "
+                onClick={toggleRepeat}
+                disabled={!hasTrack}
+                className={[
+                    "transition",
+                    hasTrack
+                        ? repeatMode === "one"
+                            ? "text-[#AFDEE2]"
+                            : "text-[#999] hover:text-[#F6F6F6]"
+                        : "text-white/30 cursor-not-allowed",
+                ].join(" ")}
                 aria-label="반복"
+                title={repeatMode === "one" ? "한 곡 반복" : "반복 끄기"}
             >
                 <MdRepeat size={22} />
             </button>
