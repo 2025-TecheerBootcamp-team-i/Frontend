@@ -1,23 +1,13 @@
 import { useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { TOP100, DAILY, AI } from "../../mocks/chart";
+
+import { fetchPopularArtists, type PopularArtist } from "../../api/artist";
+import { fetchChart, type ChartData, type ChartType, type ChartRow as ApiChartRow } from "../../api/chart";
 import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
 
 import { MdOutlineNavigateNext } from "react-icons/md";
 import { FaPlay } from "react-icons/fa6";
-
-type Artist = { id: string; name: string };
-
-const artists: Artist[] = Array.from({ length: 8 }).map((_, i) => ({
-    id: String(i + 1),
-    name: `인기 아티스트 ${i + 1}`,
-}));
-
-type ChartRow =
-    | (typeof TOP100)[number]
-    | (typeof DAILY)[number]
-    | (typeof AI)[number];
 
 type PublicPlaylistPreview = {
         id: string;
@@ -162,6 +152,104 @@ function HomePage() {
         const map = { TOP100: "top100", DAILY: "daily", AI: "ai" } as const;
         navigate(`/chart/${map[tab]}`);
     };
+
+    const [popularArtists, setPopularArtists] = useState<PopularArtist[]>([]);
+    const [popularLoading, setPopularLoading] = useState(false);
+    const [popularError, setPopularError] = useState<string | null>(null);
+
+    const [chartByType, setChartByType] = useState<Record<ChartType, ChartData | null>>({
+    realtime: null,
+    daily: null,
+    ai: null,
+    });
+    const [chartLoading, setChartLoading] = useState(false);
+    const [chartError, setChartError] = useState<string | null>(null);
+
+    const TAB_TO_CHARTTYPE: Record<"TOP100" | "DAILY" | "AI", ChartType> = {
+    TOP100: "realtime", //
+    DAILY: "daily",
+    AI: "ai",
+    };
+
+    const updateArtistScrollHint = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    setShowLeft(scrollLeft > 0);
+    setShowRight(scrollLeft + clientWidth < scrollWidth - 1);
+    };
+    
+    // ✅ 이전 순위 스냅샷 저장(렌더링 안 일으킴)
+    const prevRankByIdRef = useRef<Record<string, number>>({});
+
+    // ✅ 화면 표시용 diff 저장
+    const [diffById, setDiffById] = useState<Record<string, number>>({});
+
+
+    useEffect(() => {
+    let alive = true;
+
+    (async () => {
+        try {
+        setPopularLoading(true);
+        setPopularError(null);
+
+        const data = await fetchPopularArtists(8); // 홈에서 8명 미리보기
+        if (!alive) return;
+
+        setPopularArtists(data);
+         } catch (e: any) {
+        if (!alive) return;
+        setPopularError(e?.message ?? "인기 아티스트 로딩 실패");
+        } finally {
+        if (!alive) return;
+        setPopularLoading(false);
+        }
+    })();
+
+    return () => {
+        alive = false;
+    };
+    }, []);
+
+    useEffect(() => {
+    requestAnimationFrame(updateArtistScrollHint);
+    }, [popularArtists]);
+
+
+
+    useEffect(() => {
+    let alive = true;
+
+    (async () => {
+        try {
+        setChartLoading(true);
+        setChartError(null);
+
+        const [realtime, daily, ai] = await Promise.all([
+            fetchChart("realtime"),
+            fetchChart("daily"),
+            fetchChart("ai"),
+        ]);
+
+        if (!alive) return;
+
+        setChartByType({ realtime, daily, ai });
+        } catch (e: any) {
+        if (!alive) return;
+        setChartError(e?.message ?? "차트 로딩 실패");
+        } finally {
+        if (!alive) return;
+        setChartLoading(false);
+        }
+    })();
+
+        
+    return () => {
+        alive = false;
+    };
+    }, []);
+
     
     const [tab, setTab] = useState<"TOP100" | "DAILY" | "AI">("TOP100");
 
@@ -170,65 +258,112 @@ function HomePage() {
     const [showRight, setShowRight] = useState(false);
 
     useEffect(() => {
-        const el = scrollRef.current;
-        if (!el) return;
+    const el = scrollRef.current;
+    if (!el) return;
 
-        const update = () => {
-        const { scrollLeft, scrollWidth, clientWidth } = el;
-        setShowLeft(scrollLeft > 0);
-        setShowRight(scrollLeft + clientWidth < scrollWidth - 1);
-        };
+    updateArtistScrollHint();
+    el.addEventListener("scroll", updateArtistScrollHint);
+    window.addEventListener("resize", updateArtistScrollHint);
 
-        update();
-        el.addEventListener("scroll", update);
-        window.addEventListener("resize", update);
-
-        return () => {
-        el.removeEventListener("scroll", update);
-        window.removeEventListener("resize", update);
-        };
+    return () => {
+        el.removeEventListener("scroll", updateArtistScrollHint);
+        window.removeEventListener("resize", updateArtistScrollHint);
+    };
     }, []);
 
+    useEffect(() => {
+    let alive = true;
+
+    (async () => {
+        try {
+        setChartLoading(true);
+        setChartError(null);
+
+        const [realtime, daily, ai] = await Promise.all([
+            fetchChart("realtime"),
+            fetchChart("daily"),
+            fetchChart("ai"),
+        ]);
+
+        if (!alive) return;
+
+        // ✅ diff 계산 (realtime 기준)
+        const prev = prevRankByIdRef.current;
+        const nextDiff: Record<string, number> = {};
+
+        for (const item of realtime.items) {
+            const id = item.musicId;
+            const prevRank = prev[id];
+            nextDiff[id] = typeof prevRank === "number" ? prevRank - item.rank : 0;
+        }
+
+        setDiffById(nextDiff);
+
+        // ✅ 이번 순위를 다음 비교를 위한 스냅샷으로 저장
+        const nextPrev: Record<string, number> = {};
+        for (const item of realtime.items) {
+            nextPrev[item.musicId] = item.rank;
+        }
+        prevRankByIdRef.current = nextPrev;
+
+        // ✅ 차트 저장
+        setChartByType({ realtime, daily, ai });
+        } catch (e: any) {
+        if (!alive) return;
+        setChartError(e?.message ?? "차트 로딩 실패");
+        } finally {
+        if (!alive) return;
+        setChartLoading(false);
+        }
+    })();
+
+    return () => {
+        alive = false;
+    };
+    }, []);
+
+
     const tabBtn = (key: "TOP100" | "DAILY" | "AI", label: string) => {
-        const active = tab === key;
-        return (
+    const active = tab === key;
+    return (
         <button
-            type="button"
-            onClick={() => setTab(key)}
-            className={[
+        type="button"
+        onClick={() => setTab(key)}
+        className={[
             "h-8 px-4 rounded-full text-sm transition whitespace-nowrap",
             active
-                ? "bg-[#E4524D] text-[#F6F6F6]"
-                : "bg-[#4d4d4d] text-[#F6F6F6] hover:bg-[#5d5d5d]",
-            ].join(" ")}
+            ? "bg-[#E4524D] text-[#F6F6F6]"
+            : "bg-[#4d4d4d] text-[#F6F6F6] hover:bg-[#5d5d5d]",
+        ].join(" ")}
         >
-            {label}
+        {label}
         </button>
-        );
+    );
     };
 
-    const currentChart = tab === "DAILY" ? DAILY : tab === "AI" ? AI : TOP100;
-    const previewRows = currentChart.slice(0, 6);
+    const currentType = TAB_TO_CHARTTYPE[tab];
+    const currentChart = chartByType[currentType];
+    const previewRows = currentChart?.items.slice(0, 6) ?? [];
 
-    const toTrack = (row: ChartRow): PlayerTrack => {
-            const coverUrl =
-            "coverUrl" in row && typeof row.coverUrl === "string" ? row.coverUrl : undefined;
-        
-            const audioUrl =
-            "audioUrl" in row && typeof row.audioUrl === "string"
-                ? row.audioUrl
-                : "/audio/sample.mp3";
-        
-            return {
-            id: row.id,
-            title: row.title,
-            artist: row.artist,
-            coverUrl,
-            audioUrl,
-            duration: row.duration,
-            // album 있으면 추가 가능:
-            // album: "album" in row && typeof row.album === "string" ? row.album : undefined,
-            };
+    const formatDuration = (sec: number) => {
+    const s = Math.max(0, Math.floor(sec || 0));
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return `${m}:${String(r).padStart(2, "0")}`;
+    };
+
+
+    const toTrack = (row: ApiChartRow): PlayerTrack => {
+    const audioUrl = row.audioUrl && row.audioUrl.length > 0 ? row.audioUrl : "/audio/sample.mp3";
+
+    return {
+        id: row.musicId,
+        title: row.musicName,
+        artist: row.artistName,
+        coverUrl: undefined, // 커버 URL이 API에 없으면 undefined
+        audioUrl,
+        duration: formatDuration(row.durationSec),
+    };
     };
     
     return (
@@ -240,21 +375,44 @@ function HomePage() {
                 ref={scrollRef}
                 className="flex gap-6 overflow-x-auto px-2 py-4 no-scrollbar scroll-smooth"
             >
-                {artists.map((a) => (
+
+        
+        {popularLoading && <div className="text-[#F6F6F6]/70 px-2">로딩중...</div>}
+        {popularError && <div className="text-red-300 px-2">{popularError}</div>}
+
+                {!popularLoading && !popularError && popularArtists.map((a) => (
                 <div
-                    key={a.id}
+                    key={a.artist_id}
+                    className="shrink-0 flex flex-col items-center animate-floatX"
+                >
+                    <button
+                    type="button"
+                    onClick={() => navigate(`/artists/${a.artist_id}`)}
                     className="
-                    shrink-0 flex flex-col items-center animate-floatX">
-                        <button 
-                            type="button"
-                            onClick={() => navigate(`/artists/a${a.id}`)} // 임시
-                            className="
-                                w-32 h-32 rounded-full bg-[#777777]
-                                transition-all duration-300
-                                hover:-translate-y-1 hover:scale-105
-                                drop-shadow-[0_4px_12px_rgba(0,0,0,0.25)]
-                                " />
-                    <div className="mt-3 text-sm text-[#F6F6F6]">{a.name}</div>
+                        w-32 h-32 rounded-full bg-[#777777]
+                        transition-all duration-300
+                        hover:-translate-y-1 hover:scale-105
+                        drop-shadow-md
+                        overflow-hidden
+                    "
+                    >
+                    {a.image_small_circle ? (
+                        <img
+                        src={a.image_small_circle}
+                        alt={a.artist_name}
+                        className="w-full h-full object-cover"
+                        />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[#F6F6F6] text-xl">
+                        {a.artist_name?.[0] ?? "?"}
+                        </div>
+                    )}
+                    </button>
+
+                    <div className="mt-3 text-sm text-[#F6F6F6]">{a.artist_name}</div>
+                    <div className="mt-1 text-xs text-[#F6F6F6]/60">
+                    #{a.rank} · {a.play_count}회
+                    </div>
                 </div>
                 ))}
             </div>
@@ -306,11 +464,14 @@ function HomePage() {
 
                 <div className="border-b border-[#464646]" />
 
+                {chartLoading && <div className="p-4 text-[#F6F6F6]/70">차트 로딩중...</div>}
+                {chartError && <div className="p-4 text-red-300">{chartError}</div>}
+
                 {/* 리스트 */}
                 <div className="divide-y divide-[#464646] overflow-hidden">
                     {previewRows.map((row) => (
                     <div
-                        key={row.id}
+                        key={row.musicId}
                         className="
                         group w-full text-left grid
                         grid-cols-[60px_70px_1fr_1fr_80px]
@@ -336,18 +497,20 @@ function HomePage() {
                         </div>
 
                         <div className="text-center text-xs font-medium">
-                        {row.diff > 0 && <span className="text-red-500">▲ {row.diff}</span>}
-                        {row.diff < 0 && (
-                            <span className="text-blue-500">▼ {Math.abs(row.diff)}</span>
-                        )}
-                        {row.diff === 0 && <span className="text-[#AAAAAA]">—</span>}
+                        {(() => {
+                            const diff = diffById[row.musicId] ?? 0;
+
+                            if (diff > 0) return <span className="text-red-500">▲ {diff}</span>;
+                            if (diff < 0) return <span className="text-blue-500">▼ {Math.abs(diff)}</span>;
+                            return <span className="text-[#AAAAAA]">—</span>;
+                        })()}
                         </div>
 
                         <div className="ml-5 flex items-center gap-4 min-w-0 truncate">
                         <div className="w-10 h-10 rounded-lg bg-[#D9D9D9]" />
                         <div className="text-sm text-[#F6F6F6] whitespace-nowrap">
-                            {row.title}
-                            {row.isAI && (
+                            {row.musicName}
+                            {row.isAi && (
                                 <span className="shrink-0 ml-3 text-xs px-2 py-[1px] rounded-full bg-[#E4524D]/20 text-[#E4524D]">
                                 AI
                                 </span>
@@ -356,11 +519,11 @@ function HomePage() {
                         </div>
 
                         <div className="hidden sm:block text-sm text-[#F6F6F6] whitespace-nowrap">
-                        {row.artist}
+                        {row.artistName}
                         </div>
 
                         <div className="text-right pr-6 text-sm text-[#F6F6F6] whitespace-nowrap">
-                        {row.duration}
+                        {formatDuration(row.durationSec)}
                         </div>
                     </div>
                     ))}
@@ -416,7 +579,7 @@ function HomePage() {
                     key={p.id}
                     type="button"
                     onClick={() => navigate(`/playlist/${p.id}`)}
-                    className="w-[220px] text-left group shrink-0"
+                    className="w-[400px] text-left group shrink-0"
                 >
                     {/* 커버 */}
                     <div className="w-48 h-48 rounded-2xl bg-[#6b6b6b]/40 border border-[#464646] group-hover:bg-[#6b6b6b]/55 transition" />
