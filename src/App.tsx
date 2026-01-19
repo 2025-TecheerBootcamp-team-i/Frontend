@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import MainLayout from "./components/layout/MainLayout";
 import MainLayout2 from "./components/layout/MainLayout2";
 import PlainLayout from "./components/layout/PlainLayout";
@@ -40,6 +40,13 @@ import ChartAI from "./pages/chart/ChartAI";
 import NowPlayingPage from "./pages/song/NowPlayingPage";
 import { PlayerProvider } from "./player/PlayerContext";
 
+// 검색 페이지 쿼리 파라미터 유지하면서 리다이렉트
+function SearchRedirect() {
+  const location = useLocation();
+  const search = location.search || "";
+  return <Navigate to={`all${search}`} replace />;
+}
+
 export default function App() {
   return (
     <PlayerProvider>
@@ -64,7 +71,7 @@ export default function App() {
         <Route path="/aisong/:id" element={<AiSongPage />} />
         <Route path="/my/ai-songs" element={<MyAITracks />} />
         <Route path="/search" element={<SearchPage />}>
-          <Route index element={<Navigate to="all" replace />} />
+          <Route index element={<SearchRedirect />} />
           <Route path="all" element={<SearchAll />} />
           <Route path="artist" element={<SearchArtist />} />
           <Route path="album" element={<SearchAlbum />} />
