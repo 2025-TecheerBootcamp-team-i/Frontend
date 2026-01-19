@@ -3,7 +3,7 @@ import { MdVolumeUp, MdVolumeOff } from "react-icons/md";
 import { MdOpenInFull } from "react-icons/md";
 import { usePlayer } from "../../player/PlayerContext";
 
-import { useRef } from "react";
+import { useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
 
@@ -23,6 +23,26 @@ export default function Player({ height = 92 }: Props) {
 
     const hasTrack = !!current;
     const pct = duration > 0 ? Math.min(100, (progress / duration) * 100) : 0;
+
+    // 앨범 커버 URL 처리 (상대 경로를 절대 경로로 변환)
+    const coverUrl = useMemo(() => {
+        if (!current?.coverUrl) return null;
+        
+        const url = current.coverUrl;
+        const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
+        
+        // 이미 절대 URL이면 그대로 사용
+        if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("//")) {
+            return url;
+        }
+        
+        // 상대 경로인 경우 API_BASE를 사용하여 절대 경로로 변환
+        if (API_BASE && url.startsWith("/")) {
+            return `${API_BASE.replace("/api/v1", "")}${url}`;
+        }
+        
+        return url;
+    }, [current?.coverUrl]);
 
     const volRef = useRef<HTMLDivElement>(null);
 
@@ -62,7 +82,21 @@ export default function Player({ height = 92 }: Props) {
         <div className="h-full px-6 flex items-center gap-6">
             {/* 좌: 정보 (재생 전에는 기본값) */}
             <div className="flex items-center gap-3 min-w-[240px]">
-            <div className="h-12 w-12 rounded-xl bg-[#777]" />
+            <div className="h-12 w-12 rounded-xl bg-[#777] overflow-hidden relative flex-shrink-0">
+                {hasTrack && coverUrl ? (
+                    <img 
+                        src={coverUrl} 
+                        alt={current!.title} 
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                            // 이미지 로드 실패 시 회색 배경 표시
+                            e.currentTarget.style.display = 'none';
+                        }}
+                    />
+                ) : (
+                    <div className="w-full h-full bg-[#777]" />
+                )}
+            </div>
             <div className="min-w-0">
                 <div className="text-sm text-[#F6F6F6] truncate">
                 {hasTrack ? current!.title : "재생할 곡을 선택하세요"}

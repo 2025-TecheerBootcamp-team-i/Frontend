@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { IoChevronBack, IoPlayCircle, IoShuffle } from "react-icons/io5";
 import { MdPlaylistAdd, MdFavorite } from "react-icons/md";
 import { FaPlay } from "react-icons/fa6";
+import axios from "axios";
 
 import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
@@ -20,8 +21,8 @@ import {
     toggleAlbumLike,
 } from "../../mocks/playlistMock";
 
-type Track = { id: string; title: string; album: string; duration: string };
-type Album = { id: string; title: string; year: string };
+type Track = { id: string; title: string; album: string; duration: string; albumImage?: string | null };
+type Album = { id: string; title: string; year: string; albumImage?: string | null };
 type ArtistData = { id: string; name: string; tracks: Track[]; albums: Album[] };
 type Found = { artist: ArtistData; album: Album; tracks: Track[] } | null;
 
@@ -148,6 +149,7 @@ export default function AlbumDetailPage() {
                     id: String(data.album_id),
                     title: data.album_name,
                     year,
+                    albumImage: data.album_image,
                 };
 
                 const tracks: Track[] = data.tracks.map((t) => ({
@@ -177,7 +179,7 @@ export default function AlbumDetailPage() {
     const [checkedIds, setCheckedIds] = useState<Record<string, boolean>>({});
 
     // ✅ 앨범 좋아요 초기 카운트(없으면 fallback으로 사용)
-    const INITIAL_LIKE_COUNT = 12345;
+    const INITIAL_LIKE_COUNT = 0;
 
     // ✅ 앨범 좋아요/카운트 store (playlistMock)
     const [albumLiked, setAlbumLiked] = useState(() =>
@@ -228,6 +230,90 @@ export default function AlbumDetailPage() {
         return subscribePlaylists(syncTargets);
     }, []);
 
+    // 곡 이미지 상태 (트랙별 이미지 저장)
+    const [trackImages, setTrackImages] = useState<Record<string, string>>({});
+
+    // 곡 이미지 가져오기 (아티스트 트랙 API 사용)
+    useEffect(() => {
+        if (!API_BASE || !effective?.artist?.id || Number.isNaN(Number(effective.artist.id))) {
+            return;
+        }
+
+        const controller = new AbortController();
+
+        (async () => {
+            try {
+                const artistIdNum = Number(effective.artist.id);
+                const res = await axios.get<Array<{
+                    music_id: number;
+                    music_name: string;
+                    album_image: string | null;
+                }>>(`${API_BASE}/artists/${artistIdNum}/tracks/`, {
+                    signal: controller.signal,
+                    headers: { "Content-Type": "application/json" },
+                });
+
+                // 트랙 ID를 키로 하는 이미지 맵 생성
+                const images: Record<string, string> = {};
+                res.data.forEach((track) => {
+                    if (track.album_image) {
+                        images[String(track.music_id)] = track.album_image;
+                    }
+                });
+
+                setTrackImages(images);
+            } catch (e) {
+                if (axios.isCancel(e)) return;
+                console.error("[AlbumPage] 곡 이미지 가져오기 실패:", e);
+            }
+        })();
+
+        return () => controller.abort();
+    }, [API_BASE, effective?.artist?.id]);
+
+    // 곡의 오디오 URL 가져오기 - hooks는 조건부 반환 이전에 호출해야 함
+    const fetchTrackAudioUrl = useCallback(async (musicId: string): Promise<string | undefined> => {
+        if (!API_BASE) return undefined;
+
+        try {
+            const res = await axios.get<{ audio_url: string }>(`${API_BASE}/tracks/${musicId}/play`, {
+                headers: { "Content-Type": "application/json" },
+            });
+            return res.data.audio_url;
+        } catch (e) {
+            console.error(`[AlbumPage] 곡 ${musicId} 재생 URL 가져오기 실패:`, e);
+            return undefined;
+        }
+    }, [API_BASE]);
+
+    const toPlayerTrack = useCallback(async (t: Track): Promise<PlayerTrack> => {
+        if (!effective?.artist) {
+            return {
+                id: t.id,
+                title: t.title,
+                artist: "Unknown",
+                album: t.album,
+                duration: t.duration,
+                audioUrl: undefined,
+            };
+        }
+        const audioUrl = await fetchTrackAudioUrl(t.id);
+        console.log(`[AlbumPage] 곡 ${t.id} (${t.title})의 오디오 URL:`, audioUrl || "(없음)");
+        
+        // 곡 이미지가 있으면 곡 이미지, 없으면 앨범 이미지 사용
+        const coverUrl = trackImages[t.id] || effective.album?.albumImage || undefined;
+        
+        return {
+            id: t.id,
+            title: t.title,
+            artist: effective.artist.name || "Unknown",
+            album: t.album,
+            duration: t.duration,
+            audioUrl: audioUrl || undefined,
+            coverUrl: coverUrl,
+        };
+    }, [effective, fetchTrackAudioUrl, trackImages]);
+
     // ✅ 로딩 중 & 아직 데이터가 없을 때
     if (loading && !effective) {
         return (
@@ -274,26 +360,18 @@ export default function AlbumDetailPage() {
 
     const { artist, album } = effective;
 
-    const toPlayerTrack = (t: Track): PlayerTrack => ({
-        id: t.id,
-        title: t.title,
-        artist: artist.name,
-        album: t.album,
-        duration: t.duration,
-        audioUrl: "/audio/sample.mp3",
-    });
-
-    const checkedTracks = tracks.filter((t) => !!checkedIds[t.id]).map(toPlayerTrack);
-    const selectedCount = checkedTracks.length;
+    const selectedTracks = tracks.filter((t) => !!checkedIds[t.id]);
+    const selectedCount = selectedTracks.length;
 
     // ✅ 선택한 곡을 특정 플레이리스트에 추가
-    const addSelectedToPlaylist = (playlistId: string) => {
+    const addSelectedToPlaylist = async (playlistId: string) => {
         if (selectedCount === 0) return;
 
         const curr = getPlaylistById(playlistId);
         if (!curr) return;
 
-        const incoming = checkedTracks.map((t) => ({
+        const checkedPlayerTracks = await Promise.all(selectedTracks.map(toPlayerTrack));
+        const incoming = checkedPlayerTracks.map((t) => ({
         id: t.id,
         title: t.title,
         artist: t.artist,
@@ -319,13 +397,14 @@ export default function AlbumDetailPage() {
     };
 
     // ✅ 액션바 좋아요: 선택곡을 "나의 좋아요 플리"에 추가
-    const addSelectedToLiked = () => {
+    const addSelectedToLiked = async () => {
         if (selectedCount === 0) return;
 
         const curr = getPlaylistById(LIKED_SYSTEM_ID);
         if (!curr) return;
 
-        const incoming = checkedTracks.map((t) => ({
+        const checkedPlayerTracks = await Promise.all(selectedTracks.map(toPlayerTrack));
+        const incoming = checkedPlayerTracks.map((t) => ({
         id: t.id,
         title: t.title,
         artist: t.artist,
@@ -365,7 +444,7 @@ export default function AlbumDetailPage() {
 
             <div className="absolute inset-0 flex items-end">
                 <div className="px-12 pb-8 flex items-end gap-8 min-w-[1100px] shrink-0">
-                <div className="w-[228px] h-[228px] shrink-0" />
+                <div className="w-[228px] h-[228px] shrink-0" /> {/* 플레이스홀더 */}
 
                 <div className="flex items-end gap-5">
                     <div className="min-w-0">
@@ -398,15 +477,16 @@ export default function AlbumDetailPage() {
                         {album.title}
                     </div>
                     <div className="mt-2 text-sm text-[#F6F6F6]/60 truncate">
-                        {artist.name} · {album.year} · {tracks.length}곡 · {totalPlaytime}
+                        {artist.name} · {tracks.length}곡 · {totalPlaytime}
                     </div>
                     </div>
 
                     <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
                         if (tracks.length === 0) return;
-                        playTracks(tracks.map(toPlayerTrack));
+                        const playerTracks = await Promise.all(tracks.map(toPlayerTrack));
+                        playTracks(playerTracks);
                     }}
                     className="w-11 h-11 rounded-full bg-[#AFDEE2] text-[#1d1d1d] grid place-items-center hover:bg-[#87B2B6] transition"
                     aria-label="앨범 재생"
@@ -419,7 +499,28 @@ export default function AlbumDetailPage() {
             </div>
             </div>
 
-            <div className="absolute left-12 top-28 w-[228px] h-[228px] rounded-3xl bg-[#777777] z-20 shadow-xl" />
+            {/* 앨범 이미지 */}
+            {album.albumImage && (
+                <div className="absolute left-12 top-28 w-[228px] h-[228px] rounded-3xl overflow-hidden z-20 shadow-xl">
+                    <img
+                        src={
+                            album.albumImage.startsWith("http") || album.albumImage.startsWith("//")
+                                ? album.albumImage
+                                : API_BASE
+                                ? `${API_BASE.replace("/api/v1", "")}${album.albumImage}`
+                                : album.albumImage
+                        }
+                        alt={album.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                        }}
+                    />
+                </div>
+            )}
+            {!album.albumImage && (
+                <div className="absolute left-12 top-28 w-[228px] h-[228px] rounded-3xl bg-[#777777] z-20 shadow-xl" />
+            )}
         </section>
 
         {/* 본문 */}
@@ -442,19 +543,21 @@ export default function AlbumDetailPage() {
                         a.key === "add") &&
                     selectedCount === 0;
 
-                    const onClick = () => {
+                    const onClick = async () => {
                     if (a.key === "like") {
-                        addSelectedToLiked();
+                        await addSelectedToLiked();
                         return;
                     }
                     if (a.key === "play") {
                         if (selectedCount === 0) return;
-                        playTracks(checkedTracks);
+                        const playerTracks = await Promise.all(selectedTracks.map(toPlayerTrack));
+                        playTracks(playerTracks);
                         return;
                     }
                     if (a.key === "shuffle") {
                         if (selectedCount === 0) return;
-                        playTracks(checkedTracks, { shuffle: true });
+                        const playerTracks = await Promise.all(selectedTracks.map(toPlayerTrack));
+                        playTracks(playerTracks, { shuffle: true });
                         return;
                     }
                     if (a.key === "add") {
@@ -530,7 +633,31 @@ export default function AlbumDetailPage() {
                     />
                     </div>
 
-                    <div className="w-10 h-10 rounded-xl bg-[#6b6b6b]/50 border border-[#464646]" />
+                    <div className="w-10 h-10 rounded-xl bg-[#6b6b6b]/50 border border-[#464646] overflow-hidden relative">
+                        {(trackImages[t.id] || album.albumImage) ? (
+                            <img
+                                src={
+                                    (() => {
+                                        const imageUrl = trackImages[t.id] || album.albumImage || "";
+                                        if (imageUrl.startsWith("http") || imageUrl.startsWith("//")) {
+                                            return imageUrl;
+                                        }
+                                        if (API_BASE && imageUrl.startsWith("/")) {
+                                            return `${API_BASE.replace("/api/v1", "")}${imageUrl}`;
+                                        }
+                                        return imageUrl;
+                                    })()
+                                }
+                                alt={t.title}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                    e.currentTarget.style.display = "none";
+                                }}
+                            />
+                        ) : (
+                            <div className="w-full h-full bg-[#6b6b6b]/50" />
+                        )}
+                    </div>
 
                     <div className="min-w-0">
                     <div className="text-sm font-semibold text-[#F6F6F6] truncate">

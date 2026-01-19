@@ -4,6 +4,8 @@ import React, {
     useMemo,
     useState,
     useCallback,
+    useEffect,
+    useRef,
 } from "react";
 
 export type PlayerTrack = {
@@ -67,18 +69,180 @@ export type PlayerContextValue = {
     const [current, setCurrent] = useState<PlayerTrack | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
-  
-    // 더미 duration (나중에 audio 연동)
-    const [duration] = useState(0);
+    const [duration, setDuration] = useState(0);
   
     const [queue, setQueue] = useState<PlayerTrack[]>([]);
     const [history, setHistory] = useState<PlayerTrack[]>([]);
   
+    // ✅ 실제 오디오 요소
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+    // ✅ 현재 트랙을 ref로도 저장 (에러 핸들러에서 최신 값 참조용)
+    const currentRef = useRef<PlayerTrack | null>(null);
+  
+    // ✅ current 변경 시 ref도 업데이트
+    useEffect(() => {
+      currentRef.current = current;
+    }, [current]);
+
     // ✅ 볼륨 상태 (0~1)
     const [volume, _setVolume] = useState(0.8);
     const setVolume = useCallback((v: number) => {
-      _setVolume(Math.max(0, Math.min(1, v)));
+      const vol = Math.max(0, Math.min(1, v));
+      _setVolume(vol);
+      if (audioRef.current) {
+        audioRef.current.volume = vol;
+      }
     }, []);
+
+    // ✅ 오디오 요소 초기화 및 이벤트 리스너
+    useEffect(() => {
+      const audio = new Audio();
+      audioRef.current = audio;
+      audio.volume = volume;
+
+      const handleTimeUpdate = () => {
+        setProgress(audio.currentTime);
+      };
+
+      const handleLoadedMetadata = () => {
+        setDuration(audio.duration);
+      };
+
+      const handleEnded = () => {
+        setQueue((q) => {
+          if (q.length > 0) {
+            const nextTrack = q[0];
+            setCurrent(nextTrack);
+            setProgress(0);
+            return q.slice(1);
+          } else {
+            setIsPlaying(false);
+            setProgress(0);
+            return q;
+          }
+        });
+      };
+
+      const handleError = () => {
+        const audio = audioRef.current;
+        if (!audio) {
+          console.error("[PlayerContext] 오디오 재생 오류: audio 요소가 없습니다");
+          setIsPlaying(false);
+          return;
+        }
+
+        const currentTrack = currentRef.current;
+
+        const error = audio.error;
+        if (error) {
+          let errorMessage = "알 수 없는 오류";
+          switch (error.code) {
+            case MediaError.MEDIA_ERR_ABORTED:
+              errorMessage = "재생이 중단되었습니다";
+              break;
+            case MediaError.MEDIA_ERR_NETWORK:
+              errorMessage = "네트워크 오류로 인해 재생할 수 없습니다";
+              break;
+            case MediaError.MEDIA_ERR_DECODE:
+              errorMessage = "오디오 파일 디코딩 오류";
+              break;
+            case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+              errorMessage = "지원하지 않는 오디오 형식이거나 URL이 잘못되었습니다";
+              break;
+          }
+          console.error(`[PlayerContext] 오디오 재생 오류 (코드: ${error.code}):`, {
+            message: errorMessage,
+            audioSrc: audio.src,
+            expectedAudioUrl: currentTrack?.audioUrl || "(없음)",
+            currentTrack: currentTrack?.title || "알 수 없음",
+            trackId: currentTrack?.id || "알 수 없음",
+          });
+        } else {
+          console.error("[PlayerContext] 오디오 재생 오류: 오류 정보를 가져올 수 없습니다", {
+            audioSrc: audio.src,
+            expectedAudioUrl: currentTrack?.audioUrl || "(없음)",
+            currentTrack: currentTrack?.title || "알 수 없음",
+          });
+        }
+        setIsPlaying(false);
+      };
+
+      audio.addEventListener("timeupdate", handleTimeUpdate);
+      audio.addEventListener("loadedmetadata", handleLoadedMetadata);
+      audio.addEventListener("ended", handleEnded);
+      audio.addEventListener("error", handleError);
+
+      return () => {
+        audio.removeEventListener("timeupdate", handleTimeUpdate);
+        audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+        audio.removeEventListener("ended", handleEnded);
+        audio.removeEventListener("error", handleError);
+        audio.pause();
+        audio.src = "";
+      };
+    }, [volume]);
+
+    // ✅ current 변경 시 오디오 URL 로드
+    useEffect(() => {
+      const audio = audioRef.current;
+      if (!audio || !current) {
+        if (audio) {
+          audio.pause();
+          audio.src = "";
+        }
+        setDuration(0);
+        return;
+      }
+
+      if (current.audioUrl) {
+        // audioUrl이 유효한 오디오 URL인지 확인 (http/https로 시작하는지)
+        const audioUrl = current.audioUrl.trim();
+        if (audioUrl && (audioUrl.startsWith("http://") || audioUrl.startsWith("https://") || audioUrl.startsWith("/"))) {
+          console.log(`[PlayerContext] 오디오 URL 로드:`, {
+            trackId: current.id,
+            trackTitle: current.title,
+            audioUrl: audioUrl,
+          });
+          audio.src = audioUrl;
+          audio.volume = volume;
+          setProgress(0);
+          audio.load();
+        } else {
+          console.warn(`[PlayerContext] 유효하지 않은 오디오 URL:`, {
+            trackId: current.id,
+            trackTitle: current.title,
+            audioUrl: audioUrl,
+          });
+          audio.pause();
+          audio.src = "";
+          setDuration(0);
+          setIsPlaying(false);
+        }
+      } else {
+        console.warn(`[PlayerContext] 오디오 URL이 없음:`, {
+          trackId: current.id,
+          trackTitle: current.title,
+        });
+        audio.pause();
+        audio.src = "";
+        setDuration(0);
+      }
+    }, [current, volume]);
+
+    // ✅ isPlaying 변경 시 재생/일시정지
+    useEffect(() => {
+      const audio = audioRef.current;
+      if (!audio || !current?.audioUrl) return;
+
+      if (isPlaying) {
+        audio.play().catch((e) => {
+          console.error("오디오 재생 실패:", e);
+          setIsPlaying(false);
+        });
+      } else {
+        audio.pause();
+      }
+    }, [isPlaying, current]);
   
     const playList = useCallback((tracks: PlayerTrack[]) => {
       if (tracks.length === 0) return;
@@ -131,8 +295,18 @@ export type PlayerContextValue = {
       []
     );
   
-    const toggle = useCallback(() => setIsPlaying((v) => !v), []);
-    const seek = useCallback((sec: number) => setProgress(sec), []);
+    const toggle = useCallback(() => {
+      if (!current?.audioUrl) return;
+      setIsPlaying((v) => !v);
+    }, [current]);
+    
+    const seek = useCallback((sec: number) => {
+      const audio = audioRef.current;
+      if (audio && current?.audioUrl) {
+        audio.currentTime = sec;
+        setProgress(sec);
+      }
+    }, [current]);
   
     // ✅ 추가: 큐에서 삭제
     const removeFromQueue = useCallback((trackId: string) => {
