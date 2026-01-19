@@ -252,7 +252,7 @@ function HomePage() {
                                 w-32 h-32 rounded-full bg-[#777777]
                                 transition-all duration-300
                                 hover:-translate-y-1 hover:scale-105
-                                drop-shadow-md
+                                drop-shadow-[0_4px_12px_rgba(0,0,0,0.25)]
                                 " />
                     <div className="mt-3 text-sm text-[#F6F6F6]">{a.name}</div>
                 </div>

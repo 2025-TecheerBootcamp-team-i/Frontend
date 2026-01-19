@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { TiHome } from 'react-icons/ti';
 import { IoSearch } from 'react-icons/io5';
+import { FaMusic } from "react-icons/fa6";
 
 
 
@@ -35,32 +36,47 @@ function Header() {
         px-6 gap-4
         "
     >
-      {/* 홈 아이콘 */}
+      
+
+      
       <div
         className="
             w-[50px] h-[50px]
-            bg-[#3d3d3d] 
-            rounded-full"
-      />
+            flex items-center justify-center
 
+            bg-gradient-to-tr
+            from-[#3d3d3d]
+            to-[#2d2d2d]
+
+            shadow-[0_4px_12px_rgba(0,0,0,0.25)]
+            text-[#AFDEE2]
+            rounded-full"
+      ><FaMusic size={18}/></div>
+      
+      {/* 홈 아이콘 */}
       <button
         type="button"
         onClick={() => navigate("/home")}
-        aria-label="홈으로 이동"
-        title="홈"
         className="
-            w-[50px] h-[50px] 
-            bg-[#3d3d3d] 
-            rounded-full
-            hover:bg-[#4d4d4d]
-            transition
-            flex items-center justify-center
-            text-[#AFDEE2]
-            "
+          w-[50px] h-[50px]
+          rounded-full
+          flex items-center justify-center
+
+          bg-gradient-to-tr
+          from-[#3d3d3d]
+          to-[#2d2d2d]
+
+          transition
+          hover:from-[#4d4d4d]
+          hover:to-[#3a3a3a]
+
+          text-[#AFDEE2]
+          shadow-[0_4px_12px_rgba(0,0,0,0.25)]
+        "
       >
         <TiHome size={25} />
-
       </button>
+
       {/* ✅ form으로 감싸면 Enter 키 입력이 "submit"으로 동작함 */}
       {/* 검색바 */}
       <form
@@ -72,7 +88,10 @@ function Header() {
         w-[400px] h-[50px] 
             flex 
             items-center
-            bg-[#3d3d3d] 
+            bg-gradient-to-tr
+            from-[#3d3d3d]
+            to-[#2d2d2d]
+            shadow-[0_4px_12px_rgba(0,0,0,0.25)]
             rounded-full 
             px-4 py-3"
       >
