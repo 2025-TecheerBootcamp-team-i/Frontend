@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { FaPlay } from "react-icons/fa6";
 import { IoPlayCircle, IoShuffle } from "react-icons/io5";
 import { MdPlaylistAdd, MdFavorite } from "react-icons/md";
 
-import { AI } from "../../mocks/chart";
-
+import { fetchChart, type ChartData, type ChartRow as ApiChartRow } from "../../api/chart";
 import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
 
@@ -26,38 +25,106 @@ const actions = [
 
 type ActionKey = (typeof actions)[number]["key"];
 
+    const formatGeneratedAt = (iso: string) => {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    return `${String(d.getFullYear()).slice(2)}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(
+        d.getDate()
+    ).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    };
+
+    const formatDuration = (sec: number) => {
+    if (!Number.isFinite(sec) || sec < 0) return "0:00";
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${String(s).padStart(2, "0")}`;
+    };
+
 export default function ChartAI() {
     const GRID = "grid-cols-[44px_90px_1.2fr_1fr_200px]";
-    const rows = useMemo(() => AI, []);
 
     const { setTrackAndPlay, playTracks } = usePlayer();
 
-    type ChartRow = (typeof AI)[number];
+      // API 상태
+    const [chart, setChart] = useState<ChartData | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-    const toTrack = (row: ChartRow): PlayerTrack => {
-        const coverUrl =
-        "coverUrl" in row && typeof row.coverUrl === "string" ? row.coverUrl : undefined;
+    // diff(순위 변동) 저장소
+    const prevRankByIdRef = useRef<Record<string, number>>({});
+    const [diffById, setDiffById] = useState<Record<string, number>>({});
 
-        const audioUrl =
-        "audioUrl" in row && typeof row.audioUrl === "string" ? row.audioUrl : "/audio/sample.mp3";
+    useEffect(() => {
+    let alive = true;
 
-        return {
-        id: row.id,
-        title: row.title,
-        artist: row.artist,
-        album: "album" in row && typeof row.album === "string" ? row.album : undefined,
-        duration: row.duration,
-        coverUrl,
-        audioUrl,
-        };
+    const load = async () => {
+        setLoading(true);
+        setErrorMsg(null);
+
+        try {
+        // ✅ AI 차트만 호출
+        const data = await fetchChart("ai");
+        if (!alive) return;
+
+        // ✅ 이전 순위 스냅샷
+        const prev = prevRankByIdRef.current;
+
+        // ✅ 이번 diff 계산: (이전 rank - 현재 rank)
+        const nextDiff: Record<string, number> = {};
+        for (const item of data.items) {
+            const id = String(item.musicId);
+            const prevRank = prev[id];
+            nextDiff[id] = typeof prevRank === "number" ? prevRank - item.rank : 0;
+        }
+
+        // ✅ 화면용 diff + 데이터 저장
+        setDiffById(nextDiff);
+        setChart(data);
+
+        // ✅ 다음 비교를 위해 이번 rank 저장(스냅샷 업데이트)
+        const nextPrev: Record<string, number> = {};
+        for (const item of data.items) {
+            nextPrev[String(item.musicId)] = item.rank;
+        }
+        prevRankByIdRef.current = nextPrev;
+
+        } catch (err) {
+        if (!alive) return;
+        console.error(err);
+        setChart(null);
+        setErrorMsg("AI 차트 데이터를 불러오지 못했어요.");
+        } finally {
+        if (!alive) return;
+        setLoading(false);
+        }
     };
 
+    load();
+
+    return () => {
+        alive = false;
+    };
+    }, []);
+    
+    const rows = useMemo(() => chart?.items ?? [], [chart]);
+
+    // 4) PlayerTrack 변환
+    const toTrack = (row: ApiChartRow): PlayerTrack => ({
+        id: row.musicId,
+        title: row.musicName,
+        artist: row.artistName,
+        album: row.albumName,
+        duration: formatDuration(row.durationSec),
+        isAi: row.isAi,
+        audioUrl: row.audioUrl || "/audio/sample.mp3",
+    });
+
     const [checkedIds, setCheckedIds] = useState<Record<string, boolean>>({});
-    const allChecked = rows.length > 0 && rows.every((r) => checkedIds[r.id]);
+    const allChecked = rows.length > 0 && rows.every((r) => checkedIds[r.musicId]);
 
     const toggleAll = (next: boolean) => {
         const obj: Record<string, boolean> = {};
-        rows.forEach((r) => (obj[r.id] = next));
+        rows.forEach((r) => (obj[r.musicId] = next));
         setCheckedIds(obj);
     };
 
@@ -65,7 +132,7 @@ export default function ChartAI() {
         setCheckedIds((prev) => ({ ...prev, [id]: !prev[id] }));
     };
 
-    const checkedRows = useMemo(() => rows.filter((r) => !!checkedIds[r.id]), [rows, checkedIds]);
+    const checkedRows = useMemo(() => rows.filter((r) => !!checkedIds[r.musicId]), [rows, checkedIds]);
     const checkedTracks = useMemo(() => checkedRows.map(toTrack), [checkedRows]);
     const selectedCount = checkedTracks.length;
 
@@ -149,6 +216,24 @@ export default function ChartAI() {
         if (key === "like") addSelectedToLiked();
     };
 
+    // 8) 로딩/에러 UI
+    if (loading) {
+        return (
+        <section className="whitespace-nowrap rounded-2xl bg-[#2d2d2d]/80 overflow-hidden p-6 text-white">
+            불러오는 중...
+        </section>
+        );
+    }
+
+    if (errorMsg) {
+        return (
+        <section className="whitespace-nowrap rounded-2xl bg-[#2d2d2d]/80 overflow-hidden p-6 text-white">
+            {errorMsg}
+        </section>
+        );
+    }
+
+
     return (
         <>
         <section className="whitespace-nowrap rounded-2xl bg-[#2d2d2d]/80 overflow-hidden">
@@ -159,7 +244,9 @@ export default function ChartAI() {
                 <div className="flex items-end justify-between gap-4">
                     <div className="flex items-center gap-6">
                     <h2 className="text-xl font-semibold text-[#F6F6F6]">실시간 AI 음악 차트</h2>
-                    <div className="text-sm text-[#999999]">26.01.07 14:00</div>
+                    <div className="text-sm text-[#999999]">
+                        {chart?.generatedAt ? formatGeneratedAt(chart.generatedAt) : ""}
+                    </div>
                     </div>
                 </div>
 
@@ -218,7 +305,7 @@ export default function ChartAI() {
                 <div className="divide-y divide-[#464646]">
                     {rows.map((row) => (
                     <div
-                        key={row.id}
+                        key={row.musicId}
                         className={`
                         group grid ${GRID} items-center px-3 py-3
                         ${row.rank % 2 === 0 ? "bg-[#2d2d2d]/80" : "bg-[#3b3b3b]/80"}
@@ -229,8 +316,8 @@ export default function ChartAI() {
                         <input
                             type="checkbox"
                             className="accent-[#f6f6f6]"
-                            checked={!!checkedIds[row.id]}
-                            onChange={() => toggleOne(row.id)}
+                            checked={!!checkedIds[row.musicId]}
+                            onChange={() => toggleOne(row.musicId)}
                             aria-label={`${row.rank}위 선택`}
                         />
                         </div>
@@ -248,18 +335,22 @@ export default function ChartAI() {
                                 setTrackAndPlay(toTrack(row));
                             }}
                             className="absolute opacity-0 transition-opacity group-hover:opacity-100 text-[#AFDEE2]"
-                            aria-label={`${row.title} 재생`}
+                            aria-label={`${row.musicName} 재생`}
                             title="재생"
                             >
                             <FaPlay />
                             </button>
                         </div>
 
-                        <div className="pl-1 text-xs font-medium w-10">
-                            {row.diff > 0 && <span className="text-red-500">▲ {row.diff}</span>}
-                            {row.diff < 0 && <span className="text-blue-500">▼ {Math.abs(row.diff)}</span>}
-                            {row.diff === 0 && <span className="pl-1 text-[#AAAAAA]">—</span>}
-                        </div>
+                            <div className="pl-1 text-xs font-medium w-10">
+                            {(() => {
+                                const diff = diffById[row.musicId] ?? 0;
+
+                            if (diff > 0) return <span className="text-red-500">▲ {diff}</span>;
+                            if (diff < 0) return <span className="text-blue-500">▼ {Math.abs(diff)}</span>;
+                                return <span className="pl-1 text-[#AAAAAA]">—</span>;
+                            })()}
+                            </div>
                         </div>
 
                         {/* 곡정보 */}
@@ -267,22 +358,22 @@ export default function ChartAI() {
                         <div className="w-10 h-10 rounded-lg bg-[#777777] shrink-0" />
                         <div className="min-w-0">
                             <div className="text-sm text-[#F6F6F6] truncate">
-                            {row.title}
-                            {row.isAI && (
+                            {row.musicName}
+                            {row.isAi && (
                                 <span className="shrink-0 ml-3 text-xs px-2 py-[1px] rounded-full bg-[#E4524D]/20 text-[#E4524D]">
                                 AI
                                 </span>
                             )}
                             </div>
-                            <div className="text-xs text-[#999999] truncate md:hidden">{row.artist}</div>
+                            <div className="text-xs text-[#999999] truncate md:hidden">{row.artistName}</div>
                         </div>
                         </div>
 
                         {/* 아티스트 */}
-                        <div className="pl-2 text-sm text-[#F6F6F6] truncate">{row.artist}</div>
+                        <div className="pl-2 text-sm text-[#F6F6F6] truncate">{row.artistName}</div>
 
                         {/* 앨범 */}
-                        <div className="pl-2 text-sm text-[#F6F6F6] truncate">{row.album}</div>
+                        <div className="pl-2 text-sm text-[#F6F6F6] truncate">{row.albumName}</div>
                     </div>
                     ))}
                 </div>
