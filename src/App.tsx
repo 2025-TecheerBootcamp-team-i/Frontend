@@ -40,6 +40,8 @@ import ChartAI from "./pages/chart/ChartAI";
 import NowPlayingPage from "./pages/song/NowPlayingPage";
 import { PlayerProvider } from "./player/PlayerContext";
 
+import OnboardingPage from "./pages/OnboardingPage";
+
 export default function App() {
   return (
     <PlayerProvider>
@@ -90,9 +92,11 @@ export default function App() {
 
       {/* ✅ 사이드바, 헤더, 플레이바 없는 구간 (로그인/회원가입 용도) */}
       <Route element={<Nolayout />}>
-        <Route index element={<LoginPage />} />
+        <Route index element={<OnboardingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />
+
+        <Route path="/onboarding" element={<OnboardingPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
