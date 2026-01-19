@@ -17,6 +17,7 @@ export type PlayerTrack = {
     coverUrl?: string;
     audioUrl?: string;
     likeCount?: number;
+    musicId?: number; // API의 music_id (가사 조회 등에 사용)
 };
 
 export type PlayerContextValue = {
@@ -46,6 +47,15 @@ export type PlayerContextValue = {
     // ✅ 추가: 큐 편집
     removeFromQueue: (trackId: string) => void;
     moveQueueItem: (fromIndex: number, toIndex: number) => void;
+    
+    // ✅ 플레이어 컨트롤
+    shuffleQueue: () => void;
+    seekBackward: (seconds?: number) => void;
+    seekForward: (seconds?: number) => void;
+    nextTrack: () => void;
+    previousTrack: () => void;
+    repeatMode: 'off' | 'one';
+    toggleRepeat: () => void;
   };
   
   const PlayerContext = createContext<PlayerContextValue | null>(null);
@@ -73,16 +83,33 @@ export type PlayerContextValue = {
   
     const [queue, setQueue] = useState<PlayerTrack[]>([]);
     const [history, setHistory] = useState<PlayerTrack[]>([]);
+    
+    // ✅ 반복 모드: 'off' | 'one'
+    const [repeatMode, setRepeatMode] = useState<'off' | 'one'>('off');
+    // ✅ 반복 모드를 ref로도 저장 (handleEnded에서 최신 값 참조용)
+    const repeatModeRef = useRef<'off' | 'one'>('off');
   
     // ✅ 실제 오디오 요소
     const audioRef = useRef<HTMLAudioElement | null>(null);
     // ✅ 현재 트랙을 ref로도 저장 (에러 핸들러에서 최신 값 참조용)
     const currentRef = useRef<PlayerTrack | null>(null);
+    // ✅ 재생 상태를 ref로도 저장 (셔플 등 상태 업데이트 시 재생 유지용)
+    const isPlayingRef = useRef<boolean>(false);
   
     // ✅ current 변경 시 ref도 업데이트
     useEffect(() => {
       currentRef.current = current;
     }, [current]);
+    
+    // ✅ isPlaying 변경 시 ref도 업데이트
+    useEffect(() => {
+      isPlayingRef.current = isPlaying;
+    }, [isPlaying]);
+    
+    // ✅ repeatMode 변경 시 ref도 업데이트
+    useEffect(() => {
+      repeatModeRef.current = repeatMode;
+    }, [repeatMode]);
 
     // ✅ 볼륨 상태 (0~1)
     const [volume, _setVolume] = useState(0.8);
@@ -109,6 +136,40 @@ export type PlayerContextValue = {
       };
 
       const handleEnded = () => {
+        // ref에서 최신 반복 모드와 현재 곡 가져오기
+        const currentRepeatMode = repeatModeRef.current;
+        const currentTrack = currentRef.current;
+        
+        console.log('[PlayerContext] 곡 재생 종료:', {
+          repeatMode: currentRepeatMode,
+          currentTrack: currentTrack?.title,
+        });
+        
+        // 반복 모드가 'one'이면 현재 곡 다시 재생 (다음 곡으로 넘어가지 않음)
+        if (currentRepeatMode === 'one' && currentTrack) {
+          console.log('[PlayerContext] 한곡 반복 모드: 같은 곡 다시 재생');
+          const audio = audioRef.current;
+          if (audio) {
+            // 오디오를 처음부터 다시 재생
+            audio.currentTime = 0;
+            setProgress(0);
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+              playPromise.catch((e) => {
+                // AbortError는 재생 중 pause()가 호출된 경우이므로 무시
+                if (e.name === 'AbortError') {
+                  return;
+                }
+                console.error("[PlayerContext] 반복 재생 실패:", e);
+                setIsPlaying(false);
+              });
+            }
+          }
+          return;
+        }
+        
+        // 반복 모드가 'off'이면 다음 곡 재생
+        console.log('[PlayerContext] 반복 모드 off: 다음 곡 재생');
         setQueue((q) => {
           if (q.length > 0) {
             const nextTrack = q[0];
@@ -232,14 +293,61 @@ export type PlayerContextValue = {
     // ✅ isPlaying 변경 시 재생/일시정지
     useEffect(() => {
       const audio = audioRef.current;
-      if (!audio || !current?.audioUrl) return;
+      if (!audio || !current?.audioUrl) {
+        console.log('[PlayerContext] isPlaying useEffect 스킵:', {
+          hasAudio: !!audio,
+          hasCurrent: !!current,
+          hasAudioUrl: !!current?.audioUrl,
+        });
+        return;
+      }
+
+      console.log('[PlayerContext] isPlaying useEffect 실행:', {
+        isPlaying,
+        currentTitle: current.title,
+        audioSrc: audio.src,
+        audioPaused: audio.paused,
+        currentAudioUrl: current.audioUrl,
+      });
 
       if (isPlaying) {
-        audio.play().catch((e) => {
-          console.error("오디오 재생 실패:", e);
-          setIsPlaying(false);
+        // 오디오가 이미 같은 곡을 재생 중이고 일시정지 상태가 아니면 재생하지 않음
+        // (셔플 등으로 인한 불필요한 재시작 방지)
+        const currentSrc = audio.src;
+        const newSrc = current.audioUrl;
+        const isSameTrack = currentSrc && newSrc && 
+          (currentSrc === newSrc || 
+           currentSrc.includes(newSrc.split('?')[0]) || 
+           newSrc.includes(currentSrc.split('?')[0]));
+        
+        console.log('[PlayerContext] 재생 체크:', {
+          isSameTrack,
+          audioPaused: audio.paused,
+          currentSrc,
+          newSrc,
         });
+        
+        if (isSameTrack && !audio.paused) {
+          // 이미 같은 곡이 재생 중이면 아무것도 하지 않음
+          console.log('[PlayerContext] 같은 곡 재생 중이므로 재생하지 않음');
+          return;
+        }
+        
+        console.log('[PlayerContext] 오디오 재생 시작');
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((e) => {
+            // AbortError는 재생 중 pause()가 호출된 경우이므로 무시
+            if (e.name === 'AbortError') {
+              console.log('[PlayerContext] AbortError 무시 (정상 동작)');
+              return;
+            }
+            console.error("[PlayerContext] 오디오 재생 실패:", e);
+            setIsPlaying(false);
+          });
+        }
       } else {
+        console.log('[PlayerContext] 오디오 일시정지');
         audio.pause();
       }
     }, [isPlaying, current]);
@@ -331,6 +439,100 @@ export type PlayerContextValue = {
         return next;
       });
     }, []);
+    
+    // ✅ 셔플: 재생 대기 곡들 셔플 (현재 재생 중인 곡에는 영향 없음)
+    const shuffleQueue = useCallback(() => {
+      console.log('[PlayerContext] 셔플 버튼 클릭');
+      console.log('[PlayerContext] 셔플 전 상태:', {
+        current: current?.title,
+        isPlaying: isPlaying,
+        isPlayingRef: isPlayingRef.current,
+        queueLength: queue.length,
+        audioPaused: audioRef.current?.paused,
+        audioSrc: audioRef.current?.src,
+      });
+      
+      // 현재 재생 상태를 유지하면서 큐만 섞기
+      const currentTrack = current;
+      const currentAudioSrc = audioRef.current?.src;
+      
+      setQueue((q) => {
+        const shuffled = shuffleCopy(q);
+        console.log('[PlayerContext] 셔플 후 큐:', {
+          before: q.length,
+          after: shuffled.length,
+          shuffled: shuffled.map(t => t.title),
+        });
+        return shuffled;
+      });
+      
+      // 셔플 후 상태 확인
+      setTimeout(() => {
+        console.log('[PlayerContext] 셔플 후 상태:', {
+          current: currentTrack?.title,
+          isPlaying: isPlaying,
+          isPlayingRef: isPlayingRef.current,
+          audioPaused: audioRef.current?.paused,
+          audioSrc: audioRef.current?.src,
+          audioSrcChanged: audioRef.current?.src !== currentAudioSrc,
+        });
+      }, 100);
+    }, [current, isPlaying, queue]);
+    
+    // ✅ 뒤로 5초
+    const seekBackward = useCallback((seconds: number = 5) => {
+      const audio = audioRef.current;
+      if (audio && current?.audioUrl) {
+        const newTime = Math.max(0, audio.currentTime - seconds);
+        audio.currentTime = newTime;
+        setProgress(newTime);
+      }
+    }, [current]);
+    
+    // ✅ 앞으로 5초
+    const seekForward = useCallback((seconds: number = 5) => {
+      const audio = audioRef.current;
+      if (audio && current?.audioUrl) {
+        const newTime = Math.min(audio.duration || duration, audio.currentTime + seconds);
+        audio.currentTime = newTime;
+        setProgress(newTime);
+      }
+    }, [current, duration]);
+    
+    // ✅ 다음 곡
+    const nextTrack = useCallback(() => {
+      setQueue((q) => {
+        if (q.length > 0) {
+          const nextTrack = q[0];
+          setCurrent(nextTrack);
+          setProgress(0);
+          return q.slice(1);
+        }
+        return q;
+      });
+    }, []);
+    
+    // ✅ 이전 곡
+    const previousTrack = useCallback(() => {
+      setHistory((h) => {
+        if (h.length > 0) {
+          const prevTrack = h[0];
+          setCurrent(prevTrack);
+          setProgress(0);
+          // 현재 곡을 큐 앞에 추가
+          if (current) {
+            setQueue((q) => [current, ...q]);
+          }
+          return h.slice(1);
+        }
+        return h;
+      });
+    }, [current]);
+    
+    // ✅ 반복 모드 토글
+    const toggleRepeat = useCallback(() => {
+      setRepeatMode((mode) => (mode === 'off' ? 'one' : 'off'));
+    }, []);
   
     const value = useMemo<PlayerContextValue>(
       () => ({
@@ -355,6 +557,15 @@ export type PlayerContextValue = {
         // ✅ 큐 편집
         removeFromQueue,
         moveQueueItem,
+        
+        // ✅ 플레이어 컨트롤
+        shuffleQueue,
+        seekBackward,
+        seekForward,
+        nextTrack,
+        previousTrack,
+        repeatMode,
+        toggleRepeat,
       }),
       [
         current,
@@ -373,6 +584,13 @@ export type PlayerContextValue = {
         seek,
         removeFromQueue,
         moveQueueItem,
+        shuffleQueue,
+        seekBackward,
+        seekForward,
+        nextTrack,
+        previousTrack,
+        repeatMode,
+        toggleRepeat,
       ]
     );
   
