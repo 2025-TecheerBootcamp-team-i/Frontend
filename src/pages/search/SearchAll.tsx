@@ -608,7 +608,7 @@ export default function SearchHome() {
                       {/* 커버/이미지 */}
                       <div
                         className={[
-                          "w-[200px] h-[200px] bg-[#777777] relative overflow-hidden",
+                          "w-[228px] h-[228px] bg-[#777777] relative overflow-hidden",
                           isArtist ? "rounded-full" : "rounded-2xl",
                         ].join(" ")}
                       >
@@ -855,7 +855,7 @@ export default function SearchHome() {
           {/* ✅ 아티스트 미리보기 (MyPlaylistPage 가로 스크롤 카드 스타일) */}
           <SectionShell title="아티스트" onMore={() => navigate(`/search/artist${search}`)}>
             <HorizontalScroller gradientFromClass="from-[#2d2d2d]/80">
-              <div className="flex gap-2 min-w-max px-2">
+              <div className="flex gap-4 min-w-max px-2">
                 {(artists.length ? artists : ALL_ARTISTS).slice(0, 8).map((a) => (
                   <button
                     key={a.id}
@@ -863,7 +863,7 @@ export default function SearchHome() {
                     onClick={() => navigate(`/artists/${a.id}`)}
                     className="w-[220px] text-left group shrink-0"
                   >
-                    <div className="w-48 h-48 ml-2 rounded-full bg-[#6b6b6b]/40 border border-[#464646] group-hover:bg-[#6b6b6b]/55 transition overflow-hidden relative">
+                    <div className="w-[208px] h-[208px] ml-2 rounded-full bg-[#6b6b6b]/40 border border-[#464646] group-hover:bg-[#6b6b6b]/55 transition overflow-hidden relative">
                       {a.image ? (
                         <>
                           <img

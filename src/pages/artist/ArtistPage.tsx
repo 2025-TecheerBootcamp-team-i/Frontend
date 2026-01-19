@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { useRef, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { IoChevronBack } from "react-icons/io5";
@@ -347,7 +346,7 @@ export default function ArtistPage() {
     return (
         <div className="w-full min-w-0 overflow-x-auto">
         {/* 상단 */}
-        <section className="relative mb-16 overflow-visible">
+        <section className="relative overflow-visible">
             <div className="relative h-72 bg-[#1D1D1D]/70 border-b border-[#3D3D3D] overflow-hidden">
                 {/* 상단 왼쪽 뒤로 */}
                 <button
@@ -362,45 +361,9 @@ export default function ArtistPage() {
 
                 {/* 내용 */}
                 <div className="absolute inset-0 flex items-end">
-                <div className="px-10 pb-8 flex items-end gap-10 min-w-[1100px] shrink-0">
-                    {/* ✅ 이미지 */}
-                    <div className="w-48 h-48 shrink-0 relative">
-                        <div className="w-48 h-48 rounded-full bg-[#777777] border border-[#464646] overflow-hidden relative">
-                            {artist.image ? (
-                                <>
-                                    <img
-                                        src={
-                                            artist.image.startsWith("http") || artist.image.startsWith("//")
-                                                ? artist.image
-                                                : API_BASE && artist.image.startsWith("/")
-                                                ? `${API_BASE.replace("/api/v1", "")}${artist.image}`
-                                                : artist.image
-                                        }
-                                        alt={artist.name}
-                                        className="w-full h-full object-cover relative z-10"
-                                        onError={(e) => {
-                                            console.error(`[ArtistPage] ❌ 아티스트 이미지 로드 실패:`, {
-                                                name: artist.name,
-                                                id: artist.id,
-                                                image_url: artist.image,
-                                            });
-                                            (e.target as HTMLImageElement).style.display = "none";
-                                        }}
-                                        onLoad={(e) => {
-                                            console.log(`[ArtistPage] ✅ 아티스트 이미지 로드 성공:`, {
-                                                name: artist.name,
-                                                id: artist.id,
-                                                image_url: artist.image,
-                                            });
-                                        }}
-                                    />
-                                    <div className="absolute inset-0 bg-[#777777] animate-pulse z-0" />
-                                </>
-                            ) : (
-                                <div className="w-full h-full bg-[#777777]" />
-                            )}
-                        </div>
-                    </div>
+                <div className="px-10 pb-8 flex items-end gap-8 min-w-[1100px] shrink-0">
+                    {/* ✅ 이미지 자리는 유지(레이아웃 안 흔들리게) */}
+                    <div className="w-[228px] h-[228px] shrink-0" />
 
                     {/* 텍스트 + 플레이 */}
                     <div className="flex items-end gap-5">
@@ -424,13 +387,57 @@ export default function ArtistPage() {
                 </div>
             </div>
 
-            {/* ✅ 헤더 밖에서 그리기: 아래 컨텐츠까지 걸치게 (이미지는 위에서 표시하므로 여기는 숨김) */}
-            {/* 이미지는 내용 영역에서 표시 */}
+            {/* ✅ 헤더 밖에서 그리기: 아래 컨텐츠까지 걸치게 */}
+            <div
+                className="
+                absolute left-10 top-28
+                w-[228px] h-[228px]
+                rounded-full
+                overflow-hidden
+                z-20
+                shadow-xl
+                pointer-events-none
+                "
+            >
+                {artist?.image ? (
+                    <>
+                        <img
+                            src={
+                                artist.image.startsWith("http") || artist.image.startsWith("//")
+                                    ? artist.image
+                                    : API_BASE && artist.image.startsWith("/")
+                                    ? `${API_BASE.replace("/api/v1", "")}${artist.image}`
+                                    : artist.image
+                            }
+                            alt={artist.name}
+                            className="w-full h-full object-cover relative z-10"
+                            onError={(e) => {
+                                console.error(`[ArtistPage] ❌ 아티스트 이미지 로드 실패:`, {
+                                    name: artist.name,
+                                    id: artist.id,
+                                    image_url: artist.image,
+                                });
+                                (e.target as HTMLImageElement).style.display = "none";
+                            }}
+                            onLoad={(e) => {
+                                console.log(`[ArtistPage] ✅ 아티스트 이미지 로드 성공:`, {
+                                    name: artist.name,
+                                    id: artist.id,
+                                    image_url: artist.image,
+                                });
+                            }}
+                        />
+                        <div className="absolute inset-0 bg-[#777777] animate-pulse z-0" />
+                    </>
+                ) : (
+                    <div className="w-full h-full bg-[#777777]" />
+                )}
+            </div>
         </section>
 
 
         {/* 아래 컨텐츠 */}
-        <div className="mt-6 px-4 space-y-6">
+        <div className="mt-[70px] px-4 space-y-6">
             {/* 곡 카드 */}
             <section className="rounded-3xl bg-[#2d2d2d]/80 border border-[#2d2d2d] overflow-hidden">
             <div className="px-6 pt-6 pb-3 flex items-center justify-between">
