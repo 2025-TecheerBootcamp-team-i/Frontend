@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { useRef, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { IoChevronBack } from "react-icons/io5";
@@ -6,17 +5,40 @@ import { MdOutlineNavigateNext } from "react-icons/md";
 import { FaPlay } from "react-icons/fa6";
 
 /* =====================
-mock DB (아티스트별 데이터)
+타입 정의
 ===================== */
-type Track = { id: string; title: string; album: string; duration: string };
-type Album = { id: string; title: string; year: string };
+type Track = { id: string; title: string; album: string; duration: string; albumImage?: string | null };
+type Album = { id: string; title: string; year: string; albumImage?: string | null };
 
 type ArtistData = {
     id: string;
     name: string;
+    image?: string | null;
     tracks: Track[];
     albums: Album[];
-    };
+};
+
+// API 응답 타입
+type ArtistDetailApi = {
+    artist_id: number;
+    artist_name: string;
+    artist_image: string | null;
+};
+
+type ArtistTrackApi = {
+    id: string;
+    title: string;
+    album: string;
+    duration: string;
+    album_image: string | null;
+};
+
+type ArtistAlbumApi = {
+    id: string;
+    title: string;
+    year: string;
+    album_image: string | null;
+};
 
     type HorizontalScrollerProps = {
         children: React.ReactNode;
@@ -173,13 +195,122 @@ export default function ArtistPage() {
     const { artistId } = useParams();
     const navigate = useNavigate();
 
-    const artist = useMemo(() => {
-        const id = artistId ?? "";
-        return ARTISTS[id];
-    }, [artistId]);
+    const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
+
+    // API 데이터 상태
+    const [artist, setArtist] = useState<ArtistData | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    // API 데이터 로딩
+    useEffect(() => {
+        if (!artistId) {
+            setError("아티스트 ID가 없습니다.");
+            return;
+        }
+
+        // 더미 데이터 확인 (a1, a2 같은 경우)
+        if (!API_BASE || artistId.startsWith("a")) {
+            const dummy = ARTISTS[artistId];
+            if (dummy) {
+                setArtist(dummy);
+                setError(null);
+            } else {
+                setError("아티스트를 찾을 수 없습니다.");
+                setArtist(null);
+            }
+            return;
+        }
+
+        const controller = new AbortController();
+
+        (async () => {
+            try {
+                setLoading(true);
+                setError(null);
+
+                const artistIdNum = Number(artistId);
+                if (isNaN(artistIdNum)) {
+                    throw new Error("유효하지 않은 아티스트 ID입니다.");
+                }
+
+                // 1. 아티스트 상세 정보 가져오기
+                const [detailRes, tracksRes, albumsRes] = await Promise.all([
+                    fetch(`${API_BASE}/artists/${artistIdNum}/`, {
+                        method: "GET",
+                        signal: controller.signal,
+                        headers: { "Content-Type": "application/json" },
+                    }),
+                    fetch(`${API_BASE}/artists/${artistIdNum}/tracks/`, {
+                        method: "GET",
+                        signal: controller.signal,
+                        headers: { "Content-Type": "application/json" },
+                    }),
+                    fetch(`${API_BASE}/artists/${artistIdNum}/albums/`, {
+                        method: "GET",
+                        signal: controller.signal,
+                        headers: { "Content-Type": "application/json" },
+                    }),
+                ]);
+
+                if (!detailRes.ok) {
+                    throw new Error(`아티스트 상세 정보 조회 실패: ${detailRes.status}`);
+                }
+
+                const detailData: ArtistDetailApi = await detailRes.json();
+                const tracksData: ArtistTrackApi[] = tracksRes.ok ? await tracksRes.json() : [];
+                const albumsData: ArtistAlbumApi[] = albumsRes.ok ? await albumsRes.json() : [];
+
+                setArtist({
+                    id: String(detailData.artist_id),
+                    name: detailData.artist_name,
+                    image: detailData.artist_image,
+                    tracks: tracksData.slice(0, 5).map((t) => ({
+                        id: t.id,
+                        title: t.title,
+                        album: t.album,
+                        duration: t.duration,
+                        albumImage: t.album_image,
+                    })),
+                    albums: albumsData.map((a) => ({
+                        id: a.id,
+                        title: a.title,
+                        year: a.year,
+                        albumImage: a.album_image,
+                    })),
+                });
+            } catch (e: unknown) {
+                if ((e as DOMException)?.name === "AbortError") return;
+                console.error("[ArtistPage] API 오류:", e);
+                setError(e instanceof Error ? e.message : "알 수 없는 오류");
+                setArtist(null);
+            } finally {
+                setLoading(false);
+            }
+        })();
+
+        return () => controller.abort();
+    }, [API_BASE, artistId]);
+
+    // ✅ 로딩 중
+    if (loading) {
+        return (
+        <div className="w-full min-w-0 px-6 py-5 text-white">
+            <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="mb-6 text-[#aaa] hover:text-white transition"
+            aria-label="뒤로가기"
+            >
+            <IoChevronBack size={24} />
+            </button>
+            <div className="text-center py-12 text-[#999]">로딩 중...</div>
+        </div>
+        );
+    }
 
     // ✅ artistId가 없거나, DB에 없는 경우
-    if (!artist) {
+    if (!artist || error) {
         return (
         <div className="w-full min-w-0 px-6 py-5 text-white">
             <button
@@ -196,6 +327,9 @@ export default function ArtistPage() {
             <div className="mt-2 text-sm text-[#aaa]">
                 요청한 ID: <span className="text-white">{artistId ?? "(없음)"}</span>
             </div>
+            {error && (
+                <div className="mt-2 text-sm text-red-400">오류: {error}</div>
+            )}
 
             <button
                 type="button"
@@ -258,12 +392,47 @@ export default function ArtistPage() {
                 className="
                 absolute left-10 top-28
                 w-[228px] h-[228px]
-                rounded-full bg-[#777777]
+                rounded-full
+                overflow-hidden
                 z-20
                 shadow-xl
                 pointer-events-none
                 "
-            />
+            >
+                {artist?.image ? (
+                    <>
+                        <img
+                            src={
+                                artist.image.startsWith("http") || artist.image.startsWith("//")
+                                    ? artist.image
+                                    : API_BASE && artist.image.startsWith("/")
+                                    ? `${API_BASE.replace("/api/v1", "")}${artist.image}`
+                                    : artist.image
+                            }
+                            alt={artist.name}
+                            className="w-full h-full object-cover relative z-10"
+                            onError={(e) => {
+                                console.error(`[ArtistPage] ❌ 아티스트 이미지 로드 실패:`, {
+                                    name: artist.name,
+                                    id: artist.id,
+                                    image_url: artist.image,
+                                });
+                                (e.target as HTMLImageElement).style.display = "none";
+                            }}
+                            onLoad={(e) => {
+                                console.log(`[ArtistPage] ✅ 아티스트 이미지 로드 성공:`, {
+                                    name: artist.name,
+                                    id: artist.id,
+                                    image_url: artist.image,
+                                });
+                            }}
+                        />
+                        <div className="absolute inset-0 bg-[#777777] animate-pulse z-0" />
+                    </>
+                ) : (
+                    <div className="w-full h-full bg-[#777777]" />
+                )}
+            </div>
         </section>
 
 
@@ -301,7 +470,31 @@ export default function ArtistPage() {
                     "hover:bg-white/5 transition",
                     ].join(" ")}
                 >
-                    <div className="w-10 h-10 rounded-xl bg-[#6b6b6b]/50 border border-[#464646]" />
+                    {/* 앨범 이미지 */}
+                    <div className="w-10 h-10 rounded-xl bg-[#6b6b6b]/50 border border-[#464646] overflow-hidden relative flex-shrink-0">
+                        {t.albumImage ? (
+                            <>
+                                <img
+                                    src={
+                                        t.albumImage.startsWith("http") || t.albumImage.startsWith("//")
+                                            ? t.albumImage
+                                            : API_BASE && t.albumImage.startsWith("/")
+                                            ? `${API_BASE.replace("/api/v1", "")}${t.albumImage}`
+                                            : t.albumImage
+                                    }
+                                    alt={t.album}
+                                    className="w-full h-full object-cover relative z-10"
+                                    onError={(e) => {
+                                        (e.target as HTMLImageElement).style.display = "none";
+                                    }}
+                                    loading="lazy"
+                                />
+                                <div className="absolute inset-0 bg-[#6b6b6b]/50 animate-pulse z-0" />
+                            </>
+                        ) : (
+                            <div className="w-full h-full bg-[#6b6b6b]/50" />
+                        )}
+                    </div>
 
                     <div className="min-w-0">
                     <div className="text-sm font-semibold text-[#F6F6F6] truncate">
@@ -359,7 +552,43 @@ export default function ArtistPage() {
                     onClick={() => navigate(`/album/${al.id}`)}
                     className="w-[180px] text-left group shrink-0"
                     >
-                    <div className="aspect-square rounded-2xl bg-[#6b6b6b]/30 border border-[#464646] group-hover:bg-[#6b6b6b]/45 transition" />
+                    {/* 앨범 이미지 */}
+                    <div className="aspect-square rounded-2xl bg-[#6b6b6b]/30 border border-[#464646] group-hover:bg-[#6b6b6b]/45 transition overflow-hidden relative">
+                        {al.albumImage ? (
+                            <>
+                                <img
+                                    src={
+                                        al.albumImage.startsWith("http") || al.albumImage.startsWith("//")
+                                            ? al.albumImage
+                                            : API_BASE && al.albumImage.startsWith("/")
+                                            ? `${API_BASE.replace("/api/v1", "")}${al.albumImage}`
+                                            : al.albumImage
+                                    }
+                                    alt={al.title}
+                                    className="w-full h-full object-cover relative z-10"
+                                    onError={(e) => {
+                                        console.error(`[ArtistPage] ❌ 앨범 이미지 로드 실패:`, {
+                                            title: al.title,
+                                            id: al.id,
+                                            image_url: al.albumImage,
+                                        });
+                                        (e.target as HTMLImageElement).style.display = "none";
+                                    }}
+                                    onLoad={(e) => {
+                                        console.log(`[ArtistPage] ✅ 앨범 이미지 로드 성공:`, {
+                                            title: al.title,
+                                            id: al.id,
+                                            image_url: al.albumImage,
+                                        });
+                                    }}
+                                    loading="lazy"
+                                />
+                                <div className="absolute inset-0 bg-[#6b6b6b]/30 animate-pulse z-0" />
+                            </>
+                        ) : (
+                            <div className="w-full h-full bg-[#6b6b6b]/30" />
+                        )}
+                    </div>
                     <div className="mt-3 text-sm font-semibold text-[#F6F6F6] truncate">
                         {al.title}
                     </div>
