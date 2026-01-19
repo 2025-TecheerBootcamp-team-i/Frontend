@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams, useOutletContext } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
+import axios from "axios";
 
 import { IoPlayCircle, IoShuffle } from "react-icons/io5";
 import { MdPlaylistAdd, MdFavorite } from "react-icons/md";
@@ -20,16 +21,44 @@ import {
 
 type Song = {
   id: string;
+  musicId?: number; // 실제 재생에 사용할 음악 ID
   title: string;
   artist: string;
   album: string;
   duration: string;
   isAi?: boolean;
+  albumId?: number | null;
+  artistId?: number | null;
 };
 
-type SearchOutletCtx = {
-  excludeAi: boolean;
-  setExcludeAi: (v: boolean) => void;
+// API 응답 타입
+type ApiSearchResult = {
+  itunes_id: number;
+  music_id: number; // 실제 재생에 사용할 음악 ID
+  music_name: string;
+  artist_name: string;
+  artist_id: number | null;
+  album_name: string;
+  album_id: number | null;
+  duration: number | null;
+  is_ai: boolean;
+  audio_url: string | null;
+  album_image: string | null;
+};
+
+// 아티스트별 앨범 API 응답 타입
+type ArtistAlbum = {
+  id: string;
+  title: string;
+  year: string;
+  album_image: string | null;
+};
+
+type ApiSearchResponse = {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: ApiSearchResult[];
 };
 
 /* ===================== 더미 데이터 ===================== */
@@ -58,13 +87,192 @@ type ActionKey = (typeof actions)[number]["key"];
 
 export default function SearchSong() {
   const { playTracks } = usePlayer();
-  const { excludeAi, setExcludeAi } = useOutletContext<SearchOutletCtx>();
-  const [sp] = useSearchParams();
+
+  const [sp, setSp] = useSearchParams();
   const q = (sp.get("q") ?? "").trim();
+  const excludeAi = sp.get("noai") === "1";
+
+  const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
+
+  // API 데이터 상태
+  const [apiSongs, setApiSongs] = useState<Song[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // 앨범 정보 상태
+  const [albums, setAlbums] = useState<Record<number, ArtistAlbum>>({});
+  
+  // 앨범 상세 정보 캐시 (music_id를 찾기 위해) - useRef로 관리하여 무한 루프 방지
+  const albumDetailsCacheRef = useRef<Record<number, {
+    tracks: Array<{ music_id: number; music_name: string }>;
+  }>>({});
+
+  const toggleExcludeAi = () => {
+    const next = new URLSearchParams(sp);
+    if (excludeAi) next.delete("noai");
+    else next.set("noai", "1");
+    setSp(next, { replace: true });
+  };
+
+  // 아티스트별 앨범 정보 가져오기
+  const fetchArtistAlbums = useCallback(
+    async (artistIds: number[]) => {
+      if (!API_BASE) return;
+
+      const albumMap: Record<number, ArtistAlbum> = {};
+
+      try {
+        console.log(`[SearchSong] 아티스트별 앨범 정보 가져오기 시작: ${artistIds.length}개 아티스트`);
+
+        const promises = artistIds.map(async (artistId) => {
+          try {
+            const url = `${API_BASE}/artists/${artistId}/albums/`;
+            console.log(`[SearchSong] 아티스트 ${artistId}의 앨범 목록 요청: ${url}`);
+
+            const res = await fetch(url, {
+              method: "GET",
+              headers: { "Content-Type": "application/json" },
+            });
+
+            if (res.ok) {
+              const data: ArtistAlbum[] = await res.json();
+              console.log(`[SearchSong] 아티스트 ${artistId}의 앨범 목록 수신:`, {
+                artist_id: artistId,
+                album_count: data.length,
+                albums: data.map((a) => ({
+                  id: a.id,
+                  title: a.title,
+                  has_image: !!a.album_image,
+                })),
+              });
+
+              return { artistId, albums: data };
+            }
+            return null;
+          } catch (e) {
+            console.error(`[SearchSong] 아티스트 ${artistId}의 앨범 목록 가져오기 실패:`, e);
+            return null;
+          }
+        });
+
+        const results = await Promise.all(promises);
+
+        // 각 앨범을 맵에 추가
+        results.forEach((result) => {
+          if (result) {
+            result.albums.forEach((album) => {
+              albumMap[Number(album.id)] = album;
+            });
+          }
+        });
+
+        console.log(`[SearchSong] 최종 앨범 맵: ${Object.keys(albumMap).length}개 앨범`);
+        setAlbums(albumMap);
+      } catch (e) {
+        console.error("[SearchSong] 아티스트별 앨범 정보 가져오기 오류:", e);
+      }
+    },
+    [API_BASE]
+  );
+
+  /* ===================== API 호출 ===================== */
+
+  useEffect(() => {
+    // API가 설정되지 않았거나 검색어가 없으면 더미 데이터 사용
+    if (!API_BASE || !q.trim()) {
+      setApiSongs([]);
+      setError(null);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // 검색 API 호출
+        const params = new URLSearchParams({
+          q: q,
+          exclude_ai: excludeAi ? "true" : "false",
+          page_size: "100",
+        });
+
+        const res = await fetch(`${API_BASE}/search?${params.toString()}`, {
+          method: "GET",
+          signal: controller.signal,
+          headers: { "Content-Type": "application/json" },
+        });
+
+        if (!res.ok) {
+          throw new Error(`API 오류: ${res.status}`);
+        }
+
+        const data: ApiSearchResponse = await res.json();
+
+        console.log(`[SearchSong] 검색 결과 수신:`, {
+          query: q,
+          count: data.count,
+          results_count: data.results.length,
+        });
+
+        // API 응답을 Song 형식으로 변환
+        const converted: Song[] = data.results.map((r) => ({
+          id: String(r.itunes_id), // 표시용 ID는 itunes_id 유지
+          musicId: r.music_id, // 실제 재생에 사용할 music_id
+          title: r.music_name,
+          artist: r.artist_name,
+          album: r.album_name,
+          duration: r.duration
+            ? `${Math.floor(r.duration / 60)}:${(r.duration % 60).toString().padStart(2, "0")}`
+            : "0:00",
+          isAi: r.is_ai,
+          albumId: r.album_id,
+          artistId: r.artist_id,
+        }));
+
+        console.log(`[SearchSong] 변환된 곡 데이터:`, converted.length, "개");
+        setApiSongs(converted);
+
+        // 고유한 artist_id 추출 (null 제외)
+        const uniqueArtistIds = Array.from(
+          new Set(
+            data.results
+              .map((r) => r.artist_id)
+              .filter((id): id is number => id !== null)
+          )
+        );
+
+        // 아티스트별 앨범 정보 가져오기
+        if (uniqueArtistIds.length > 0) {
+          await fetchArtistAlbums(uniqueArtistIds);
+        } else {
+          setAlbums({});
+        }
+      } catch (e: unknown) {
+        if ((e as DOMException)?.name === "AbortError") return;
+        console.error("[SearchSong] 검색 API 오류:", e);
+        setError(e instanceof Error ? e.message : "알 수 없는 오류");
+        setApiSongs([]);
+        setAlbums({});
+      } finally {
+        setLoading(false);
+      }
+    })();
+
+    return () => controller.abort();
+  }, [API_BASE, q, excludeAi, fetchArtistAlbums]);
 
   /* ===================== 검색/필터 ===================== */
 
   const songs = useMemo(() => {
+    // API 데이터가 있으면 API 데이터 사용, 없으면 더미 데이터
+    if (API_BASE && q.trim() && apiSongs.length > 0) {
+      return apiSongs.filter((s) => !excludeAi || !s.isAi);
+    }
+
+    // 더미 데이터 필터링 (API가 없을 때만)
     let result = ALL_SONGS;
 
     if (q) {
@@ -79,7 +287,7 @@ export default function SearchSong() {
 
     if (excludeAi) result = result.filter((s) => !s.isAi);
     return result;
-  }, [q, excludeAi]);
+  }, [API_BASE, q, excludeAi, apiSongs]);
 
   /* ===================== 체크박스 ===================== */
 
@@ -107,26 +315,143 @@ export default function SearchSong() {
 
   /* ===================== 선택 트랙 ===================== */
 
-  const toTrack = (s: Song): PlayerTrack => ({
-    id: s.id,
-    title: s.title,
-    artist: s.artist,
-    album: s.album,
-    duration: s.duration,
-    audioUrl: "/audio/sample.mp3",
-  });
+  // 앨범 상세 정보 가져오기 (music_id 찾기 위해)
+  const fetchAlbumDetail = useCallback(async (albumId: number) => {
+    if (!API_BASE) return null;
+    
+    // 캐시에 있으면 캐시 반환
+    if (albumDetailsCacheRef.current[albumId]) {
+      return albumDetailsCacheRef.current[albumId];
+    }
+
+    try {
+      const res = await axios.get<{
+        album_id: number;
+        tracks: Array<{ music_id: number; music_name: string }>;
+      }>(`${API_BASE}/albums/${albumId}/`, {
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const detail = {
+        tracks: res.data.tracks.map((t: { music_id: number; music_name: string }) => ({
+          music_id: t.music_id,
+          music_name: t.music_name,
+        })),
+      };
+
+      // 캐시에 저장
+      albumDetailsCacheRef.current[albumId] = detail;
+
+      return detail;
+    } catch (e) {
+      console.error(`[SearchSong] 앨범 ${albumId} 상세 정보 가져오기 실패:`, e);
+      return null;
+    }
+  }, [API_BASE]);
+
+  // 곡의 music_id 찾기
+  const findMusicId = useCallback(async (song: Song): Promise<number | null> => {
+    // musicId가 있으면 사용
+    if (song.musicId) {
+      return song.musicId;
+    }
+
+    // albumId가 없으면 찾을 수 없음
+    if (!song.albumId) {
+      console.warn(`[SearchSong] 곡 ${song.title}의 albumId가 없습니다.`);
+      return null;
+    }
+
+    // 앨범 상세 정보 가져오기
+    const albumDetail = await fetchAlbumDetail(song.albumId);
+    if (!albumDetail) {
+      return null;
+    }
+
+    // 곡 이름으로 매칭해서 music_id 찾기
+    const track = albumDetail.tracks.find((t: { music_name: string }) => t.music_name === song.title);
+    if (track) {
+      console.log(`[SearchSong] 곡 ${song.title}의 music_id 찾음: ${track.music_id}`);
+      return track.music_id;
+    }
+
+    console.warn(`[SearchSong] 곡 ${song.title}을 앨범 ${song.albumId}의 트랙 목록에서 찾을 수 없습니다.`);
+    return null;
+  }, [fetchAlbumDetail]);
+
+  // 곡의 오디오 URL 가져오기
+  const fetchTrackAudioUrl = useCallback(async (musicId: string): Promise<string | undefined> => {
+    if (!API_BASE) return undefined;
+
+    try {
+      const res = await axios.get<{ audio_url: string }>(`${API_BASE}/tracks/${musicId}/play`, {
+        headers: { "Content-Type": "application/json" },
+      });
+      return res.data.audio_url;
+    } catch (e) {
+      console.error(`[SearchSong] 곡 ${musicId} 재생 URL 가져오기 실패:`, e);
+      return undefined;
+    }
+  }, [API_BASE]);
+
+  const toTrack = async (s: Song): Promise<PlayerTrack> => {
+    // music_id 찾기
+    const musicId = await findMusicId(s);
+    
+    if (!musicId) {
+      console.warn(`[SearchSong] 곡 ${s.title}의 music_id를 찾을 수 없습니다.`);
+      return {
+        id: s.id,
+        title: s.title,
+        artist: s.artist,
+        album: s.album,
+        duration: s.duration,
+        audioUrl: undefined,
+        coverUrl: undefined,
+      };
+    }
+
+    // 오디오 URL 가져오기
+    const audioUrl = await fetchTrackAudioUrl(String(musicId));
+    
+    // 앨범 이미지 찾기
+    const apiSong = apiSongs.find((as) => as.id === s.id);
+    let coverUrl: string | undefined = undefined;
+    
+    if (apiSong?.albumId) {
+      const album = albums[apiSong.albumId];
+      if (album?.album_image) {
+        const albumImage = album.album_image;
+        // URL 처리 (상대 경로를 절대 경로로 변환)
+        if (albumImage.startsWith("http") || albumImage.startsWith("//")) {
+          coverUrl = albumImage;
+        } else if (API_BASE && albumImage.startsWith("/")) {
+          coverUrl = `${API_BASE.replace("/api/v1", "")}${albumImage}`;
+        } else {
+          coverUrl = albumImage;
+        }
+      }
+    }
+
+    console.log(`[SearchSong] 곡 ${s.id} (music_id: ${musicId}) (${s.title})의 오디오 URL:`, audioUrl || "(없음)");
+    
+    return {
+      id: s.id,
+      title: s.title,
+      artist: s.artist,
+      album: s.album,
+      duration: s.duration,
+      audioUrl: audioUrl || undefined,
+      coverUrl: coverUrl,
+    };
+  };
 
   const checkedSongs = useMemo(
     () => songs.filter((s) => checkedIds[s.id]),
     [songs, checkedIds]
   );
 
-  const checkedTracks = useMemo(
-    () => checkedSongs.map(toTrack),
-    [checkedSongs]
-  );
-
-  const selectedCount = checkedTracks.length;
+  const selectedCount = checkedSongs.length;
 
   /* ===================== 담기 모달 ===================== */
 
@@ -139,12 +464,13 @@ export default function SearchSong() {
     return subscribePlaylists(sync);
   }, []);
 
-  const addSelectedToPlaylist = (playlistId: string) => {
+  const addSelectedToPlaylist = async (playlistId: string) => {
     if (selectedCount === 0) return;
 
     const curr = getPlaylistById(playlistId);
     if (!curr) return;
 
+    const checkedTracks = await Promise.all(checkedSongs.map(toTrack));
     const incoming = checkedTracks.map((t) => ({
       id: t.id,
       title: t.title,
@@ -169,12 +495,13 @@ export default function SearchSong() {
     setCheckedIds({});
   };
 
-  const addSelectedToLiked = () => {
+  const addSelectedToLiked = async () => {
     if (selectedCount === 0) return;
 
     const curr = getPlaylistById(LIKED_SYSTEM_ID);
     if (!curr) return;
 
+    const checkedTracks = await Promise.all(checkedSongs.map(toTrack));
     const incoming = checkedTracks.map((t) => ({
       id: t.id,
       title: t.title,
@@ -200,13 +527,27 @@ export default function SearchSong() {
 
   /* ===================== 액션 ===================== */
 
-  const handleAction = (key: ActionKey) => {
+  const handleAction = async (key: ActionKey) => {
     if (selectedCount === 0) return;
 
-    if (key === "play") playTracks(checkedTracks);
-    if (key === "shuffle") playTracks(checkedTracks, { shuffle: true });
-    if (key === "add") setAddOpen(true);
-    if (key === "like") addSelectedToLiked();
+    if (key === "play") {
+      const playerTracks = await Promise.all(checkedSongs.map(toTrack));
+      playTracks(playerTracks);
+      return;
+    }
+    if (key === "shuffle") {
+      const playerTracks = await Promise.all(checkedSongs.map(toTrack));
+      playTracks(playerTracks, { shuffle: true });
+      return;
+    }
+    if (key === "add") {
+      setAddOpen(true);
+      return;
+    }
+    if (key === "like") {
+      await addSelectedToLiked();
+      return;
+    }
   };
 
   /* ===================== JSX ===================== */
@@ -218,18 +559,24 @@ export default function SearchSong() {
         <div className="flex items-end justify-between">
           <div className="flex items-center gap-4">
             <h2 className="text-lg font-semibold text-[#F6F6F6]">곡</h2>
+            {loading ? (
+              <div className="text-sm text-[#999]">검색 중...</div>
+            ) : error ? (
+              <div className="text-sm text-red-400">오류: {error}</div>
+            ) : (
             <div className="text-sm text-[#999]">총 {songs.length}곡</div>
+            )}
           </div>
         </div>
 
         <div className="mt-4 flex gap-3">
           <button
             type="button"
-            onClick={() => setExcludeAi(!excludeAi)}
+            onClick={toggleExcludeAi}
             className={[
               "shrink-0 px-4 py-2 rounded-2xl text-sm flex items-center gap-2 outline outline-1",
               excludeAi
-                ? "bg-[#f6f6f6] text-[#4e4e4e]"
+                ? "outline-[#AFDEE2] text-[#AFDEE2]"
                 : "outline-[#f6f6f6] text-[#f6f6f6]",
             ].join(" ")}
           >
@@ -274,7 +621,18 @@ export default function SearchSong() {
 
       {/* 리스트 */}
       <div className="px-4 divide-y divide-[#464646]">
-        {songs.map((s) => (
+        {loading && songs.length === 0 ? (
+          <div className="px-6 py-12 text-center text-[#999]">검색 중...</div>
+        ) : error && songs.length === 0 ? (
+          <div className="px-6 py-12 text-center text-red-400">
+            오류가 발생했습니다: {error}
+          </div>
+        ) : songs.length === 0 ? (
+          <div className="px-6 py-12 text-center text-[#999]">
+            {q ? "검색 결과가 없습니다." : "검색어를 입력해주세요."}
+          </div>
+        ) : (
+          songs.map((s) => (
           <div
             key={s.id}
             className="grid grid-cols-[28px_56px_1fr_90px] items-center gap-x-4 px-6 py-3 hover:bg-white/5"
@@ -286,7 +644,59 @@ export default function SearchSong() {
               onChange={() => toggleOne(s.id)}
             />
 
-            <div className="ml-1 w-10 h-10 rounded-xl bg-[#6b6b6b]/50" />
+            {/* 앨범 이미지 */}
+            <div className="ml-1 w-10 h-10 rounded-xl bg-[#6b6b6b]/50 border border-[#464646] overflow-hidden relative flex-shrink-0">
+              {(() => {
+                // API에서 가져온 곡인지 확인하고 앨범 이미지 찾기
+                const apiSong = apiSongs.find((as) => as.id === s.id);
+                let albumImage: string | null = null;
+
+                if (apiSong?.albumId) {
+                  const album = albums[apiSong.albumId];
+                  albumImage = album?.album_image || null;
+                }
+
+                return albumImage ? (
+                  <>
+                    <img
+                      src={
+                        albumImage.startsWith("http") || albumImage.startsWith("//")
+                          ? albumImage
+                          : API_BASE && albumImage.startsWith("/")
+                          ? `${API_BASE.replace("/api/v1", "")}${albumImage}`
+                          : albumImage
+                      }
+                      alt={s.title}
+                      className="w-full h-full object-cover relative z-10"
+                      onError={(e) => {
+                        console.error(`[SearchSong] ❌ 곡 앨범 이미지 로드 실패:`, {
+                          song: s.title,
+                          album_id: apiSong?.albumId,
+                          image_url: albumImage,
+                        });
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                      onLoad={(e) => {
+                        console.log(`[SearchSong] ✅ 곡 앨범 이미지 로드 성공:`, {
+                          song: s.title,
+                          album_id: apiSong?.albumId,
+                          image_url: albumImage,
+                        });
+                        const img = e.target as HTMLImageElement;
+                        const fallback = img.nextElementSibling as HTMLElement;
+                        if (fallback) {
+                          fallback.style.display = "none";
+                        }
+                      }}
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-[#6b6b6b]/50 animate-pulse z-0" />
+                  </>
+                ) : (
+                  <div className="w-full h-full bg-[#6b6b6b]/50" />
+                );
+              })()}
+            </div>
 
             <div className="min-w-0">
               <div className="text-sm text-[#F6F6F6] truncate">
@@ -302,7 +712,8 @@ export default function SearchSong() {
 
             <div className="mr-1 text-sm text-[#F6F6F6]/70 text-right">{s.duration}</div>
           </div>
-        ))}
+          ))
+        )}
       </div>
 
       {/* ✅ 담기 모달 */}

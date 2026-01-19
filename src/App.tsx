@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import MainLayout from "./components/layout/MainLayout";
 import MainLayout2 from "./components/layout/MainLayout2";
 import PlainLayout from "./components/layout/PlainLayout";
@@ -19,6 +19,8 @@ import MyPlaylistPage from "./pages/profile/MyPlaylistPage";
 import MyPlaylistPersonal from "./pages/profile/MyPlaylistPersonal";
 import MyPlaylistLiked from "./pages/profile/MyPlaylistLiked";
 import PlaylistEdit from "./pages/album/PlaylistEdit";
+import MyAITracks from "./pages/profile/MyAITracks";
+
 
 import ArtistPage from "./pages/artist/ArtistPage";
 import ArtistTracksPage from "./pages/artist/ArtistTracksPage";
@@ -37,6 +39,15 @@ import ChartAI from "./pages/chart/ChartAI";
 
 import NowPlayingPage from "./pages/song/NowPlayingPage";
 import { PlayerProvider } from "./player/PlayerContext";
+
+import OnboardingPage from "./pages/OnboardingPage";
+
+// 검색 페이지 쿼리 파라미터 유지하면서 리다이렉트
+function SearchRedirect() {
+  const location = useLocation();
+  const search = location.search || "";
+  return <Navigate to={`all${search}`} replace />;
+}
 
 export default function App() {
   return (
@@ -57,10 +68,12 @@ export default function App() {
           <Route path="personal" element={<MyPlaylistPersonal />} />
           <Route path="liked" element={<MyPlaylistLiked />} />
         </Route>
-        <Route path="/ai" element={<AiCreatePage />} />
-        <Route path="aisong/:id" element={<AiSongPage />} />
+        <Route path="/ai/create" element={<AiCreatePage />} />
+        <Route path="/ai" element={<Navigate to="/ai/create" replace />} />
+        <Route path="/aisong/:id" element={<AiSongPage />} />
+        <Route path="/my/ai-songs" element={<MyAITracks />} />
         <Route path="/search" element={<SearchPage />}>
-          <Route index element={<Navigate to="all" replace />} />
+          <Route index element={<SearchRedirect />} />
           <Route path="all" element={<SearchAll />} />
           <Route path="artist" element={<SearchArtist />} />
           <Route path="album" element={<SearchAlbum />} />
@@ -86,9 +99,11 @@ export default function App() {
 
       {/* ✅ 사이드바, 헤더, 플레이바 없는 구간 (로그인/회원가입 용도) */}
       <Route element={<Nolayout />}>
-        <Route index element={<LoginPage />} />
+        <Route index element={<OnboardingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />
+
+        <Route path="/onboarding" element={<OnboardingPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

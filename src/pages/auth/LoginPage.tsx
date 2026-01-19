@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   MdOutlineMail,
@@ -14,140 +14,207 @@ export default function LoginPage() {
   const [pw, setPw] = useState("");
   const [showPw, setShowPw] = useState(false);
 
+  // ✅ LEFT 문구 자동 float만 유지
+  useEffect(() => {
+    const style = document.createElement("style");
+    style.innerHTML = `
+      @keyframes verticalFloat {
+        0%   { transform: translate3d(0,0,0); }
+        50%  { transform: translate3d(0,-10px,0); }
+        100% { transform: translate3d(0,0,0); }
+      }
+      .animate-verticalFloat {
+        display: inline-block;
+        animation: verticalFloat 7s ease-in-out infinite;
+        transform: translate3d(0,0,0);
+        will-change: transform;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
-  // TODO: 실제 로그인 API 성공 시에만 이동
+  const canLogin = id.trim().length > 0 && pw.trim().length > 0;
+
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
+    if (!canLogin) return;
     navigate("/home");
   };
 
-
-
   return (
-      <div className="relative min-h-[100dvh] flex items-center justify-center">
- 
-      {/* ✅ 중앙 폼(카드 없음) */}
-      <form
-        onSubmit={onSubmit}
-        className="relative z-10 w-[340px] flex flex-col items-center"
-      >
-
-        {/* ===== ID 입력 (아이콘 포함) ===== */}
-        <div className="relative w-full">
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#f6f6f6]">
-          <MdOutlineMail  size={18} />
-          </div>
-          <input
-            type="text"
-            value={id}
-            onChange={(e) => setId(e.target.value)}
-            placeholder="Email ID"
-            className="
-              w-full h-12
-              rounded-md
-              bg-[#777777]
-              pl-11 pr-4
-              text-sm text-[#f6f6f6]
-              placeholder:text-[#f6f6f6]/40
-              outline-none
-              focus:ring-2 focus:ring-white/70
-            "
-          />
-        </div>
-
-        {/* ===== PW 입력 (아이콘 + 눈 버튼 포함) ===== */}
-        <div className="relative w-full mt-3">
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#f6f6f6]">
-            <MdLockOutline size={18} />
-          </div>
-          <input
-            type={showPw ? "password" : "text"}
-            value={pw}
-            onChange={(e) => setPw(e.target.value)}
-            placeholder="Password"
-            className="
-              w-full h-12
-              rounded-md
-              bg-[#777777]/80
-              pl-11 pr-11
-              text-sm text-[#f6f6f6]
-              placeholder:text-[#f6f6f6]/40
-              outline-none
-              focus:ring-2 focus:ring-white/70
-            "
-          />
-          <button
-            type="button"
-            onClick={() => setShowPw((v) => !v)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white transition"
-            aria-label={showPw ? "비밀번호 숨기기" : "비밀번호 보기"}
-          >
-            {showPw ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
-          </button>
-        </div>
-
-        {/* ===== Login 버튼 ===== */}
-        <button
-          type="submit"
+    // ✅ 배경은 AuthLayout이 처리 → 여기선 카드만
+    <div className="min-h-[100dvh] w-full flex items-center justify-center p-6">
+      <div className="relative w-full max-w-[920px] rounded-3xl bg-[#1b1b22]/70 backdrop-blur-xl border border-[#2d2d2d] shadow-[0_70px_200px_rgba(0,0,0,0.85)] overflow-hidden">
+        {/* ✅ 중앙 경계 그라데이션 (md 이상에서만) */}
+        <div
           className="
-            mt-12
-            w-full h-12
-            rounded-full
-            bg-[#777777]/80
-            text-sm text-[#f6f6f6]
-            hover:bg-[#8a8a8a]/70
-            transition
+            pointer-events-none
+            absolute
+            top-0
+            left-1/2
+            hidden
+            md:block
+            -translate-x-1/2
+            h-full
+            w-[2px]
+            bg-gradient-to-b
+            from-transparent
+            via-white/40
+            to-transparent
           "
-        >
-          Login
-        </button>
+        />
 
-        {/* ===== 구분선 + 텍스트 (이미지처럼) ===== */}
-        <div className="w-full mt-4 flex">
-          <div className="flex-1 h-px bg-white/20" />
+        <div className="grid grid-cols-1 md:grid-cols-2 min-h-[560px]">
+          {/* LEFT */}
+          <div className="relative h-full p-8 md:p-10 flex flex-col justify-between">
+            <div className="absolute inset-0">
+              <div className="h-full w-full bg-gradient-to-br from-[#5fd8e4] via-[#9fd6db] to-[#eef6f6]" />
+              <div className="absolute inset-0 bg-black/15" />
+              <div className="absolute -top-24 -left-24 h-64 w-64 rounded-full bg-white/20 blur-3xl" />
+              <div className="absolute -bottom-24 -right-24 h-64 w-64 rounded-full bg-black/20 blur-3xl" />
+            </div>
+
+            <div className="relative z-10 flex items-center justify-between">
+              <div className="font-bold tracking-wide text-xl text-[#2d2d2d]">
+                서비스명
+              </div>
+              <button
+                type="button"
+                className="
+                  text-[#2d2d2d]
+                  text-sm
+                  px-3 py-2
+                  rounded-full
+                  bg-white/20
+                  hover:bg-white/50
+                  transition
+                "
+                onClick={() => navigate("/home")}
+              >
+                바로 서비스 이용하기 →
+              </button>
+            </div>
+
+            <div className="relative z-10 mt-10 animate-verticalFloat">
+              <p className="text-[#2d2d2d] text-3xl md:text-4xl font-semibold leading-tight">
+                Listen & Create
+                <br />
+                Stay in the Flow
+              </p>
+              <p className="mt-4 text-[#2d2d2d]/70 text-sm md:text-base max-w-[360px]">
+                완성도 높은 스트리밍을 기반으로
+                <br />
+                음악을 보고, 이해하고, 직접 만들어보세요 🎶
+              </p>
+            </div>
+          </div>
+
+          {/* RIGHT */}
+          <div className="h-full p-8 md:p-10 bg-[#3d3d3d]/30 flex items-center justify-center">
+            <form onSubmit={onSubmit} className="w-[320px] flex flex-col items-center">
+              {/* 헤더 */}
+              <div className="w-full text-center mb-6">
+                <div className="text-[#f6f6f6] font-semibold">Login</div>
+              </div>
+
+              {/* ID */}
+              <div className="relative w-full">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#f6f6f6]">
+                  <MdOutlineMail size={18} />
+                </div>
+                <input
+                  type="text"
+                  value={id}
+                  onChange={(e) => setId(e.target.value)}
+                  placeholder="Email ID"
+                  className="
+                    w-full h-11
+                    rounded-md
+                    bg-[#3d3d3d]/80
+                    pl-11 pr-4
+                    text-sm text-[#f6f6f6]
+                    placeholder:text-[#f6f6f6]/40
+                    outline-none
+                    focus:ring-2 focus:ring-white/30
+                  "
+                />
+              </div>
+
+              {/* PW */}
+              <div className="relative w-full mt-3">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#f6f6f6]">
+                  <MdLockOutline size={18} />
+                </div>
+                <input
+                  type={showPw ? "password" : "text"}
+                  value={pw}
+                  onChange={(e) => setPw(e.target.value)}
+                  placeholder="Password"
+                  className="
+                    w-full h-11
+                    rounded-md
+                    bg-[#3d3d3d]/80
+                    pl-11 pr-11
+                    text-sm text-[#f6f6f6]
+                    placeholder:text-[#f6f6f6]/40
+                    outline-none
+                    focus:ring-2 focus:ring-white/30
+                  "
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw((v) => !v)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white transition"
+                  aria-label={showPw ? "비밀번호 숨기기" : "비밀번호 보기"}
+                >
+                  {showPw ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
+                </button>
+              </div>
+
+              {/* Login */}
+              <button
+                type="submit"
+                disabled={!canLogin}
+                className={[
+                  "mt-10 w-full h-11 rounded-full text-sm transition",
+                  canLogin
+                    ? "bg-[#e45a4d] text-[#f6f6f6] hover:brightness-110"
+                    : "bg-[#e45a4d]/40 text-white/50 cursor-not-allowed",
+                ].join(" ")}
+              >
+                Login
+              </button>
+
+              <div className="w-full mt-4 flex">
+                <div className="flex-1 h-px bg-white/20" />
+              </div>
+
+              <span className="mt-4 text-[10px] text-white/60">
+                계정이 없으신가요?
+              </span>
+
+              <button
+                type="button"
+                onClick={() => navigate("/signup")}
+                className="
+                  mt-3
+                  w-full h-11
+                  rounded-full
+                  bg-[#3d3d3d]
+                  text-sm text-[#f6f6f6]
+                  hover:bg-[#4d4d4d]/30
+                  transition
+                "
+              >
+                Sign up
+              </button>
+            </form>
+          </div>
         </div>
-
-        {/* ===== Sign up 버튼 ===== */}
-          <span className="mt-4 text-[10px] text-white/60 whitespace-nowrap">
-            계정이 없으신가요?
-          </span>
-
-        <button
-          type="button"
-          onClick={() => navigate("/signup")}
-          className="
-            mt-4
-            w-full h-12
-            rounded-full
-            bg-[#777777]/80
-            text-sm text-[#f6f6f6]
-            hover:bg-[#8a8a8a]/70
-            transition
-          "
-        >
-          Sign up
-        </button>
-
-        <button 
-          type="button"
-          onClick={() => navigate("/home")}
-           className="
-            mt-12
-            w-full h-12
-            rounded-full
-            bg-[#777777]/80
-            text-sm text-[#f6f6f6]
-            hover:bg-[#8a8a8a]/70
-            transition
-          ">
-          바로 서비스로 들어가기
-        </button>
-
-      </form>
-
-        
-
+      </div>
     </div>
   );
 }
