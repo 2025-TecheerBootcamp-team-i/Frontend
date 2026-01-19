@@ -25,6 +25,31 @@ type Album = { id: string; title: string; year: string };
 type ArtistData = { id: string; name: string; tracks: Track[]; albums: Album[] };
 type Found = { artist: ArtistData; album: Album; tracks: Track[] } | null;
 
+// 백엔드 앨범 상세 API 응답 타입 (필요한 필드만 정의)
+type ApiAlbumDetail = {
+    album_id: number;
+    album_name: string;
+    album_image: string | null;
+    artist: {
+        artist_id: number;
+        artist_name: string;
+    };
+    track_count: number;
+    total_duration: number;
+    total_duration_formatted: string;
+    like_count: number;
+    tracks: {
+        music_id: number;
+        music_name: string;
+        artist_name: string | null;
+        duration: string; // "mm:ss"
+        duration_seconds: number | null;
+        is_ai: boolean;
+    }[];
+    created_at: string;
+    updated_at: string;
+};
+
 const actions = [
     { key: "play", label: "재생", icon: <IoPlayCircle size={18} /> },
     { key: "shuffle", label: "셔플", icon: <IoShuffle size={18} /> },
@@ -63,12 +88,90 @@ function findAlbumById(albumId: string | undefined): Found {
     return null;
     }
 
-    export default function AlbumDetailPage() {
+export default function AlbumDetailPage() {
     const { albumId } = useParams();
     const { playTracks } = usePlayer();
     const navigate = useNavigate();
 
+    const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
+
+    // API로 가져온 앨범 데이터 (있으면 우선 사용)
+    const [apiFound, setApiFound] = useState<Found>(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
     const found = useMemo(() => findAlbumById(albumId), [albumId]);
+
+    // 앨범 상세 API 호출
+    useEffect(() => {
+        // API 미설정이거나, 숫자가 아닌 더미 ID(a1-al1 등)는 기존 더미 데이터 사용
+        if (!API_BASE || !albumId || Number.isNaN(Number(albumId))) {
+            setApiFound(null);
+            setError(null);
+            return;
+        }
+
+        const controller = new AbortController();
+
+        (async () => {
+            try {
+                setLoading(true);
+                setError(null);
+
+                const albumIdNum = Number(albumId);
+                const res = await fetch(`${API_BASE}/albums/${albumIdNum}/`, {
+                    method: "GET",
+                    signal: controller.signal,
+                    headers: { "Content-Type": "application/json" },
+                });
+
+                if (!res.ok) {
+                    throw new Error(`앨범 상세 조회 실패: ${res.status}`);
+                }
+
+                const data: ApiAlbumDetail = await res.json();
+
+                // API 응답을 기존 Found 구조로 변환
+                const artist: ArtistData = {
+                    id: String(data.artist.artist_id),
+                    name: data.artist.artist_name,
+                    tracks: [],
+                    albums: [],
+                };
+
+                const year =
+                    data.created_at && data.created_at.length >= 4
+                        ? data.created_at.slice(0, 4)
+                        : "";
+
+                const album: Album = {
+                    id: String(data.album_id),
+                    title: data.album_name,
+                    year,
+                };
+
+                const tracks: Track[] = data.tracks.map((t) => ({
+                    id: String(t.music_id),
+                    title: t.music_name,
+                    album: data.album_name,
+                    duration: t.duration || "0:00",
+                }));
+
+                setApiFound({ artist, album, tracks });
+            } catch (e: unknown) {
+                if ((e as DOMException)?.name === "AbortError") return;
+                console.error("[AlbumDetailPage] 앨범 상세 API 오류:", e);
+                setError(e instanceof Error ? e.message : "알 수 없는 오류");
+                setApiFound(null);
+            } finally {
+                setLoading(false);
+            }
+        })();
+
+        return () => controller.abort();
+    }, [API_BASE, albumId]);
+
+    const effective = apiFound ?? found;
 
     // ✅ found가 null이어도 hooks는 항상 같은 순서
     const [checkedIds, setCheckedIds] = useState<Record<string, boolean>>({});
@@ -97,7 +200,7 @@ function findAlbumById(albumId: string | undefined): Found {
         return subscribePlaylists(sync); // ✅ albumLike도 emit()이므로 playlist 구독으로 충분
     }, [albumId]);
 
-    const tracks = found?.tracks ?? [];
+    const tracks = effective?.tracks ?? [];
     const totalSeconds = tracks.reduce((acc, t) => acc + toSeconds(t.duration), 0);
     const totalPlaytime = formatTotal(totalSeconds);
 
@@ -125,7 +228,26 @@ function findAlbumById(albumId: string | undefined): Found {
         return subscribePlaylists(syncTargets);
     }, []);
 
-    if (!found) {
+    // ✅ 로딩 중 & 아직 데이터가 없을 때
+    if (loading && !effective) {
+        return (
+        <div className="w-full min-w-0 px-6 py-5 text-white">
+            <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="mb-6 text-[#aaa] hover:text-white transition"
+            aria-label="뒤로가기"
+            >
+            <IoChevronBack size={24} />
+            </button>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center py-10">
+            <div className="text-lg text-[#ccc]">앨범 정보를 불러오는 중...</div>
+            </div>
+        </div>
+        );
+    }
+
+    if (!effective) {
         return (
         <div className="w-full min-w-0 px-6 py-5 text-white">
             <button
@@ -142,12 +264,15 @@ function findAlbumById(albumId: string | undefined): Found {
             <div className="mt-2 text-sm text-[#aaa]">
                 요청한 ID: <span className="text-white">{albumId ?? "(없음)"}</span>
             </div>
+            {error && (
+                <div className="mt-2 text-sm text-red-400">오류: {error}</div>
+            )}
             </div>
         </div>
         );
     }
 
-    const { artist, album } = found;
+    const { artist, album } = effective;
 
     const toPlayerTrack = (t: Track): PlayerTrack => ({
         id: t.id,
