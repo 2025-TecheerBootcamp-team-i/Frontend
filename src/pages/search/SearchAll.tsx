@@ -2,10 +2,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { MdOutlineNavigateNext, MdPlayArrow } from "react-icons/md";
-import axios from "axios";
-
-import { usePlayer } from "../../player/PlayerContext";
-import type { PlayerTrack } from "../../player/PlayerContext";
 
 // ✅ MyPlaylistPage 디자인 참고용 스크롤러(디자인만)
 type HorizontalScrollerProps = {
@@ -138,7 +134,6 @@ type ArtistDetail = {
 // API 응답 타입
 type ApiSearchResult = {
   itunes_id: number;
-  music_id?: number; // 실제 재생에 사용할 음악 ID
   music_name: string;
   artist_name: string;
   artist_id: number | null;
@@ -224,7 +219,6 @@ function SectionShell({
 export default function SearchHome() {
   const navigate = useNavigate();
   const [sp] = useSearchParams();
-  const { playTracks } = usePlayer();
 
   const q = (sp.get("q") ?? "").trim();
   const search = q ? `?q=${encodeURIComponent(q)}` : "";
@@ -237,7 +231,6 @@ export default function SearchHome() {
   const [apiAlbums, setApiAlbums] = useState<ArtistAlbum[]>([]);
   const [loading, setLoading] = useState(false);
   const [artistDetails, setArtistDetails] = useState<Record<number, ArtistDetail>>({});
-  const [searchResults, setSearchResults] = useState<ApiSearchResult[]>([]); // 검색 결과 원본 데이터 저장
 
   // 아티스트 상세 정보 가져오기 (이미지 포함)
   const fetchArtistDetails = useCallback(
@@ -375,7 +368,6 @@ export default function SearchHome() {
       setApiSongs([]);
       setApiArtists([]);
       setApiAlbums([]);
-      setSearchResults([]);
       return;
     }
 
@@ -401,9 +393,6 @@ export default function SearchHome() {
         }
 
         const data: ApiSearchResponse = await res.json();
-        
-        // 검색 결과 원본 데이터 저장
-        setSearchResults(data.results);
 
         // 곡 정보 변환
         const convertedSongs: Song[] = data.results.map((r) => ({
@@ -704,230 +693,32 @@ export default function SearchHome() {
                         </div>
                       </div>
 
-                      {/* ▶ 재생 버튼 */}
-                      <button
-                        type="button"
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          
-                          if (isArtist && artistData) {
-                            // 검색 결과에서 해당 아티스트의 모든 곡 찾기
-                            try {
-                              const artistIdNum = Number(artistData.id);
-                              if (isNaN(artistIdNum)) return;
-                              
-                              // 검색 결과에서 해당 아티스트의 곡들 필터링
-                              const artistSongs = searchResults.filter(
-                                (r) => r.artist_id === artistIdNum
-                              );
-                              
-                              if (artistSongs.length === 0) {
-                                console.warn(`[SearchAll] 검색 결과에서 아티스트 ${artistData.name}의 곡을 찾을 수 없습니다.`);
-                                return;
-                              }
-                              
-                              // PlayerTrack으로 변환
-                              const playerTracks: PlayerTrack[] = await Promise.all(
-                                artistSongs.map(async (r) => {
-                                  let audioUrl = r.audio_url;
-                                  let musicId = r.music_id;
-                                  
-                                  // audio_url이 없고 music_id가 있으면 오디오 URL 가져오기
-                                  if (!audioUrl && musicId) {
-                                    try {
-                                      const playRes = await axios.get<{ audio_url: string }>(
-                                        `${API_BASE}/tracks/${musicId}/play`,
-                                        { headers: { "Content-Type": "application/json" } }
-                                      );
-                                      audioUrl = playRes.data.audio_url;
-                                      console.log(`[SearchAll] ✅ 곡 ${r.music_name} (music_id: ${musicId}) 오디오 URL 가져오기 성공:`, audioUrl);
-                                    } catch (err) {
-                                      console.error(`[SearchAll] ❌ 곡 ${r.music_name} (music_id: ${musicId}) 재생 URL 가져오기 실패:`, err);
-                                    }
-                                  }
-                                  
-                                  // 앨범 이미지 찾기
-                                  let coverUrl: string | undefined = undefined;
-                                  if (r.album_image) {
-                                    const albumImage = r.album_image;
-                                    if (albumImage.startsWith("http") || albumImage.startsWith("//")) {
-                                      coverUrl = albumImage;
-                                    } else if (API_BASE && albumImage.startsWith("/")) {
-                                      coverUrl = `${API_BASE.replace("/api/v1", "")}${albumImage}`;
-                                    } else {
-                                      coverUrl = albumImage;
-                                    }
-                                  } else if (r.album_id) {
-                                    // 앨범 이미지가 없으면 앨범 정보에서 가져오기
-                                    const album = apiAlbums.find((a) => a.id === String(r.album_id));
-                                    if (album?.album_image) {
-                                      const albumImage = album.album_image;
-                                      if (albumImage.startsWith("http") || albumImage.startsWith("//")) {
-                                        coverUrl = albumImage;
-                                      } else if (API_BASE && albumImage.startsWith("/")) {
-                                        coverUrl = `${API_BASE.replace("/api/v1", "")}${albumImage}`;
-                                      } else {
-                                        coverUrl = albumImage;
-                                      }
-                                    }
-                                  }
-                                  
-                                  return {
-                                    id: String(r.itunes_id),
-                                    title: r.music_name,
-                                    artist: r.artist_name,
-                                    album: r.album_name || "",
-                                    duration: r.duration
-                                      ? `${Math.floor(r.duration / 60)}:${(r.duration % 60).toString().padStart(2, "0")}`
-                                      : "0:00",
-                                    audioUrl: audioUrl || undefined,
-                                    coverUrl: coverUrl,
-                                    musicId: musicId || undefined, // music_id 저장
-                                  };
-                                })
-                              );
-                              
-                              // 오디오 URL이 있는 곡들만 필터링
-                              const validTracks = playerTracks.filter((t) => t.audioUrl);
-                              
-                              console.log(`[SearchAll] 아티스트 ${artistData.name}의 곡 재생:`, {
-                                total: playerTracks.length,
-                                valid: validTracks.length,
-                                tracks: validTracks.map((t) => ({ title: t.title, audioUrl: t.audioUrl })),
-                              });
-                              
-                              if (validTracks.length > 0) {
-                                playTracks(validTracks);
-                              } else {
-                                console.warn(`[SearchAll] 재생 가능한 곡이 없습니다.`);
-                              }
-                            } catch (err) {
-                              console.error("[SearchAll] 아티스트 곡 재생 오류:", err);
-                            }
-                          } else if (!isArtist && songData) {
-                            // 곡 재생
-                            try {
-                              // 검색 결과에서 원본 데이터 찾기
-                              const originalResult = searchResults.find((r) => String(r.itunes_id) === songData.id);
-                              
-                              // audio_url이 검색 결과에 있으면 먼저 사용
-                              let audioUrl: string | undefined = originalResult?.audio_url || undefined;
-                              
-                              const apiSong = apiSongs.find((as) => as.id === songData.id);
-                              if (!apiSong) {
-                                console.warn(`[SearchAll] 곡 ${songData.title}을 API 결과에서 찾을 수 없습니다.`);
-                                // audio_url이 있으면 재생 시도
-                                if (audioUrl) {
-                                  const playerTrack: PlayerTrack = {
-                                    id: songData.id,
-                                    title: songData.title,
-                                    artist: songData.artist,
-                                    album: songData.albumName || "",
-                                    duration: songData.duration,
-                                    audioUrl: audioUrl,
-                                    coverUrl: undefined,
-                                  };
-                                  console.log(`[SearchAll] 곡 재생 시작 (검색 결과 audio_url 사용):`, playerTrack);
-                                  playTracks([playerTrack]);
-                                }
-                                return;
-                              }
-                              
-                              // music_id 찾기 (album_id를 통해)
-                              let musicId: number | null = null;
-                              if (apiSong.albumId && !audioUrl) {
-                                try {
-                                  const albumRes = await axios.get<{
-                                    album_id: number;
-                                    tracks: Array<{ music_id: number; music_name: string }>;
-                                  }>(`${API_BASE}/albums/${apiSong.albumId}/`, {
-                                    headers: { "Content-Type": "application/json" },
-                                  });
-                                  
-                                  const track = albumRes.data.tracks.find(
-                                    (t) => t.music_name === songData.title
-                                  );
-                                  if (track) {
-                                    musicId = track.music_id;
-                                    console.log(`[SearchAll] ✅ 곡 ${songData.title}의 music_id 찾음: ${musicId}`);
-                                  } else {
-                                    console.warn(`[SearchAll] ⚠️ 곡 ${songData.title}을 앨범 ${apiSong.albumId}의 트랙 목록에서 찾을 수 없습니다.`);
-                                  }
-                                } catch (err) {
-                                  console.error(`[SearchAll] ❌ 앨범 ${apiSong.albumId} 정보 가져오기 실패:`, err);
-                                }
-                              }
-                              
-                              // audio_url이 없고 music_id가 있으면 오디오 URL 가져오기
-                              if (!audioUrl && musicId) {
-                                try {
-                                  const playRes = await axios.get<{ audio_url: string }>(
-                                    `${API_BASE}/tracks/${musicId}/play`,
-                                    { headers: { "Content-Type": "application/json" } }
-                                  );
-                                  audioUrl = playRes.data.audio_url;
-                                  console.log(`[SearchAll] ✅ 곡 ${songData.title} (music_id: ${musicId}) 오디오 URL 가져오기 성공:`, audioUrl);
-                                } catch (err) {
-                                  console.error(`[SearchAll] ❌ 곡 ${songData.title} (music_id: ${musicId}) 재생 URL 가져오기 실패:`, err);
-                                }
-                              }
-                              
-                              // 앨범 이미지 찾기
-                              let coverUrl: string | undefined = undefined;
-                              if (apiSong.albumId) {
-                                const album = apiAlbums.find((a) => a.id === String(apiSong.albumId));
-                                if (album?.album_image) {
-                                  const albumImage = album.album_image;
-                                  if (albumImage.startsWith("http") || albumImage.startsWith("//")) {
-                                    coverUrl = albumImage;
-                                  } else if (API_BASE && albumImage.startsWith("/")) {
-                                    coverUrl = `${API_BASE.replace("/api/v1", "")}${albumImage}`;
-                                  } else {
-                                    coverUrl = albumImage;
-                                  }
-                                }
-                              }
-                              
-                              if (!audioUrl) {
-                                console.warn(`[SearchAll] ⚠️ 곡 ${songData.title}의 오디오 URL이 없어 재생할 수 없습니다.`);
-                                return;
-                              }
-                              
-                              const playerTrack: PlayerTrack = {
-                                id: songData.id,
-                                title: songData.title,
-                                artist: songData.artist,
-                                album: songData.albumName || "",
-                                duration: songData.duration,
-                                audioUrl: audioUrl,
-                                coverUrl: coverUrl,
-                                musicId: musicId || undefined, // music_id 저장
-                              };
-                              
-                              console.log(`[SearchAll] 곡 재생 시작:`, playerTrack);
-                              playTracks([playerTrack]);
-                            } catch (err) {
-                              console.error("[SearchAll] 곡 재생 오류:", err);
-                            }
-                          }
-                        }}
-                        className="
-                          absolute right-0 bottom-4
-                          -translate-x-4 -translate-y-4
-                          w-12 h-12 rounded-full
-                          bg-[#AFDEE2] text-[#1d1d1d]
-                          grid place-items-center
-                          shadow-lg
-                          hover:bg-[#87B2B6] transition
+                      {/* ▶ 재생 버튼 (곡일 때만 표시) */}
+                      {!isArtist && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // TODO: 여기서 실제 재생 연결
+                          }}
+                          className="
+                            absolute right-0 bottom-4
+                            -translate-x-4 -translate-y-4
+                            w-12 h-12 rounded-full
+                            bg-[#AFDEE2] text-[#1d1d1d]
+                            grid place-items-center
+                            shadow-lg
+                            hover:bg-[#87B2B6] transition
 
-                          opacity-0 translate-y-1 pointer-events-none
-                          group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto
-                        "
-                        aria-label="재생"
-                        title="재생"
-                      >
-                        <MdPlayArrow size={26} />
-                      </button>
+                            opacity-0 translate-y-1 pointer-events-none
+                            group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto
+                          "
+                          aria-label="재생"
+                          title="재생"
+                        >
+                          <MdPlayArrow size={26} />
+                        </button>
+                      )}
                     </div>
                   );
                 })()}
