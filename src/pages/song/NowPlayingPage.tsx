@@ -1,8 +1,16 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
+import type { DragEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { MdFavorite, MdMoreHoriz } from "react-icons/md";
 import { MdQueueMusic, MdClose, MdDelete, MdDragIndicator } from "react-icons/md";
-import { MdPlayArrow, MdPause, MdSkipNext, MdSkipPrevious, MdShuffle, MdRepeat } from "react-icons/md";
+import {
+    MdPlayArrow,
+    MdPause,
+    MdSkipNext,
+    MdSkipPrevious,
+    MdShuffle,
+    MdRepeat,
+} from "react-icons/md";
 import { RiDashboardFill } from "react-icons/ri";
 import { GrContract } from "react-icons/gr";
 import { usePlayer } from "../../player/PlayerContext";
@@ -13,21 +21,38 @@ import {
 } from "../../mocks/playlistMock";
 import { getBestAlbumCover } from "../../api/album";
 
-type LyricLine = { t: number; text: string; timestamp?: string | null }; // t = 시작초, timestamp = 타임스탬프 문자열
+type LyricLine = { t: number; text: string; timestamp?: string | null };
+
+// ✅ 검색 API 응답 타입 (SearchAll.tsx 기반 추정)
+type SearchResult = {
+    itunes_id: number;
+    music_id?: number | null;
+    album_id?: number | null;
+    artist_name?: string | null;
+    music_name?: string | null;
+};
+
+type SearchApiResponse = {
+    results?: SearchResult[];
+};
+
+// ✅ 앨범 상세 응답 타입 (tracks 배열만 최소로 사용)
+type AlbumTrack = { music_id?: number | null; music_name?: string | null };
+type AlbumDetailResponse = { tracks?: AlbumTrack[] };
 
 export default function NowPlayingPage() {
     const navigate = useNavigate();
 
-    const { 
-        current, 
-        queue, 
-        history, 
-        progress, 
+    const {
+        current,
+        queue,
+        history,
+        progress,
         duration,
         isPlaying,
         toggle,
         seek,
-        removeFromQueue, 
+        removeFromQueue,
         moveQueueItem,
         shuffleQueue,
         nextTrack,
@@ -37,26 +62,24 @@ export default function NowPlayingPage() {
     } = usePlayer();
 
     const hasTrack = !!current;
-    
+
     const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
-    
+
     // 이미지 URL 처리 함수
     const processImageUrl = useCallback((url: string | null | undefined): string | null => {
         if (!url) return null;
-        
-        const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
-        
+
+        const base = import.meta.env.VITE_API_BASE_URL as string | undefined;
+
         if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("//")) {
-            return url;
+        return url;
         }
-        
-        if (API_BASE && url.startsWith("/")) {
-            return `${API_BASE.replace("/api/v1", "")}${url}`;
+        if (base && url.startsWith("/")) {
+        return `${base.replace("/api/v1", "")}${url}`;
         }
-        
         return url;
     }, []);
-    
+
     // 메인 앨범 이미지 (image_large_square 우선, 없으면 coverUrl)
     const [mainAlbumImage, setMainAlbumImage] = useState<string | null>(null);
 
@@ -71,7 +94,7 @@ export default function NowPlayingPage() {
             }
 
             // PlayerTrack에 저장된 albumId와 coverUrl을 기반으로 베스트 커버를 조회
-            const albumId = current.albumId ?? null;
+            const albumId = (current as { albumId?: number | null }).albumId ?? null;
             const fallback = current.coverUrl ?? null;
 
             const best = await getBestAlbumCover(albumId, fallback);
@@ -97,318 +120,206 @@ export default function NowPlayingPage() {
 
     // ✅ 가사 패널 (bottom sheet)
     const [lyricsOpen, setLyricsOpen] = useState(false);
-    
+
     // ✅ 가사 데이터 상태
     const [lyrics, setLyrics] = useState<LyricLine[]>([]);
     const [lyricsLoading, setLyricsLoading] = useState(false);
     const [lyricsError, setLyricsError] = useState<string | null>(null);
-    
+
     // ✅ 가사 API 호출
     useEffect(() => {
         if (!current || !API_BASE) {
-            setLyrics([]);
-            setLyricsError(null);
-            return;
+        setLyrics([]);
+        setLyricsError(null);
+        return;
         }
-        
+
         const controller = new AbortController();
-        
+
         (async () => {
-            try {
-                setLyricsLoading(true);
+        try {
+            setLyricsLoading(true);
+            setLyricsError(null);
+
+            // ✅ current.musicId가 이미 있으면 바로 사용 (검색 불필요)
+            let musicId: number | null = (current as { musicId?: number | null }).musicId ?? null;
+
+            if (!musicId) {
+            // current.id가 itunes_id일 수 있으므로, music_id를 찾아야 함
+            const itunesId = Number(current.id);
+            if (Number.isNaN(itunesId)) {
+                console.warn(
+                `[NowPlayingPage] 가사 API 호출 실패: current.id가 숫자가 아니고 musicId도 없습니다.`,
+                { id: current.id, title: current.title }
+                );
+                setLyrics([]);
                 setLyricsError(null);
-                
-                // ✅ current.musicId가 이미 있으면 바로 사용 (검색 불필요)
-                let musicId: number | null = current.musicId || null;
-                
-                if (musicId) {
-                    console.log(`[NowPlayingPage] ✅ current.musicId 사용:`, {
-                        musicId,
-                        title: current.title,
-                    });
-                } else {
-                    // current.id가 itunes_id일 수 있으므로, music_id를 찾아야 함
-                    const itunesId = Number(current.id);
-                    if (isNaN(itunesId)) {
-                        console.warn(`[NowPlayingPage] 가사 API 호출 실패: current.id가 숫자가 아니고 musicId도 없습니다.`, {
-                            id: current.id,
-                            title: current.title,
-                        });
-                        setLyrics([]);
-                        setLyricsError(null);
-                        setLyricsLoading(false);
-                        return;
-                    }
-                    
-                    // 검색 API를 통해 music_id 찾기
+                return;
+            }
+
+            // 1) 제목으로 검색해서 itunes_id 매칭 시도
+            try {
+                const searchUrl = `${API_BASE}/search?q=${encodeURIComponent(current.title)}`;
+                const searchRes = await fetch(searchUrl, {
+                method: "GET",
+                signal: controller.signal,
+                headers: { "Content-Type": "application/json" },
+                });
+
+                if (searchRes.ok) {
+                const searchData = (await searchRes.json()) as SearchApiResponse;
+
+                const matchedResult = searchData.results?.find((r) => r.itunes_id === itunesId);
+
+                if (matchedResult?.music_id) {
+                    musicId = matchedResult.music_id ?? null;
+                } else if (matchedResult?.album_id) {
+                    // 2) music_id가 없으면 앨범 API를 통해 찾기
                     try {
-                    // 검색 API 엔드포인트: /api/v1/search?q=... (SearchAll.tsx 참고)
-                    const searchUrl = `${API_BASE}/search?q=${encodeURIComponent(current.title)}`;
-                    console.log(`[NowPlayingPage] 검색 API 호출 (music_id 찾기):`, {
-                        title: current.title,
-                        url: searchUrl,
-                    });
-                    
-                    const searchRes = await fetch(searchUrl, {
+                    const albumRes = await fetch(`${API_BASE}/albums/${matchedResult.album_id}/`, {
                         method: "GET",
                         signal: controller.signal,
                         headers: { "Content-Type": "application/json" },
                     });
-                    
-                    if (searchRes.ok) {
-                        const searchData = await searchRes.json();
-                        console.log(`[NowPlayingPage] 검색 API 응답:`, {
-                            resultsCount: searchData.results?.length || 0,
-                            firstResult: searchData.results?.[0],
-                        });
-                        
-                        // 검색 결과에서 itunes_id로 매칭되는 곡 찾기
-                        const matchedResult = searchData.results?.find(
-                            (r: any) => r.itunes_id === itunesId
+
+                    if (albumRes.ok) {
+                        const albumData = (await albumRes.json()) as AlbumDetailResponse;
+                        const matchedTrack = albumData.tracks?.find(
+                        (t) => t.music_name === current.title
                         );
-                        
-                        console.log(`[NowPlayingPage] 매칭된 검색 결과:`, {
-                            matched: !!matchedResult,
-                            hasMusicId: !!matchedResult?.music_id,
-                            hasAlbumId: !!matchedResult?.album_id,
-                            result: matchedResult,
-                        });
-                        
-                        if (matchedResult?.music_id) {
-                            musicId = matchedResult.music_id;
-                            console.log(`[NowPlayingPage] ✅ music_id 찾음:`, {
-                                musicId,
-                                title: current.title,
-                            });
-                        } else if (matchedResult?.album_id) {
-                            // music_id가 없으면 앨범 API를 통해 찾기 시도
-                            try {
-                                const albumRes = await fetch(
-                                    `${API_BASE}/albums/${matchedResult.album_id}/`,
-                                    {
-                                        method: "GET",
-                                        signal: controller.signal,
-                                        headers: { "Content-Type": "application/json" },
-                                    }
-                                );
-                                
-                                if (albumRes.ok) {
-                                    const albumData = await albumRes.json();
-                                    const matchedTrack = albumData.tracks?.find(
-                                        (t: any) => t.music_name === current.title
-                                    );
-                                    
-                                    if (matchedTrack?.music_id) {
-                                        musicId = matchedTrack.music_id;
-                                        console.log(`[NowPlayingPage] ✅ 앨범 API를 통해 music_id 찾음:`, {
-                                            musicId,
-                                            title: current.title,
-                                        });
-                                    }
-                                }
-                            } catch (e) {
-                                if ((e as DOMException)?.name !== "AbortError") {
-                                    console.warn(`[NowPlayingPage] 앨범 API 호출 실패:`, e);
-                                }
-                            }
-                        }
-                    } else if (searchRes.status !== 404) {
-                        // 404가 아닌 경우에만 경고 (404는 검색 결과가 없는 것)
-                        console.warn(`[NowPlayingPage] 검색 API 오류: ${searchRes.status}`);
-                    }
-                    } catch (e) {
-                        // AbortError는 정상적인 cleanup이므로 무시
-                        if ((e as DOMException)?.name !== "AbortError") {
-                            console.warn(`[NowPlayingPage] 검색 API 호출 실패:`, e);
+                        if (matchedTrack?.music_id) {
+                        musicId = matchedTrack.music_id ?? null;
                         }
                     }
-                    
-                    // music_id를 찾지 못했으면 아티스트와 제목으로 검색 시도
-                    if (!musicId) {
-                        try {
-                            const combinedSearch = `${current.artist} ${current.title}`;
-                            const combinedSearchUrl = `${API_BASE}/search?q=${encodeURIComponent(combinedSearch)}`;
-                            const combinedSearchRes = await fetch(combinedSearchUrl, {
-                                method: "GET",
-                                signal: controller.signal,
-                                headers: { "Content-Type": "application/json" },
-                            });
-                            
-                            if (combinedSearchRes.ok) {
-                                const combinedSearchData = await combinedSearchRes.json();
-                                // 아티스트와 제목으로 매칭
-                                const matchedResult = combinedSearchData.results?.find(
-                                    (r: any) => 
-                                        r.artist_name === current.artist && 
-                                        r.music_name === current.title
-                                );
-                                
-                            if (matchedResult?.music_id) {
-                                musicId = matchedResult.music_id;
-                                console.log(`[NowPlayingPage] ✅ 조합 검색으로 music_id 찾음:`, {
-                                    musicId,
-                                    title: current.title,
-                                });
-                            }
-                            }
-                        } catch (e) {
-                            if ((e as DOMException)?.name !== "AbortError") {
-                                console.warn(`[NowPlayingPage] 조합 검색 API 호출 실패:`, e);
-                            }
-                        }
+                    } catch (err) {
+                    if (err instanceof DOMException && err.name === "AbortError") return;
+                    console.warn(`[NowPlayingPage] 앨범 API 호출 실패:`, err);
                     }
-                    
-                    // 여전히 music_id를 찾지 못했으면 가사를 불러올 수 없음
-                    if (!musicId) {
-                        console.warn(`[NowPlayingPage] ⚠️ music_id를 찾을 수 없어 가사를 불러올 수 없습니다:`, {
-                            title: current.title,
-                            artist: current.artist,
-                        });
-                        setLyrics([]);
-                        setLyricsError(null); // 에러 메시지 없이 빈 가사로 처리
-                        setLyricsLoading(false);
-                        return;
-                    }
-                } // else 블록 닫기
-                
-                // 가사 API 호출: /api/v1/{music_id}/
-                const lyricsUrl = `${API_BASE}/${musicId}/`;
-                console.log(`[NowPlayingPage] 가사 API 호출:`, {
-                    musicId,
-                    url: lyricsUrl,
-                    title: current.title,
-                });
-                
-                const res = await fetch(lyricsUrl, {
+                }
+                } else if (searchRes.status !== 404) {
+                console.warn(`[NowPlayingPage] 검색 API 오류: ${searchRes.status}`);
+                }
+            } catch (err) {
+                if (err instanceof DOMException && err.name === "AbortError") return;
+                console.warn(`[NowPlayingPage] 검색 API 호출 실패:`, err);
+            }
+
+            // 3) 여전히 못 찾으면 "아티스트 + 제목" 조합 검색
+            if (!musicId) {
+                try {
+                const combinedSearch = `${current.artist} ${current.title}`;
+                const combinedSearchUrl = `${API_BASE}/search?q=${encodeURIComponent(combinedSearch)}`;
+
+                const combinedSearchRes = await fetch(combinedSearchUrl, {
                     method: "GET",
                     signal: controller.signal,
                     headers: { "Content-Type": "application/json" },
                 });
-                
-                if (!res.ok) {
-                    if (res.status === 404) {
-                        // 404 응답: 해당 music_id의 트랙이 없거나 가사가 없는 경우
-                        // 응답 본문 확인 (디버깅용)
-                        let errorBody = null;
-                        try {
-                            const text = await res.text();
-                            if (text) {
-                                try {
-                                    errorBody = JSON.parse(text);
-                                } catch {
-                                    errorBody = text;
-                                }
-                            }
-                        } catch (e) {
-                            // 응답 본문 읽기 실패는 무시
-                        }
-                        
-                        console.warn(`[NowPlayingPage] 가사 API 404 응답:`, {
-                            musicId,
-                            title: current.title,
-                            url: res.url, // 실제 호출된 URL
-                            status: res.status,
-                            errorBody,
-                        });
-                        setLyrics([]);
-                        setLyricsError(null); // 에러 메시지 없이 빈 가사로 처리
-                        setLyricsLoading(false);
-                        return;
+
+                if (combinedSearchRes.ok) {
+                    const combinedSearchData = (await combinedSearchRes.json()) as SearchApiResponse;
+
+                    const matched = combinedSearchData.results?.find(
+                    (r) => r.artist_name === current.artist && r.music_name === current.title
+                    );
+
+                    if (matched?.music_id) {
+                    musicId = matched.music_id ?? null;
                     }
-                    throw new Error(`가사 API 오류: ${res.status}`);
                 }
-                
-                const data = await res.json();
-                
-                console.log(`[NowPlayingPage] 가사 API 응답:`, {
-                    musicId,
-                    title: current.title,
-                    hasLyrics: !!data.lyrics,
-                    lyricsType: typeof data.lyrics,
-                    lyricsLength: typeof data.lyrics === "string" ? data.lyrics.length : data.lyrics?.length || 0,
-                    dataKeys: Object.keys(data),
-                    fullResponse: data, // 전체 응답 구조 확인용
-                });
-                
-                // 가사 파싱: lyrics 필드에서 타임스탬프와 텍스트 추출
-                let parsedLyrics: LyricLine[] = [];
-                
-                if (data.lyrics && typeof data.lyrics === "string") {
-                    // 타임스탬프 형식: [00:00.56] 가사 텍스트
-                    const lines = data.lyrics.split(/\r?\n/).filter((line: string) => line.trim() !== "");
-                    
-                    parsedLyrics = lines.map((line: string) => {
-                        // 타임스탬프 추출: [00:00.56] 또는 [00:03.38] 형식
-                        const timestampMatch = line.match(/\[(\d{2}):(\d{2})\.(\d{2})\]/);
-                        let timestampSeconds = 0;
-                        
-                        if (timestampMatch) {
-                            const minutes = parseInt(timestampMatch[1], 10);
-                            const seconds = parseInt(timestampMatch[2], 10);
-                            const centiseconds = parseInt(timestampMatch[3], 10);
-                            timestampSeconds = minutes * 60 + seconds + centiseconds / 100;
-                            
-                            // 타임스탬프 제거하고 텍스트만 추출
-                            const text = line.replace(/\[\d{2}:\d{2}\.\d{2}\]\s*/, "").trim();
-                            return {
-                                t: timestampSeconds,
-                                text: text || line.trim(), // 타임스탬프만 있고 텍스트가 없으면 전체 라인 사용
-                                timestamp: timestampMatch[0], // 타임스탬프 문자열 저장
-                            };
-                        } else {
-                            // 타임스탬프가 없는 경우
-                            return {
-                                t: 0,
-                                text: line.trim(),
-                                timestamp: null,
-                            };
-                        }
-                    });
-                } else {
-                    // lyrics 필드가 없거나 다른 형식인 경우
-                    console.warn(`[NowPlayingPage] 가사 형식이 예상과 다릅니다:`, {
-                        musicId,
-                        lyricsType: typeof data.lyrics,
-                    });
-                    setLyrics([]);
-                    setLyricsError(null);
-                    return;
+                } catch (err) {
+                if (err instanceof DOMException && err.name === "AbortError") return;
+                console.warn(`[NowPlayingPage] 조합 검색 API 호출 실패:`, err);
                 }
-                
-                // 빈 줄 제거
-                parsedLyrics = parsedLyrics.filter((line) => line.text && line.text.trim() !== "");
-                
-                // 타임스탬프 기준으로 정렬
-                parsedLyrics.sort((a, b) => a.t - b.t);
-                
-                console.log(`[NowPlayingPage] ✅ 가사 파싱 완료:`, {
-                    musicId,
-                    title: current.title,
-                    lineCount: parsedLyrics.length,
-                    firstLines: parsedLyrics.slice(0, 3).map((l) => ({
-                        timestamp: l.timestamp,
-                        text: l.text.substring(0, 30),
-                    })),
-                });
-                
-                setLyrics(parsedLyrics);
-            } catch (e: unknown) {
-                if ((e as DOMException)?.name === "AbortError") return;
-                console.error(`[NowPlayingPage] ❌ 가사 로드 실패:`, {
-                    id: current.id,
-                    title: current.title,
-                    error: e,
-                });
-                setLyricsError(e instanceof Error ? e.message : "가사를 불러올 수 없습니다.");
-                setLyrics([]);
-            } finally {
-                setLyricsLoading(false);
             }
+
+            // 여전히 music_id를 찾지 못했으면 가사를 불러올 수 없음
+            if (!musicId) {
+                console.warn(`[NowPlayingPage] ⚠️ music_id를 찾을 수 없어 가사를 불러올 수 없습니다:`, {
+                title: current.title,
+                artist: current.artist,
+                });
+                setLyrics([]);
+                setLyricsError(null);
+                return;
+            }
+            }
+
+            // 가사 API 호출: /api/v1/{music_id}/
+            const lyricsUrl = `${API_BASE}/${musicId}/`;
+
+            const res = await fetch(lyricsUrl, {
+            method: "GET",
+            signal: controller.signal,
+            headers: { "Content-Type": "application/json" },
+            });
+
+            if (!res.ok) {
+            if (res.status === 404) {
+                // 404: 트랙이 없거나 가사가 없는 경우 -> 빈 가사 처리
+                setLyrics([]);
+                setLyricsError(null);
+                return;
+            }
+            throw new Error(`가사 API 오류: ${res.status}`);
+            }
+
+            const data = (await res.json()) as { lyrics?: unknown };
+
+            let parsedLyrics: LyricLine[] = [];
+
+            if (typeof data.lyrics === "string" && data.lyrics.trim()) {
+            // 타임스탬프 형식: [00:00.56] 가사 텍스트
+            const lines = data.lyrics.split(/\r?\n/).filter((line) => line.trim() !== "");
+
+            parsedLyrics = lines.map((line) => {
+                const timestampMatch = line.match(/\[(\d{2}):(\d{2})\.(\d{2})\]/);
+                if (timestampMatch) {
+                const minutes = parseInt(timestampMatch[1], 10);
+                const seconds = parseInt(timestampMatch[2], 10);
+                const centiseconds = parseInt(timestampMatch[3], 10);
+                const timestampSeconds = minutes * 60 + seconds + centiseconds / 100;
+
+                const text = line.replace(/\[\d{2}:\d{2}\.\d{2}\]\s*/, "").trim();
+
+                return {
+                    t: timestampSeconds,
+                    text: text || line.trim(),
+                    timestamp: timestampMatch[0],
+                };
+                }
+
+                // 타임스탬프가 없는 경우
+                return { t: 0, text: line.trim(), timestamp: null };
+            });
+
+            parsedLyrics = parsedLyrics
+                .filter((l) => l.text.trim() !== "")
+                .sort((a, b) => a.t - b.t);
+
+            setLyrics(parsedLyrics);
+            } else {
+            // lyrics 필드가 없거나 다른 형식
+            setLyrics([]);
+            setLyricsError(null);
+            }
+        } catch (err: unknown) {
+            if (err instanceof DOMException && err.name === "AbortError") return;
+
+            console.error(`[NowPlayingPage] ❌ 가사 로드 실패:`, {
+            id: current?.id,
+            title: current?.title,
+            error: err,
+            });
+            setLyricsError(err instanceof Error ? err.message : "가사를 불러올 수 없습니다.");
+            setLyrics([]);
+        } finally {
+            setLyricsLoading(false);
+        }
         })();
-        
+
         return () => controller.abort();
     }, [current, API_BASE]);
-
 
     // ✅ 좌/우 패널 상태
     const [leftOpen, setLeftOpen] = useState(false); // 분석 대시보드
@@ -416,7 +327,13 @@ export default function NowPlayingPage() {
 
     // ✅ playlists 변화 감지(좋아요 count 반영용)
     const [plTick, setPlTick] = useState(0);
-    useEffect(() => subscribePlaylists(() => setPlTick((v) => v + 1)), []);
+    useEffect(() => {
+        const unsub = subscribePlaylists(() => setPlTick((v) => v + 1));
+        return () => {
+        // subscribePlaylists가 cleanup을 리턴하는 경우만 안전하게 호출
+        if (typeof unsub === "function") unsub();
+        };
+    }, []);
 
     const liked = useMemo(() => {
         if (!current) return false;
@@ -440,10 +357,7 @@ export default function NowPlayingPage() {
     const shownLikeCount = liked ? baseLikeCount + 1 : baseLikeCount;
 
     const [tab, setTab] = useState<"queue" | "history">("queue");
-    const list = useMemo(
-        () => (tab === "queue" ? queue : history),
-        [tab, queue, history]
-    );
+    const list = useMemo(() => (tab === "queue" ? queue : history), [tab, queue, history]);
 
     // ✅ push 레이아웃
     const LEFT_W = 400;
@@ -468,13 +382,11 @@ export default function NowPlayingPage() {
         });
     };
 
-
     // ✅ 드래그앤드롭(핸들만 드래그)
     const [dragIndex, setDragIndex] = useState<number | null>(null);
     const [overIndex, setOverIndex] = useState<number | null>(null);
 
-    // ✅ 핸들에서만 시작하도록: 드래그 시작 시 index 저장
-    const handleDragStart = (index: number) => (e: React.DragEvent) => {
+    const handleDragStart = (index: number) => (e: DragEvent<HTMLElement>) => {
         setDragIndex(index);
         setOverIndex(index);
         e.dataTransfer.effectAllowed = "move";
@@ -487,21 +399,21 @@ export default function NowPlayingPage() {
         setOverIndex(index);
     };
 
-    const handleDragOver = (index: number, isQueue: boolean) => (e: React.DragEvent) => {
+    const handleDragOver = (index: number, isQueue: boolean) => (e: DragEvent<HTMLElement>) => {
         if (!isQueue) return;
         e.preventDefault();
         e.dataTransfer.dropEffect = "move";
         setOverIndex(index);
     };
 
-    const handleDrop = (index: number, isQueue: boolean) => (e: React.DragEvent) => {
+    const handleDrop = (index: number, isQueue: boolean) => (e: DragEvent<HTMLElement>) => {
         if (!isQueue) return;
         e.preventDefault();
 
         const from = dragIndex ?? Number(e.dataTransfer.getData("text/plain"));
         const to = index;
 
-        if (Number.isFinite(from) && from !== null && from !== to) {
+        if (Number.isFinite(from) && from !== to) {
         moveQueueItem(from, to);
         }
 
@@ -560,8 +472,8 @@ export default function NowPlayingPage() {
             {/* 좋아요 */}
             <button
                 type="button"
-                onClick={(e) => {
-                e.stopPropagation();
+                onClick={(ev) => {
+                ev.stopPropagation();
                 toggleLike();
                 }}
                 className={[
@@ -573,13 +485,8 @@ export default function NowPlayingPage() {
                 aria-label="좋아요"
                 title="좋아요"
             >
-                <MdFavorite
-                size={22}
-                className={liked ? "text-[#AFDEE2]" : "text-[#F6F6F6]/70"}
-                />
-                <span className="text-sm tabular-nums">
-                {shownLikeCount.toLocaleString()}
-                </span>
+                <MdFavorite size={22} className={liked ? "text-[#AFDEE2]" : "text-[#F6F6F6]/70"} />
+                <span className="text-sm tabular-nums">{shownLikeCount.toLocaleString()}</span>
             </button>
 
             {/* 더보기 */}
@@ -617,35 +524,29 @@ export default function NowPlayingPage() {
                 <div className="h-full pt-4 overflow-hidden">
                 <div className="h-full flex flex-col items-center justify-center px-6">
                     <div className="w-full max-w-[860px] flex flex-col items-center gap-4">
-                    {/* 앨범아트 - image_large_square 사용 */}
-                    <div className="w-[360px] aspect-square rounded-3xl bg-white/25 border border-white/10 overflow-hidden relative">
+                    {/* 앨범아트 */}
+                    <div className="w-[360px] aspect-square rounded-3xl bg-white/25 overflow-hidden relative">
                         {hasTrack && mainAlbumImage ? (
-                            <>
-                                <img
-                                    src={processImageUrl(mainAlbumImage) || undefined}
-                                    alt={current.title}
-                                    className="w-full h-full object-cover relative z-10"
-                                    onError={(e) => {
-                                        console.error(`[NowPlayingPage] ❌ 메인 앨범 이미지 로드 실패:`, {
-                                            title: current.title,
-                                            image_url: mainAlbumImage,
-                                        });
-                                        (e.target as HTMLImageElement).style.display = "none";
-                                    }}
-                                    onLoad={() => {
-                                        console.log(`[NowPlayingPage] ✅ 메인 앨범 이미지 로드 성공:`, {
-                                            title: current.title,
-                                            image_url: mainAlbumImage,
-                                        });
-                                    }}
-                                    loading="lazy"
-                                />
-                                <div className="absolute inset-0 bg-white/25 animate-pulse z-0" />
-                            </>
+                        <>
+                            <img
+                            src={processImageUrl(mainAlbumImage) || undefined}
+                            alt={current.title}
+                            className="w-full h-full object-cover relative z-10"
+                            onError={(ev) => {
+                                console.error(`[NowPlayingPage] ❌ 메인 앨범 이미지 로드 실패:`, {
+                                title: current.title,
+                                image_url: mainAlbumImage,
+                                });
+                                (ev.currentTarget as HTMLImageElement).style.display = "none";
+                            }}
+                            loading="lazy"
+                            />
+                            <div className="absolute inset-0 bg-white/25 animate-pulse z-0" />
+                        </>
                         ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                                <span className="text-white/60 text-sm">사진</span>
-                            </div>
+                        <div className="w-full h-full flex items-center justify-center">
+                            <span className="text-white/60 text-sm">사진</span>
+                        </div>
                         )}
                     </div>
 
@@ -666,15 +567,11 @@ export default function NowPlayingPage() {
                         setLeftOpen(false);
                         setRightOpen(false);
                         }}
-                        className={[
-                        "w-[520px]",
-                        "transition text-center relative",
-                        "hover:opacity-80",
-                        ].join(" ")}
+                        className={["w-[520px]", "transition text-center relative", "hover:opacity-80"].join(
+                        " "
+                        )}
                     >
-                        <div className="mt-4 text-sm text-[#f6f6f6]/80">
-                        전체 가사 보기
-                        </div>
+                        <div className="mt-4 text-sm text-[#f6f6f6]/80">전체 가사 보기</div>
                     </button>
                     </div>
                 </div>
@@ -694,9 +591,7 @@ export default function NowPlayingPage() {
             }}
             >
             <div className="h-16 px-4 flex items-center justify-between border-b border-[#3d3d3d]">
-                <div className="text-sm font-semibold text-white/80">
-                분석 대시보드
-                </div>
+                <div className="text-sm font-semibold text-white/80">분석 대시보드</div>
                 <button
                 type="button"
                 onClick={toggleLeft}
@@ -709,18 +604,12 @@ export default function NowPlayingPage() {
 
             <div className="p-4 space-y-3">
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <div className="text-sm text-white/80 font-semibold">
-                    현재 곡 분석
-                </div>
-                <div className="mt-2 text-xs text-white/55">
-                    BPM / Mood / Energy 같은 카드
-                </div>
+                <div className="text-sm text-white/80 font-semibold">현재 곡 분석</div>
+                <div className="mt-2 text-xs text-white/55">BPM / Mood / Energy 같은 카드</div>
                 </div>
 
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <div className="text-sm text-white/80 font-semibold">
-                    최근 청취 패턴
-                </div>
+                <div className="text-sm text-white/80 font-semibold">최근 청취 패턴</div>
                 <div className="mt-2 text-xs text-white/55">그래프/요약</div>
                 </div>
             </div>
@@ -728,7 +617,7 @@ export default function NowPlayingPage() {
 
             {/* 우측 재생목록 */}
             <aside
-            className="absolute right-0 top-0 h-full bg-[#2f2f2f] border-l border-[#3d3d3d] transition-transform duration-300 ease-out"
+            className="absolute right-0 top-0 h-full bg-[#2f2f2f] border-l border-[#3d3d3d] transition-transform duration-300 ease-out flex flex-col"
             style={{
                 width: RIGHT_W,
                 transform: rightOpen ? "translateX(0)" : `translateX(${RIGHT_W}px)`,
@@ -746,7 +635,7 @@ export default function NowPlayingPage() {
                 </button>
             </div>
 
-            <div className="px-4 pt-4">
+            <div className="flex-1 min-h-0 px-4 pt-4 flex flex-col">
                 {/* 탭 */}
                 <div className="grid grid-cols-2 rounded-xl overflow-hidden border border-white/10 bg-white/5">
                 <button
@@ -754,9 +643,7 @@ export default function NowPlayingPage() {
                     onClick={() => setTab("queue")}
                     className={[
                     "py-2.5 text-sm transition",
-                    tab === "queue"
-                        ? "bg-white/10 text-white"
-                        : "text-white/60 hover:bg-white/5",
+                    tab === "queue" ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5",
                     ].join(" ")}
                 >
                     재생 대기
@@ -766,24 +653,20 @@ export default function NowPlayingPage() {
                     onClick={() => setTab("history")}
                     className={[
                     "py-2.5 text-sm transition",
-                    tab === "history"
-                        ? "bg-white/10 text-white"
-                        : "text-white/60 hover:bg-white/5",
+                    tab === "history" ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5",
                     ].join(" ")}
                 >
                     재생 기록
                 </button>
                 </div>
 
-                <div className="mt-4 border-t border-white/10" />
+                <div className="mt-4 border-t border-white/10 flex-shrink-0" />
 
                 {/* 리스트 */}
-                <div className="mt-2 pb-6">
+                <div className="mt-2 pb-6 flex-1 min-h-0 overflow-y-auto">
                 {list.length === 0 ? (
                     <div className="mt-10 text-sm text-white/45 text-center">
-                    {tab === "queue"
-                        ? "재생 대기 목록이 비어있어요"
-                        : "재생 기록이 없어요"}
+                    {tab === "queue" ? "재생 대기 목록이 비어있어요" : "재생 기록이 없어요"}
                     </div>
                 ) : (
                     <div className="divide-y divide-white/10 rounded-2xl overflow-hidden border border-white/10 bg-white/5">
@@ -806,7 +689,6 @@ export default function NowPlayingPage() {
                             dragIndex === i ? "opacity-60" : "",
                             ].join(" ")}
                         >
-                            {/* ✅ 핸들만 draggable */}
                             <div className="grid grid-cols-[28px_44px_1fr_auto] items-center gap-3 px-3 py-3">
                             <div className="flex items-center justify-center text-white/40">
                                 {isQueue ? (
@@ -816,8 +698,8 @@ export default function NowPlayingPage() {
                                     draggable
                                     onDragStart={handleDragStart(i)}
                                     onDragEnd={handleDragEnd}
-                                    onMouseDown={(e) => e.stopPropagation()}
-                                    onClick={(e) => e.stopPropagation()}
+                                    onMouseDown={(ev) => ev.stopPropagation()}
+                                    onClick={(ev) => ev.stopPropagation()}
                                     className="cursor-grab active:cursor-grabbing"
                                     aria-label="드래그로 순서 변경"
                                     title="드래그로 순서 변경"
@@ -827,36 +709,32 @@ export default function NowPlayingPage() {
                                 ) : null}
                             </div>
 
-                            {/* 앨범 이미지 - square 축소 사용 */}
+                            {/* 앨범 이미지 */}
                             <div className="h-10 w-10 rounded-xl bg-white/20 border border-white/10 overflow-hidden relative flex-shrink-0">
                                 {t.coverUrl ? (
-                                    <>
-                                        <img
-                                            src={processImageUrl(t.coverUrl) || undefined}
-                                            alt={t.title}
-                                            className="w-full h-full object-cover relative z-10"
-                                            onError={(e) => {
-                                                (e.target as HTMLImageElement).style.display = "none";
-                                            }}
-                                            loading="lazy"
-                                        />
-                                        <div className="absolute inset-0 bg-white/20 animate-pulse z-0" />
-                                    </>
+                                <>
+                                    <img
+                                    src={processImageUrl(t.coverUrl) || undefined}
+                                    alt={t.title}
+                                    className="w-full h-full object-cover relative z-10"
+                                    onError={(ev) => {
+                                        (ev.currentTarget as HTMLImageElement).style.display = "none";
+                                    }}
+                                    loading="lazy"
+                                    />
+                                    <div className="absolute inset-0 bg-white/20 animate-pulse z-0" />
+                                </>
                                 ) : (
-                                    <div className="w-full h-full bg-white/20" />
+                                <div className="w-full h-full bg-white/20" />
                                 )}
                             </div>
 
                             <div className="min-w-0">
-                                <div className="text-sm font-semibold truncate">
-                                {t.title}
-                                </div>
-                                <div className="text-xs text-white/60 truncate">
-                                {t.artist}
-                                </div>
+                                <div className="text-sm font-semibold truncate">{t.title}</div>
+                                <div className="text-xs text-white/60 truncate">{t.artist}</div>
                             </div>
 
-                            {/* ✅ 큐 탭에서만 삭제 */}
+                            {/* 큐 탭에서만 삭제 */}
                             {isQueue ? (
                                 <button
                                 type="button"
@@ -887,8 +765,8 @@ export default function NowPlayingPage() {
                 type="button"
                 onClick={toggleLeft}
                 className="absolute left-0 top-1/2 -translate-y-1/2 translate-x-0
-                h-24 w-10 rounded-r-2xl bg-white/10 hover:bg-white/15 border border-white/10
-                flex items-center justify-center transition"
+                    h-24 w-10 rounded-r-2xl bg-white/10 hover:bg-white/15 border border-white/10
+                    flex items-center justify-center transition"
                 aria-label="대시보드 열기"
                 title="대시보드 열기"
             >
@@ -901,8 +779,8 @@ export default function NowPlayingPage() {
                 type="button"
                 onClick={toggleRight}
                 className="absolute right-0 top-1/2 -translate-y-1/2
-                h-24 w-10 rounded-l-2xl bg-white/10 hover:bg-white/15 border border-white/10
-                flex items-center justify-center transition"
+                    h-24 w-10 rounded-l-2xl bg-white/10 hover:bg-white/15 border border-white/10
+                    flex items-center justify-center transition"
                 aria-label="재생목록 열기"
                 title="재생목록 열기"
             >
@@ -941,9 +819,7 @@ export default function NowPlayingPage() {
 
                 <div className="h-12 px-5 flex items-center justify-between border-b border-white/10">
                     <div className="min-w-0">
-                    <div className="text-sm font-semibold text-white/85 truncate">
-                        가사
-                    </div>
+                    <div className="text-sm font-semibold text-white/85 truncate">가사</div>
                     <div className="text-xs text-white/50 truncate">
                         {hasTrack ? `${current.title} · ${current.artist}` : "—"}
                     </div>
@@ -963,185 +839,183 @@ export default function NowPlayingPage() {
                 <div className="h-[52vh] px-6 py-5 overflow-y-auto">
                 {lyricsLoading ? (
                     <div className="flex items-center justify-center h-full">
-                        <div className="text-sm text-white/60">가사를 불러오는 중...</div>
+                    <div className="text-sm text-white/60">가사를 불러오는 중...</div>
                     </div>
                 ) : lyricsError ? (
                     <div className="flex items-center justify-center h-full">
-                        <div className="text-sm text-white/60">{lyricsError}</div>
+                    <div className="text-sm text-white/60">{lyricsError}</div>
                     </div>
                 ) : lyrics.length === 0 ? (
                     <div className="flex items-center justify-center h-full">
-                        <div className="text-sm text-white/60">가사가 없습니다.</div>
+                    <div className="text-sm text-white/60">가사가 없습니다.</div>
                     </div>
                 ) : (
                     <div className="space-y-3">
                         {lyrics.map((line, i) => (
                             <div
                                 key={`${line.t}-${i}`}
-                                className="text-lg leading-8 text-white/80 flex items-start gap-3"
+                                className="text-lg leading-8 text-white/80"
                             >
-                                {line.timestamp && (
-                                    <span className="text-white/50 text-sm font-mono flex-shrink-0 mt-1">
-                                        {line.timestamp}
-                                    </span>
-                                )}
-                                <span className="flex-1">{line.text}</span>
+                                {line.text}
                             </div>
                         ))}
                     </div>
                 )}
                 </div>
-                
+
                 {/* 하단 플레이어 컨트롤 */}
                 <div className="border-t border-white/10 bg-[#2d2d2d] px-6 py-4">
-                    <div className="flex flex-col items-center gap-3">
-                        {/* 컨트롤 버튼들 */}
-                        <div className="flex items-center gap-4">
-                            {/* 셔플 */}
-                            <button
-                                type="button"
-                                onClick={shuffleQueue}
-                                disabled={!hasTrack}
-                                className={[
-                                    "transition",
-                                    hasTrack ? "text-white/60 hover:text-white" : "text-white/30 cursor-not-allowed",
-                                ].join(" ")}
-                                aria-label="셔플"
-                                title="재생 대기 곡들 셔플"
-                            >
-                                <MdShuffle size={20} />
-                            </button>
+                <div className="flex flex-col items-center gap-3">
+                    {/* 컨트롤 버튼들 */}
+                    <div className="flex items-center gap-4">
+                    {/* 셔플 */}
+                    <button
+                        type="button"
+                        onClick={shuffleQueue}
+                        disabled={!hasTrack}
+                        className={[
+                        "transition",
+                        hasTrack ? "text-white/60 hover:text-white" : "text-white/30 cursor-not-allowed",
+                        ].join(" ")}
+                        aria-label="셔플"
+                        title="재생 대기 곡들 셔플"
+                    >
+                        <MdShuffle size={20} />
+                    </button>
 
-                            {/* 이전 곡 */}
-                            <button
-                                type="button"
-                                onClick={previousTrack}
-                                disabled={!hasTrack}
-                                className={[
-                                    "transition",
-                                    hasTrack ? "text-white/60 hover:text-white" : "text-white/30 cursor-not-allowed",
-                                ].join(" ")}
-                                aria-label="이전 곡"
-                                title="이전 곡"
-                            >
-                                <MdSkipPrevious size={24} />
-                            </button>
+                    {/* 이전 곡 */}
+                    <button
+                        type="button"
+                        onClick={previousTrack}
+                        disabled={!hasTrack}
+                        className={[
+                        "transition",
+                        hasTrack ? "text-white/60 hover:text-white" : "text-white/30 cursor-not-allowed",
+                        ].join(" ")}
+                        aria-label="이전 곡"
+                        title="이전 곡"
+                    >
+                        <MdSkipPrevious size={24} />
+                    </button>
 
-                            {/* 재생 / 일시정지 */}
-                            <button
-                                type="button"
-                                onClick={toggle}
-                                disabled={!hasTrack}
-                                className={[
-                                    "h-10 w-10 rounded-full flex items-center justify-center transition",
-                                    hasTrack
-                                        ? "bg-[#E4524D] text-white hover:brightness-110"
-                                        : "bg-white/10 text-white/40 cursor-not-allowed",
-                                ].join(" ")}
-                                aria-label={isPlaying ? "일시정지" : "재생"}
-                                title={isPlaying ? "일시정지" : "재생"}
-                            >
-                                {isPlaying ? <MdPause size={24} /> : <MdPlayArrow size={24} />}
-                            </button>
+                    {/* 재생 / 일시정지 */}
+                    <button
+                        type="button"
+                        onClick={toggle}
+                        disabled={!hasTrack}
+                        className={[
+                        "h-10 w-10 rounded-full flex items-center justify-center transition",
+                        hasTrack ? "bg-[#E4524D] text-white hover:brightness-110" : "bg-white/10 text-white/40 cursor-not-allowed",
+                        ].join(" ")}
+                        aria-label={isPlaying ? "일시정지" : "재생"}
+                        title={isPlaying ? "일시정지" : "재생"}
+                    >
+                        {isPlaying ? <MdPause size={24} /> : <MdPlayArrow size={24} />}
+                    </button>
 
-                            {/* 다음 곡 */}
-                            <button
-                                type="button"
-                                onClick={nextTrack}
-                                disabled={!hasTrack}
-                                className={[
-                                    "transition",
-                                    hasTrack ? "text-white/60 hover:text-white" : "text-white/30 cursor-not-allowed",
-                                ].join(" ")}
-                                aria-label="다음 곡"
-                                title="다음 곡"
-                            >
-                                <MdSkipNext size={24} />
-                            </button>
+                    {/* 다음 곡 */}
+                    <button
+                        type="button"
+                        onClick={nextTrack}
+                        disabled={!hasTrack}
+                        className={[
+                        "transition",
+                        hasTrack ? "text-white/60 hover:text-white" : "text-white/30 cursor-not-allowed",
+                        ].join(" ")}
+                        aria-label="다음 곡"
+                        title="다음 곡"
+                    >
+                        <MdSkipNext size={24} />
+                    </button>
 
-                            {/* 반복 */}
-                            <button
-                                type="button"
-                                onClick={toggleRepeat}
-                                disabled={!hasTrack}
-                                className={[
-                                    "transition",
-                                    hasTrack
-                                        ? repeatMode === "one"
-                                            ? "text-[#AFDEE2]"
-                                            : "text-white/60 hover:text-white"
-                                        : "text-white/30 cursor-not-allowed",
-                                ].join(" ")}
-                                aria-label="반복"
-                                title={repeatMode === "one" ? "한 곡 반복" : "반복 끄기"}
-                            >
-                                <MdRepeat size={20} />
-                            </button>
-                        </div>
+                    {/* 반복 */}
+                    <button
+                        type="button"
+                        onClick={toggleRepeat}
+                        disabled={!hasTrack}
+                        className={[
+                        "transition",
+                        hasTrack
+                            ? repeatMode === "one"
+                            ? "text-[#AFDEE2]"
+                            : "text-white/60 hover:text-white"
+                            : "text-white/30 cursor-not-allowed",
+                        ].join(" ")}
+                        aria-label="반복"
+                        title={repeatMode === "one" ? "한 곡 반복" : "반복 끄기"}
+                    >
+                        <MdRepeat size={20} />
+                    </button>
+                    </div>
 
-                        {/* 진행 바 */}
-                        <div className="w-full flex items-center gap-3">
-                            <span className="text-xs text-white/60 tabular-nums min-w-[40px] text-right">
-                                {(() => {
-                                    const p = Number.isFinite(progress) ? progress : 0;
-                                    const m = Math.floor(p / 60);
-                                    const s = Math.floor(p % 60);
-                                    return `${m}:${s.toString().padStart(2, "0")}`;
-                                })()}
-                            </span>
-                            <div
-                                className="flex-1 h-1 bg-white/10 rounded-full relative cursor-pointer"
-                                onClick={(e) => {
-                                    if (!hasTrack || duration <= 0) return;
-                                    const rect = e.currentTarget.getBoundingClientRect();
-                                    const x = e.clientX - rect.left;
-                                    const ratio = Math.max(0, Math.min(1, x / rect.width));
-                                    seek(ratio * duration);
-                                }}
-                                onPointerDown={(e) => {
-                                    if (!hasTrack || duration <= 0) return;
-                                    e.preventDefault();
-                                    const rect = e.currentTarget.getBoundingClientRect();
-                                    const setSeek = (clientX: number) => {
-                                        const x = clientX - rect.left;
-                                        const ratio = Math.max(0, Math.min(1, x / rect.width));
-                                        seek(ratio * duration);
-                                    };
-                                    setSeek(e.clientX);
-                                    e.currentTarget.setPointerCapture(e.pointerId);
-                                    const onMove = (ev: PointerEvent) => setSeek(ev.clientX);
-                                    const onUp = () => {
-                                        window.removeEventListener("pointermove", onMove);
-                                        window.removeEventListener("pointerup", onUp);
-                                    };
-                                    window.addEventListener("pointermove", onMove);
-                                    window.addEventListener("pointerup", onUp);
-                                }}
-                            >
-                                <div
-                                    className="h-full bg-[#E4524D] rounded-full transition-all"
-                                    style={{
-                                        width: `${duration > 0 ? Math.min(100, (progress / duration) * 100) : 0}%`,
-                                    }}
-                                />
-                                <div
-                                    className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-[#E4524D] transition-all"
-                                    style={{
-                                        left: `${duration > 0 ? Math.min(100, (progress / duration) * 100) : 0}%`,
-                                    }}
-                                />
-                            </div>
-                            <span className="text-xs text-white/60 tabular-nums min-w-[40px]">
-                                {(() => {
-                                    const d = Number.isFinite(duration) ? duration : 0;
-                                    const m = Math.floor(d / 60);
-                                    const s = Math.floor(d % 60);
-                                    return `${m}:${s.toString().padStart(2, "0")}`;
-                                })()}
-                            </span>
-                        </div>
+                    {/* 진행 바 */}
+                    <div className="w-full flex items-center gap-3">
+                    <span className="text-xs text-white/60 tabular-nums min-w-[40px] text-right">
+                        {(() => {
+                        const p = Number.isFinite(progress) ? progress : 0;
+                        const m = Math.floor(p / 60);
+                        const s = Math.floor(p % 60);
+                        return `${m}:${s.toString().padStart(2, "0")}`;
+                        })()}
+                    </span>
+
+                    <div
+                        className="flex-1 h-1 bg-white/10 rounded-full relative cursor-pointer"
+                        onClick={(e) => {
+                        if (!hasTrack || duration <= 0) return;
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const ratio = Math.max(0, Math.min(1, x / rect.width));
+                        seek(ratio * duration);
+                        }}
+                        onPointerDown={(e) => {
+                        if (!hasTrack || duration <= 0) return;
+                        e.preventDefault();
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const setSeek = (clientX: number) => {
+                            const x = clientX - rect.left;
+                            const ratio = Math.max(0, Math.min(1, x / rect.width));
+                            seek(ratio * duration);
+                        };
+                        setSeek(e.clientX);
+                        e.currentTarget.setPointerCapture(e.pointerId);
+
+                        const onMove = (ev: PointerEvent) => setSeek(ev.clientX);
+                        const onUp = () => {
+                            window.removeEventListener("pointermove", onMove);
+                            window.removeEventListener("pointerup", onUp);
+                        };
+
+                        window.addEventListener("pointermove", onMove);
+                        window.addEventListener("pointerup", onUp);
+                        }}
+                    >
+                        <div
+                        className="h-full bg-[#E4524D] rounded-full transition-all"
+                        style={{
+                            width: `${duration > 0 ? Math.min(100, (progress / duration) * 100) : 0}%`,
+                        }}
+                        />
+                        <div
+                        className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-[#E4524D] transition-all"
+                        style={{
+                            left: `${duration > 0 ? Math.min(100, (progress / duration) * 100) : 0}%`,
+                        }}
+                        />
+                    </div>
+
+                    <span className="text-xs text-white/60 tabular-nums min-w-[40px]">
+                        {(() => {
+                        const d = Number.isFinite(duration) ? duration : 0;
+                        const m = Math.floor(d / 60);
+                        const s = Math.floor(d % 60);
+                        return `${m}:${s.toString().padStart(2, "0")}`;
+                        })()}
+                    </span>
                     </div>
                 </div>
+                </div>
+                {/* /하단 플레이어 */}
             </div>
             </div>
         </div>

@@ -38,6 +38,7 @@ type ArtistAlbumApi = {
     title: string;
     year: string;
     album_image: string | null;
+    image_large_square: string | null; // ✅ RDS에 저장된 이미지 (우선 사용)
 };
 
     type HorizontalScrollerProps = {
@@ -276,7 +277,7 @@ export default function ArtistPage() {
                         id: a.id,
                         title: a.title,
                         year: a.year,
-                        albumImage: a.album_image,
+                        albumImage: a.image_large_square || a.album_image, // ✅ image_large_square 우선 사용
                     })),
                 });
             } catch (e: unknown) {
@@ -427,7 +428,7 @@ export default function ArtistPage() {
                                 });
                             }}
                         />
-                        <div className="absolute inset-0 bg-[#777777] animate-pulse z-0" />
+                        <div className="absolute inset-0 bg-[#2d2d2d] animate-pulse z-0" />
                     </>
                 ) : (
                     <div className="w-full h-full bg-[#777777]" />
@@ -505,7 +506,9 @@ export default function ArtistPage() {
                         {artist.name}
                     </div>
                     </div>
-                    <div className="hidden min-[1200px]:block text-sm text-[#F6F6F6]/70 text-right">{t.album}</div>
+                        <div className="hidden min-[1200px]:block text-sm text-[#F6F6F6]/70 text-right">
+                            {t.album}
+                        </div>
                     <div className="text-sm text-[#F6F6F6]/70 text-right">{t.duration}</div>
                 </div>
                 ))}
@@ -592,9 +595,6 @@ export default function ArtistPage() {
                     </div>
                     <div className="mt-3 text-sm font-semibold text-[#F6F6F6] truncate">
                         {al.title}
-                    </div>
-                    <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">
-                        {al.year}
                     </div>
                     </button>
                 ))}

@@ -212,15 +212,14 @@ export default function SearchArtist() {
         </div>
       ) : (
         <>
+          <div className="overflow-x-auto">
           <div
             className="
               grid
-              [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]
-              gap-x-8 gap-y-12
-              w-full
-              max-w-[1100px]
-              mx-auto
-              justify-items-center
+              gap-x-6
+              gap-y-12
+              justify-between
+              [grid-template-columns:repeat(4,220px)]
             "
           >
             {artists.map((a) => (
@@ -241,8 +240,7 @@ export default function SearchArtist() {
                   className="
                     w-52 h-52
                     rounded-full
-                    bg-[#777777]
-                    border border-[#464646]
+                    bg-[#2d2d2d]/80
                     transition
                     hover:shadow-[0_10px_28px_rgba(0,0,0,0.38)]
                     overflow-hidden
@@ -291,12 +289,13 @@ export default function SearchArtist() {
                 </div>
 
                 {/* 텍스트 */}
-                <div className="mt-5 text-base font-semibold text-[#f6f6f6] truncate w-full group-hover:text-[#AFDEE2] transition">
+                <div className="mt-5 text-base font-semibold text-[#f6f6f6] truncate w-full group-hover:text-[#AFDEE2] transition break-words leading-snug">
                   {a.name}
                 </div>
                 <div className="mt-1 text-sm text-[#f6f6f6]/60">아티스트</div>
               </button>
             ))}
+          </div>
           </div>
 
           {/* 결과 없음 */}

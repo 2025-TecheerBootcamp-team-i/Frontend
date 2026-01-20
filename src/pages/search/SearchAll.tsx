@@ -174,6 +174,7 @@ type ArtistAlbum = {
   title: string;
   year: string;
   album_image: string | null;
+  image_large_square: string | null; // ✅ RDS에 저장된 이미지 (우선 사용)
 };
 
 /* =====================
@@ -439,7 +440,7 @@ export default function SearchHome() {
       id: a.id,
       name: a.title,
       artist: "",
-      image: a.album_image,
+      image: a.image_large_square || a.album_image, // ✅ image_large_square 우선 사용
     }));
   }, [API_BASE, q, apiAlbums]);
 
@@ -535,8 +536,26 @@ export default function SearchHome() {
                             const apiSong = apiSongs.find((as) => as.id === songData.id);
                             if (apiSong?.albumId) {
                               const album = apiAlbums.find((a) => a.id === String(apiSong.albumId));
-                              songAlbumImage = album?.album_image || null;
+                              // ✅ image_large_square 우선 사용 (RDS에 저장된 이미지), 없으면 album_image 사용
+                              songAlbumImage = album?.image_large_square || album?.album_image || null;
                             }
+                          }
+                          
+                          // 🔍 "SUPER REAL ME" 앨범 이미지 추적
+                          if (songAlbumImage && (songData.albumName?.includes("SUPER REAL ME") || original?.album_name?.includes("SUPER REAL ME"))) {
+                            const isExternal = songAlbumImage.startsWith("http://") || 
+                                              songAlbumImage.startsWith("https://") || 
+                                              songAlbumImage.startsWith("//");
+                            const isRdsPath = songAlbumImage.startsWith("/");
+                            console.warn(`[SearchAll] ⚠️ "SUPER REAL ME" 앨범 이미지 발견 (검색 결과):`, {
+                              song_title: songData.title,
+                              album_name: songData.albumName || original?.album_name,
+                              image_url: songAlbumImage,
+                              source: original?.album_image ? "검색 API 응답" : "아티스트 앨범 API",
+                              source_type: isExternal ? "외부 URL (iTunes/YouTube 등)" : isRdsPath ? "RDS 경로" : "기타",
+                              is_external: isExternal,
+                              is_rds_path: isRdsPath,
+                            });
                           }
                         }
 
@@ -550,7 +569,7 @@ export default function SearchHome() {
                           <div className="flex flex-col">
                             <div
                               className={[
-                                "w-[228px] h-[228px] bg-white/10 relative overflow-hidden",
+                                "w-[228px] h-[228px] bg-[#3d3d3d]/10 relative overflow-hidden",
                                 isArtist ? "rounded-full" : "rounded-2xl",
                               ].join(" ")}
                             >
@@ -626,13 +645,34 @@ export default function SearchHome() {
                                           }
                                         }
 
+                                        // ✅ image_large_square 우선 사용 (RDS에 저장된 이미지), 없으면 album_image 사용
+                                        const albumFromApi = r.album_id ? apiAlbums.find((a) => a.id === String(r.album_id)) : null;
+                                        const albumImage = albumFromApi?.image_large_square || albumFromApi?.album_image || null;
+                                        
                                         const coverUrl =
                                           resolveCover(r.album_image) ||
                                           (r.album_id
-                                            ? resolveCover(
-                                                apiAlbums.find((a) => a.id === String(r.album_id))?.album_image ?? null
-                                              )
+                                            ? resolveCover(albumImage)
                                             : undefined);
+                                        
+                                        // 🔍 "SUPER REAL ME" 앨범 이미지 추적
+                                        if (coverUrl && (r.album_name?.includes("SUPER REAL ME") || r.music_name?.includes("SUPER REAL ME"))) {
+                                          const imageSource = r.album_image ? "검색 API 응답" : "아티스트 앨범 API";
+                                          const isExternal = coverUrl.startsWith("http://") || 
+                                                            coverUrl.startsWith("https://") || 
+                                                            coverUrl.startsWith("//");
+                                          const isRdsPath = coverUrl.startsWith("/");
+                                          console.warn(`[SearchAll] ⚠️ "SUPER REAL ME" 앨범 이미지 발견 (재생 트랙):`, {
+                                            song_title: r.music_name,
+                                            album_name: r.album_name,
+                                            album_id: r.album_id,
+                                            image_url: coverUrl,
+                                            source: imageSource,
+                                            source_type: isExternal ? "외부 URL (iTunes/YouTube 등)" : isRdsPath ? "RDS 경로" : "기타",
+                                            is_external: isExternal,
+                                            is_rds_path: isRdsPath,
+                                          });
+                                        }
 
                                         return {
                                           id: String(r.itunes_id),
@@ -684,6 +724,23 @@ export default function SearchHome() {
                                           ? `${API_BASE.replace("/api/v1", "")}${original.album_image}`
                                           : original.album_image)
                                       : undefined;
+                                    
+                                    // 🔍 "SUPER REAL ME" 앨범 이미지 추적
+                                    if (coverUrl && (songData.albumName?.includes("SUPER REAL ME") || original?.album_name?.includes("SUPER REAL ME"))) {
+                                      const isExternal = coverUrl.startsWith("http://") || 
+                                                        coverUrl.startsWith("https://") || 
+                                                        coverUrl.startsWith("//");
+                                      const isRdsPath = coverUrl.startsWith("/");
+                                      console.warn(`[SearchAll] ⚠️ "SUPER REAL ME" 앨범 이미지 발견 (단일 곡 재생):`, {
+                                        song_title: songData.title,
+                                        album_name: songData.albumName || original?.album_name,
+                                        image_url: coverUrl,
+                                        source: "검색 API 응답",
+                                        source_type: isExternal ? "외부 URL (iTunes/YouTube 등)" : isRdsPath ? "RDS 경로" : "기타",
+                                        is_external: isExternal,
+                                        is_rds_path: isRdsPath,
+                                      });
+                                    }
 
                                     const playerTrack: PlayerTrack = {
                                       id: songData.id,
@@ -780,10 +837,12 @@ export default function SearchHome() {
                   ) : (
                     songs.slice(0, 4).map((s) => {
                       const original = searchResults.find((r) => String(r.itunes_id) === s.id);
+                      // ✅ image_large_square 우선 사용 (RDS에 저장된 이미지), 없으면 album_image 사용
+                      const albumFromApi = original?.album_id ? apiAlbums.find((a) => a.id === String(original.album_id)) : null;
                       const albumImage =
                         original?.album_image ||
-                        (original?.album_id
-                          ? apiAlbums.find((a) => a.id === String(original.album_id))?.album_image ?? null
+                        (albumFromApi
+                          ? (albumFromApi.image_large_square || albumFromApi.album_image) ?? null
                           : null);
 
                       const resolveImage = (url: string) => {

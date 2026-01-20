@@ -350,7 +350,7 @@ function HomePage() {
                     type="button"
                     onClick={() => navigate(`/artists/${a.artist_id}`)}
                     className="
-                        w-[140px] h-[140px] rounded-full bg-[#777777]
+                        w-[140px] h-[140px] rounded-full bg-[#3d3d3d]
                         transition-all duration-300
                         hover:-translate-y-1 hover:scale-105
                         drop-shadow-md

@@ -210,7 +210,7 @@ export default function SearchAlbum() {
   }, [API_BASE, q, apiAlbums]);
 
   return (
-    <section className="w-full mt-4 rounded-3xl bg-[#2d2d2d]/80 border border-[#464646] px-8 py-10 min-h-[560px]">
+    <section className="w-full mt-4 rounded-3xl bg-[#2d2d2d]/80 border border-[#464646] px-6 py-8 min-h-[560px]">
       {loading && albums.length === 0 ? (
         <div className="text-center text-[#999] py-12">검색 중...</div>
       ) : error && albums.length === 0 ? (
@@ -220,15 +220,14 @@ export default function SearchAlbum() {
       ) : (
         <>
           {/* 앨범 그리드 */}
+          <div className="overflow-x-auto">
           <div
             className="
               grid
-              [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]
-              gap-x-8 gap-y-12
-              w-full
-              max-w-[1100px]
-              mx-auto
-              justify-items-center
+              gap-x-6
+              gap-y-12
+              justify-between
+              [grid-template-columns:repeat(4,220px)]
             "
           >
             {albums.map((a) => (
@@ -245,6 +244,7 @@ export default function SearchAlbum() {
                 "
               >
                 {/* 앨범 커버 */}
+                <div className="w-[208px]">
                 <div
                   className="
                     w-52 h-52
@@ -307,8 +307,10 @@ export default function SearchAlbum() {
                     <div className="mt-1 text-sm text-[#f6f6f6]/60 truncate">{a.artist}</div>
                   )}
                 </div>
+                </div>
               </button>
             ))}
+          </div>
           </div>
 
           {/* 결과 없음 */}

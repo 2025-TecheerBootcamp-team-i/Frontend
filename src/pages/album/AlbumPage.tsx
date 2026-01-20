@@ -31,6 +31,7 @@ type ApiAlbumDetail = {
     album_id: number;
     album_name: string;
     album_image: string | null;
+    image_large_square: string | null; // ✅ RDS에 저장된 이미지 (우선 사용)
     artist: {
         artist_id: number;
         artist_name: string;
@@ -145,12 +146,48 @@ export default function AlbumDetailPage() {
                         ? data.created_at.slice(0, 4)
                         : "";
 
+                // ✅ image_large_square 우선 사용 (RDS에 저장된 이미지), 없으면 album_image 사용
+                const albumImage = data.image_large_square || data.album_image;
+                
                 const album: Album = {
                     id: String(data.album_id),
                     title: data.album_name,
                     year,
-                    albumImage: data.album_image,
+                    albumImage: albumImage,
                 };
+
+                // 🔍 앨범 이미지 출처 추적 로깅
+                if (albumImage) {
+                    const isExternal = albumImage.startsWith("http://") || 
+                                      albumImage.startsWith("https://") || 
+                                      albumImage.startsWith("//");
+                    const isRdsPath = albumImage.startsWith("/");
+                    
+                    console.log(`[AlbumPage] 📸 앨범 이미지 출처 추적:`, {
+                        album_id: data.album_id,
+                        album_name: data.album_name,
+                        image_large_square: data.image_large_square,
+                        album_image: data.album_image,
+                        final_image_url: albumImage,
+                        source_type: isExternal ? "외부 URL (iTunes/YouTube 등)" : isRdsPath ? "RDS 경로" : "기타",
+                        is_external: isExternal,
+                        is_rds_path: isRdsPath,
+                        using_image_large_square: !!data.image_large_square,
+                    });
+                    
+                    // "SUPER REAL ME (Sped Up) - EP" 특별 추적
+                    if (data.album_name?.includes("SUPER REAL ME")) {
+                        console.warn(`[AlbumPage] ⚠️ "SUPER REAL ME" 앨범 이미지 발견:`, {
+                            album_id: data.album_id,
+                            album_name: data.album_name,
+                            image_large_square: data.image_large_square,
+                            album_image: data.album_image,
+                            final_image_url: albumImage,
+                            source: isExternal ? "외부 API에서 가져온 것으로 추정" : "RDS 경로",
+                            using_image_large_square: !!data.image_large_square,
+                        });
+                    }
+                }
 
                 const tracks: Track[] = data.tracks.map((t) => ({
                     id: String(t.music_id),

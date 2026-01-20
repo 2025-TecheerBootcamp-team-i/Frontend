@@ -19,6 +19,7 @@ function Header() {
     }
   
     navigate(`/search?q=${encodeURIComponent(q)}`);
+    setQuery("");
   };
 
 
