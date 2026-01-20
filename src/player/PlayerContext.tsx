@@ -34,6 +34,7 @@ export type PlayerContextValue = {
   playList: (tracks: PlayerTrack[]) => void;
   playListShuffled: (tracks: PlayerTrack[]) => void;
   playTracks: (tracks: PlayerTrack[], opts?: { shuffle?: boolean }) => void;
+  enqueueTracks: (tracks: PlayerTrack[], opts?: { shuffle?: boolean }) => void;
 
   volume: number;
   setVolume: (v: number) => void;
@@ -403,6 +404,41 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     [pushHistory]
   );
 
+  type PlayTracksOptions = { shuffle?: boolean };
+
+  // ✅ 큐 뒤에 추가 (현재 재생 유지 + 뒤에 대기열로 붙임)
+  const enqueueTracks = useCallback(
+    (tracks: PlayerTrack[], opts?: PlayTracksOptions) => {
+      if (!tracks || tracks.length === 0) return;
+
+      const incoming = opts?.shuffle ? shuffleCopy(tracks) : tracks;
+
+      const cur = currentRef.current;
+
+      // ✅ 현재 곡이 없으면: 첫 곡을 current로 시작 + 나머지를 queue로
+      if (!cur) {
+        const [first, ...rest] = incoming;
+        if (!first) return;
+
+        setCurrent(first);
+        setQueue(rest);
+        setIsPlaying(true);
+        setProgress(0);
+
+        // (너 정책상) 새로 시작한 곡 history에도 넣고 싶으면
+        pushHistory(first);
+
+        return;
+      }
+
+      // ✅ 현재 곡이 있으면: queue 맨 뒤에 붙이기
+      setQueue((prev) => [...prev, ...incoming]);
+    },
+    [pushHistory]
+  );
+
+
+
   const toggle = useCallback(() => {
     if (!current?.audioUrl) return;
     setIsPlaying((v) => !v);
@@ -530,6 +566,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       playList,
       playListShuffled,
       playTracks,
+      enqueueTracks,
 
       volume,
       setVolume,
@@ -559,6 +596,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       playList,
       playListShuffled,
       playTracks,
+      enqueueTracks,
       volume,
       setVolume,
       setTrackAndPlay,
@@ -576,5 +614,6 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     ]
   );
 
-  return <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>;
+  return <PlayerContext.Provider 
+    value={value}>{children}</PlayerContext.Provider>;
 }
