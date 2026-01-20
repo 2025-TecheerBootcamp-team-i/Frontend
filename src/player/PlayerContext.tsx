@@ -121,11 +121,11 @@ export type PlayerContextValue = {
       }
     }, []);
 
-    // ✅ 오디오 요소 초기화 및 이벤트 리스너
+    // ✅ 오디오 요소 초기화 및 이벤트 리스너 (한 번만 실행)
     useEffect(() => {
       const audio = new Audio();
       audioRef.current = audio;
-      audio.volume = volume;
+      audio.volume = volume; // 초기 볼륨 설정
 
       const handleTimeUpdate = () => {
         setProgress(audio.currentTime);
@@ -241,7 +241,7 @@ export type PlayerContextValue = {
         audio.pause();
         audio.src = "";
       };
-    }, [volume]);
+    }, []); // volume dependency 제거 - 볼륨은 setVolume과 별도 useEffect에서 관리
 
     // ✅ current 변경 시 오디오 URL 로드
     useEffect(() => {
@@ -265,7 +265,7 @@ export type PlayerContextValue = {
             audioUrl: audioUrl,
           });
           audio.src = audioUrl;
-          audio.volume = volume;
+          audio.volume = volume; // 현재 볼륨 설정
           setProgress(0);
           audio.load();
         } else {
@@ -288,7 +288,15 @@ export type PlayerContextValue = {
         audio.src = "";
         setDuration(0);
       }
-    }, [current, volume]);
+    }, [current]); // volume dependency 제거 - 볼륨은 별도로 관리
+
+    // ✅ 볼륨 변경 시 오디오 볼륨만 업데이트 (오디오 재로드하지 않음)
+    useEffect(() => {
+      const audio = audioRef.current;
+      if (audio) {
+        audio.volume = volume;
+      }
+    }, [volume]);
 
     // ✅ isPlaying 변경 시 재생/일시정지
     useEffect(() => {
