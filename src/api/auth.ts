@@ -5,6 +5,7 @@ import axiosInstance from "./axiosInstance";
 export type SignupRequest = {
   email: string;
   password: string;
+  password_confirm: string;
   nickname: string;
 };
 
