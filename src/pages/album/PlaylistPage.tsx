@@ -243,7 +243,7 @@ export default function PlaylistDetailPage() {
                 </div>
                 </div>
 
-               <div className="mt-4 flex flex-nowrap gap-3 overflow-x-auto no-scrollbar">
+            <div className="mt-4 flex flex-nowrap gap-3 overflow-x-auto no-scrollbar">
                 {actions.filter((a) => !(isLikedSystem && a.key === "delete")).map((a) => {
                     const disabled =
                     (a.key === "play" || a.key === "shuffle"|| a.key === "delete") && selectedCount === 0;
@@ -259,12 +259,14 @@ export default function PlaylistDetailPage() {
                     if (a.key === "play") {
                         if (selectedCount === 0) return;
                         playTracks(checkedTracks);
+                        setCheckedIds({}); 
                         return;
                     }
 
                     if (a.key === "shuffle") {
                         if (selectedCount === 0) return;
                         playTracks(checkedTracks, { shuffle: true });
+                        setCheckedIds({}); 
                         return;
                     }
                     };
@@ -318,7 +320,7 @@ export default function PlaylistDetailPage() {
                 {tracks.map((t) => (
                 <div
                     key={t.id}
-                    className="w-full text-left grid grid-cols-[28px_42px_1fr_90px] items-center gap-x-4 py-3 px-6 border-b border-[#464646] hover:bg-white/5 transition"
+                    className="w-full text-left grid grid-cols-[28px_42px_1fr_90px] items-center gap-x-5 py-2 px-6 border-b border-[#464646] hover:bg-white/5 transition"
                 >
                     <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
                     <input
@@ -331,7 +333,7 @@ export default function PlaylistDetailPage() {
                     />
                     </div>
 
-                    <div className="w-10 h-10 rounded-xl bg-[#6b6b6b]/50 border border-[#464646]" />
+                    <div className="w-12 h-12 rounded-xl bg-[#6b6b6b]/50 border border-[#464646]" />
 
                     <div className="min-w-0">
                     <div className="text-sm font-semibold text-[#F6F6F6] truncate">{t.title}</div>
@@ -341,7 +343,7 @@ export default function PlaylistDetailPage() {
                     </div>
                     </div>
 
-                    <div className="text-sm text-[#F6F6F6]/70 text-right tabular-nums">{t.duration}</div>
+                    <div className="mr-1 text-sm text-[#F6F6F6]/70 text-right tabular-nums">{t.duration}</div>
                 </div>
                 ))}
             </div>

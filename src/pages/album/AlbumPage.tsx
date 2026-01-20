@@ -596,12 +596,14 @@ export default function AlbumDetailPage() {
                         if (selectedCount === 0) return;
                         const playerTracks = await Promise.all(selectedTracks.map(toPlayerTrack));
                         playTracks(playerTracks);
+                        setCheckedIds({}); 
                         return;
                     }
                     if (a.key === "shuffle") {
                         if (selectedCount === 0) return;
                         const playerTracks = await Promise.all(selectedTracks.map(toPlayerTrack));
                         playTracks(playerTracks, { shuffle: true });
+                        setCheckedIds({}); 
                         return;
                     }
                     if (a.key === "add") {

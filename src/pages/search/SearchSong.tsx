@@ -560,11 +560,13 @@ export default function SearchSong() {
     if (key === "play") {
       const playerTracks = await Promise.all(checkedSongs.map(toTrack));
       playTracks(playerTracks);
+      setCheckedIds({});
       return;
     }
     if (key === "shuffle") {
       const playerTracks = await Promise.all(checkedSongs.map(toTrack));
       playTracks(playerTracks, { shuffle: true });
+      setCheckedIds({});
       return;
     }
     if (key === "add") {
@@ -573,6 +575,7 @@ export default function SearchSong() {
     }
     if (key === "like") {
       await addSelectedToLiked();
+      setCheckedIds({});
       return;
     }
   };
