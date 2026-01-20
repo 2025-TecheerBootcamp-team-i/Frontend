@@ -52,6 +52,7 @@ type ArtistAlbum = {
   title: string;
   year: string;
   album_image: string | null;
+  image_large_square: string | null; // ✅ RDS에 저장된 이미지 (우선 사용)
 };
 
 type ApiSearchResponse = {
@@ -420,8 +421,10 @@ export default function SearchSong() {
     
     if (apiSong?.albumId) {
       const album = albums[apiSong.albumId];
-      if (album?.album_image) {
-        const albumImage = album.album_image;
+      // ✅ image_large_square 우선 사용 (RDS에 저장된 이미지), 없으면 album_image 사용
+      const albumImage = album?.image_large_square || album?.album_image;
+      
+      if (albumImage) {
         // URL 처리 (상대 경로를 절대 경로로 변환)
         if (albumImage.startsWith("http") || albumImage.startsWith("//")) {
           coverUrl = albumImage;
@@ -429,6 +432,28 @@ export default function SearchSong() {
           coverUrl = `${API_BASE.replace("/api/v1", "")}${albumImage}`;
         } else {
           coverUrl = albumImage;
+        }
+        
+        // 🔍 "SUPER REAL ME" 앨범 이미지 추적
+        if (album.title?.includes("SUPER REAL ME") || s.album?.includes("SUPER REAL ME")) {
+          const isExternal = albumImage.startsWith("http://") || 
+                            albumImage.startsWith("https://") || 
+                            albumImage.startsWith("//");
+          const isRdsPath = albumImage.startsWith("/");
+          console.warn(`[SearchSong] ⚠️ "SUPER REAL ME" 앨범 이미지 발견:`, {
+            song_title: s.title,
+            album_title: album.title,
+            album_id: apiSong.albumId,
+            image_large_square: album.image_large_square,
+            album_image: album.album_image,
+            final_image_url: albumImage,
+            source: "아티스트 앨범 API",
+            source_type: isExternal ? "외부 URL (iTunes/YouTube 등)" : isRdsPath ? "RDS 경로" : "기타",
+            is_external: isExternal,
+            is_rds_path: isRdsPath,
+            using_image_large_square: !!album.image_large_square,
+            api_endpoint: `${API_BASE}/artists/{artistId}/albums/`,
+          });
         }
       }
     }
@@ -654,7 +679,8 @@ export default function SearchSong() {
 
                 if (apiSong?.albumId) {
                   const album = albums[apiSong.albumId];
-                  albumImage = album?.album_image || null;
+                  // ✅ image_large_square 우선 사용 (RDS에 저장된 이미지), 없으면 album_image 사용
+                  albumImage = album?.image_large_square || album?.album_image || null;
                 }
 
                 return albumImage ? (
