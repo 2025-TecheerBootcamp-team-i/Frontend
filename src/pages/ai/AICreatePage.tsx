@@ -331,7 +331,7 @@ export default function AiCreatePage() {
             <button
               type="button"
               onClick={onPickCover}
-              className="w-72 h-72 rounded-2xl shadow-md bg-[#3d3d3d]/90 border border-[#3d3d3d] hover:bg-[#3d3d3d]/40 transition flex flex-col items-center justify-center overflow-hidden"
+              className="w-72 h-72 rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.25)] bg-[#3d3d3d]/90 hover:bg-[#3d3d3d]/40 transition flex flex-col items-center justify-center overflow-hidden"
               aria-label="add cover"
             >
               {coverUrl ? (
@@ -369,7 +369,7 @@ export default function AiCreatePage() {
           />
 
           {/* 프롬프트 카드 */}
-          <div className="mt-10 mx-4 rounded-2xl bg-[#3d3d3d]/80 backdrop-blur-xl border border-[#3d3d3d] shadow-md p-5">
+          <div className="mt-10 mx-4 rounded-2xl bg-[#3d3d3d]/80 backdrop-blur-xl border border-[#3d3d3d] shadow-[0_4px_12px_rgba(0,0,0,0.25)] p-5">
             <div className="p-2 text-sm font-semibold text-[#f6f6f6]">
               AI 노래 프롬프트
             </div>
@@ -416,7 +416,9 @@ export default function AiCreatePage() {
         </section>
 
         {/* ===================== 우측: 리스트/테이블 ===================== */}
-        <section className="-mb-24 rounded-2xl bg-[#2d2d2d]/80 border border-[#2d2d2d] overflow-hidden text-[#f6f6f6]">
+        <section className="
+            -mb-24 rounded-2xl bg-[#2d2d2d]/80 bg-gradient-to-tr
+            shadow-[0_4px_12px_rgba(0,0,0,0.25)] border border-[#2d2d2d] overflow-hidden text-[#f6f6f6]">
           <div className="px-8 py-6 border-b border-[#464646]">
             {/* 검색바 */}
             <div className="flex items-center gap-3 rounded-full bg-[#3d3d3d] px-4 py-2 text-[#666666]">
@@ -425,7 +427,7 @@ export default function AiCreatePage() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="AI 곡 검색하기"
-                className="w-full bg-transparent text-sm outline-none placeholder:text-[#666666]"
+                className="w-full bg-transparent text-[#f6f6f6] text-sm outline-none placeholder:text-[#666666]"
               />
             </div>
 

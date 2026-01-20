@@ -504,7 +504,7 @@ export default function SearchHome() {
                     "
                   >
                     {/* Skeleton */}
-                    {loading && hasQuery ? (
+                    {loading ? hasQuery && (
                       <div className="flex flex-col">
                         <SkeletonBox className="w-[228px] h-[228px] rounded-2xl" />
                         <SkeletonBox className="mt-5 h-5 w-44 rounded-md" />
