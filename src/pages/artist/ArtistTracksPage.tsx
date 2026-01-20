@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { IoChevronBack, IoPlayCircle, IoShuffle } from "react-icons/io5";
 import { MdPlaylistAdd, MdFavorite } from "react-icons/md";
@@ -239,6 +240,20 @@ export default function ArtistTracksPage() {
         }
     };
 
+    const [playingId, setPlayingId] = useState<string | null>(null);
+
+    const handlePlayById = async (id: string) => {
+    const target = tracks.find((x) => x.id === id);
+    if (!target) return;
+
+    setPlayingId(id);
+    try {
+        playTracks([toPlayerTrack(target)], { shuffle: false });
+    } finally {
+        setPlayingId(null);
+    }
+    };
+
     // ✅ early return은 이제 Hook들 아래라서 OK
     if (loading) {
         return (
@@ -277,6 +292,7 @@ export default function ArtistTracksPage() {
         </div>
         );
     }
+
 
     return (
         <div className="w-full min-w-0">

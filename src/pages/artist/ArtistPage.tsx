@@ -6,7 +6,6 @@ import { FaPlay } from "react-icons/fa6";
 
 import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
-import { FiRefreshCcw } from "react-icons/fi";
 
 
 /* =====================
@@ -16,16 +15,16 @@ type Track = { id: string; title: string; album: string; duration: string; album
 type Album = { id: string; title: string; year: string; albumImage?: string | null };
 
 type TrackPlayApi = {
-  music_id: number;
-  music_name: string;
-  artist_name: string;
-  album_name: string;
-  album_image: string | null;
-  audio_url: string | null;
-  duration: number | null;
-  genre: string | null;
-  is_ai: boolean;
-  itunes_id: number;
+    music_id: number;
+    music_name: string;
+    artist_name: string;
+    album_name: string;
+    album_image: string | null;
+    audio_url: string | null;
+    duration: number | null;
+    genre: string | null;
+    is_ai: boolean;
+    itunes_id: number;
 };
 
 type ArtistData = {
