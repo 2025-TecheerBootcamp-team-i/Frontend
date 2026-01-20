@@ -797,19 +797,14 @@ export default function NowPlayingPage() {
                     </div>
                 ) : (
                     <div className="space-y-3">
-                    {lyrics.map((line, i) => (
-                        <div
-                        key={`${line.t}-${i}`}
-                        className="text-lg leading-8 text-white/80 flex items-start gap-3"
-                        >
-                        {line.timestamp && (
-                            <span className="text-white/50 text-sm font-mono flex-shrink-0 mt-1">
-                            {line.timestamp}
-                            </span>
-                        )}
-                        <span className="flex-1">{line.text}</span>
-                        </div>
-                    ))}
+                        {lyrics.map((line, i) => (
+                            <div
+                                key={`${line.t}-${i}`}
+                                className="text-lg leading-8 text-white/80"
+                            >
+                                {line.text}
+                            </div>
+                        ))}
                     </div>
                 )}
                 </div>
