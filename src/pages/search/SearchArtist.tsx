@@ -290,7 +290,7 @@ export default function SearchArtist() {
                 </div>
 
                 {/* 텍스트 */}
-                <div className="mt-5 text-base font-semibold text-[#f6f6f6] truncate w-full group-hover:text-[#AFDEE2] transition">
+                <div className="mt-5 text-base font-semibold text-[#f6f6f6] truncate w-full group-hover:text-[#AFDEE2] transition break-words leading-snug">
                   {a.name}
                 </div>
                 <div className="mt-1 text-sm text-[#f6f6f6]/60">아티스트</div>

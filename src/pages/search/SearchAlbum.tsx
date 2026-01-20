@@ -328,7 +328,12 @@ export default function SearchAlbum() {
 
                 {/* 텍스트 */}
                 <div className="mt-4 w-full min-w-0">
-                  <div className="text-base font-semibold text-[#f6f6f6] truncate group-hover:text-[#AFDEE2] transition">
+                  <div className="
+                    text-base font-semibold 
+                    text-[#f6f6f6]
+                    text-center
+                    group-hover:text-[#AFDEE2] transition 
+                    break-words leading-snug">
                     {a.title}
                   </div>
                   {a.artist && (
