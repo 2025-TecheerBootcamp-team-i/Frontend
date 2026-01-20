@@ -60,6 +60,7 @@ function Sidebar({
             rounded-3xl
             px-5 py-4
             flex-none
+            shadow-[0_4px_12px_rgba(0,0,0,0.25)]
           "
           style={{
             height: "clamp(320px, 42vh, 400px)", // ✅ 화면 크기에 따라 적당히
@@ -144,6 +145,7 @@ function Sidebar({
             px-5 py-4
             flex flex-col
             min-h-0
+            shadow-[0_4px_12px_rgba(0,0,0,0.25)]
             overflow-hidden
           "
           style={{
