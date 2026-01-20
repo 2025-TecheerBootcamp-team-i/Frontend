@@ -457,7 +457,7 @@ export default function AiCreatePage() {
             </div>
 
             {/* make_instrumental 체크박스 */}
-            <label className="mt-4 flex items-center gap-2 text-xs text-[#f6f6f6] cursor-pointer">
+            <label className="mt-4 pt-3 border-t border-white/10 flex items-center gap-2 text-xs text-[#f6f6f6] cursor-pointer">
               <input
                 type="checkbox"
                 checked={makeInstrumental}
@@ -465,7 +465,7 @@ export default function AiCreatePage() {
                 disabled={isGenerating}
                 className="accent-[#AFDEE2] cursor-pointer disabled:cursor-not-allowed"
               />
-              <span>보컬 없이 연주곡(Instrumental)으로 만들기</span>
+              <span className="text-[#f6f6f6]/50">보컬 없이 연주곡(Instrumental)으로 만들기</span>
             </label>
           </div>
 
