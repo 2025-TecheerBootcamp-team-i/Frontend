@@ -1,4 +1,3 @@
-import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { IoChevronBack, IoPlayCircle, IoShuffle } from "react-icons/io5";
 import { MdPlaylistAdd, MdFavorite } from "react-icons/md";
@@ -368,6 +367,11 @@ export default function ArtistTracksPage() {
             {tracks.map((t) => (
                 <div
                 key={t.id}
+                 onDoubleClick={(e)=> {
+                        e.preventDefault();
+                        if (playingId) return;
+                        void handlePlayById(t.id);
+                    }}
                 className={[
                     "w-full text-left",
                     "grid grid-cols-[28px_56px_1fr_90px] min-[1200px]:grid-cols-[28px_56px_1fr_450px_90px] items-center",
@@ -391,6 +395,10 @@ export default function ArtistTracksPage() {
                         src={t.album_image}
                         alt={t.title}
                         className="w-full h-full rounded-xl object-cover"
+                        loading="lazy"
+                        onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = "none";
+                            }}
                         />
                         ) : (
                             <div className="w-full h-full flex items-center justify-center text-[#F6F6F6] text-xl">

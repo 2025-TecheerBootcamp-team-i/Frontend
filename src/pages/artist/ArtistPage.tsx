@@ -4,11 +4,29 @@ import { IoChevronBack } from "react-icons/io5";
 import { MdOutlineNavigateNext } from "react-icons/md";
 import { FaPlay } from "react-icons/fa6";
 
+import { usePlayer } from "../../player/PlayerContext";
+import type { PlayerTrack } from "../../player/PlayerContext";
+import { FiRefreshCcw } from "react-icons/fi";
+
+
 /* =====================
 타입 정의
 ===================== */
 type Track = { id: string; title: string; album: string; duration: string; albumImage?: string | null };
 type Album = { id: string; title: string; year: string; albumImage?: string | null };
+
+type TrackPlayApi = {
+  music_id: number;
+  music_name: string;
+  artist_name: string;
+  album_name: string;
+  album_image: string | null;
+  audio_url: string | null;
+  duration: number | null;
+  genre: string | null;
+  is_ai: boolean;
+  itunes_id: number;
+};
 
 type ArtistData = {
     id: string;
@@ -47,6 +65,14 @@ type ArtistAlbumApi = {
         gradientFromClass?: string; // 배경색 맞추기
     };
     
+    // ✅ seconds -> "m:ss"
+    function formatSeconds(sec: number | null): string {
+    if (typeof sec !== "number" || Number.isNaN(sec)) return "0:00";
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${String(s).padStart(2, "0")}`;
+    }
+
     function HorizontalScroller({
         children,
         scrollStep = 300,
@@ -195,6 +221,7 @@ const ARTISTS: Record<string, ArtistData> = {
 export default function ArtistPage() {
     const { artistId } = useParams();
     const navigate = useNavigate();
+    const { playTracks } = usePlayer();
 
     const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
 
@@ -202,6 +229,7 @@ export default function ArtistPage() {
     const [artist, setArtist] = useState<ArtistData | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [playingId, setPlayingId] = useState<string | null>(null);
 
     // API 데이터 로딩
     useEffect(() => {
@@ -293,6 +321,46 @@ export default function ArtistPage() {
         return () => controller.abort();
     }, [API_BASE, artistId]);
 
+        // 오디오 URL을 위한 API
+        const handlePlayById = async (musicId: string) => {
+
+        try {
+        setPlayingId(musicId);
+
+        const res = await fetch(`${API_BASE}/tracks/${musicId}/play`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+        });
+
+        if (!res.ok) {
+            throw new Error(`트랙 재생 정보 조회 실패: ${res.status}`);
+        }
+
+        const data: TrackPlayApi = await res.json();
+
+        if (!data.audio_url) {
+            throw new Error("재생할 오디오 URL이 없습니다.");
+        }
+              const track: PlayerTrack = {
+        id: String(data.music_id),
+        musicId: data.music_id,
+        title: data.music_name,
+        artist: data.artist_name,
+        album: data.album_name,
+        duration: formatSeconds(data.duration),
+        audioUrl: data.audio_url,
+        coverUrl: data.album_image ?? undefined,
+      };
+
+        playTracks([track]);
+        } catch (e) {
+        console.error("[ArtistPage] play error:", e);
+        alert(e instanceof Error ? e.message : "재생 중 오류가 발생했습니다.");
+        } finally {
+        setPlayingId(null);
+        }
+    };
+
     // ✅ 로딩 중
     if (loading) {
         return (
@@ -343,6 +411,9 @@ export default function ArtistPage() {
         </div>
         );
     }
+    
+    // FaPlay 아이콘 눌렀을 때
+    const firstTrackId = artist.tracks[0]?.id;
 
     return (
         <div className="w-full min-w-0 overflow-x-auto">
@@ -365,24 +436,30 @@ export default function ArtistPage() {
                 <div className="px-10 pb-8 flex items-end gap-8 min-w-[1100px] shrink-0">
                     {/* ✅ 이미지 자리는 유지(레이아웃 안 흔들리게) */}
                     <div className="w-[228px] h-[228px] shrink-0" />
-
                     {/* 텍스트 + 플레이 */}
                     <div className="flex items-end gap-5">
+
                     <div>
                         <div className="text-3xl font-extrabold text-[#F6F6F6] leading-none">
                         {artist.name}
                         </div>
                         <div className="mt-2 text-sm text-[#F6F6F6]/60">아티스트</div>
                     </div>
-
-                    <button
+                       <button
                         type="button"
-                        className="w-11 h-11 rounded-full bg-[#AFDEE2] text-[#1d1d1d] grid place-items-center hover:bg-[#87B2B6] transition"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (!firstTrackId) return;
+                            if (playingId) return;
+                            void handlePlayById(firstTrackId);
+                        }}
+                        disabled={!firstTrackId || !!playingId}
+                        className="w-11 h-11 rounded-full bg-[#AFDEE2] text-[#1d1d1d] grid place-items-center hover:bg-[#87B2B6] transition disabled:opacity-60"
                         aria-label="아티스트 재생"
                         title="재생"
-                    >
+                        >
                         <FaPlay size={16} />
-                    </button>
+                        </button>
                     </div>
                 </div>
                 </div>
@@ -463,6 +540,11 @@ export default function ArtistPage() {
                 {artist.tracks.map((t) => (
                 <div
                     key={t.id}
+                    onDoubleClick={(e)=> {
+                        e.preventDefault();
+                        if (playingId) return;
+                        void handlePlayById(t.id);
+                    }}
                     className={[
                     "w-full text-left",
                     "grid grid-cols-[56px_1fr_90px] min-[1200px]:grid-cols-[56px_1fr_200px_450px] items-center",
@@ -479,10 +561,10 @@ export default function ArtistPage() {
                                 <img
                                     src={
                                         t.albumImage.startsWith("http") || t.albumImage.startsWith("//")
-                                            ? t.albumImage
-                                            : API_BASE && t.albumImage.startsWith("/")
-                                            ? `${API_BASE.replace("/api/v1", "")}${t.albumImage}`
-                                            : t.albumImage
+                                        ? t.albumImage
+                                        : API_BASE && t.albumImage.startsWith("/")
+                                        ? `${API_BASE.replace("/api/v1", "")}${t.albumImage}`
+                                        : t.albumImage
                                     }
                                     alt={t.album}
                                     className="w-full h-full object-cover relative z-10"
