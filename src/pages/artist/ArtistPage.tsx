@@ -505,7 +505,14 @@ export default function ArtistPage() {
                         {artist.name}
                     </div>
                     </div>
-                    <div className="hidden min-[1200px]:block text-sm text-[#F6F6F6]/70 text-right">{t.album}</div>
+
+                        {/* # 예전 버전 className="hidden min-[1200px]:block text-sm text-[#F6F6F6]/70 text-right" */}
+                        <div className="
+                            text-sm text-[#F6F6F6]/70
+                            text-ellipsis line-clamp-2
+                            ">
+                            {t.album}
+                        </div>
                     <div className="text-sm text-[#F6F6F6]/70 text-right">{t.duration}</div>
                 </div>
                 ))}
