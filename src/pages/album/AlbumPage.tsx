@@ -324,6 +324,9 @@ export default function AlbumDetailPage() {
     }, [API_BASE]);
 
     const toPlayerTrack = useCallback(async (t: Track): Promise<PlayerTrack> => {
+        // 앨범 ID 숫자 변환 (큰 커버 이미지를 위한 albumId 저장)
+        const albumNumericId = effective?.album ? Number(effective.album.id) : NaN;
+
         if (!effective?.artist) {
             return {
                 id: t.id,
@@ -332,8 +335,11 @@ export default function AlbumDetailPage() {
                 album: t.album,
                 duration: t.duration,
                 audioUrl: undefined,
+                coverUrl: undefined,
+                albumId: Number.isFinite(albumNumericId) ? albumNumericId : null,
             };
         }
+
         const audioUrl = await fetchTrackAudioUrl(t.id);
         console.log(`[AlbumPage] 곡 ${t.id} (${t.title})의 오디오 URL:`, audioUrl || "(없음)");
         
@@ -348,6 +354,7 @@ export default function AlbumDetailPage() {
             duration: t.duration,
             audioUrl: audioUrl || undefined,
             coverUrl: coverUrl,
+            albumId: Number.isFinite(albumNumericId) ? albumNumericId : null,
         };
     }, [effective, fetchTrackAudioUrl, trackImages]);
 
