@@ -444,6 +444,7 @@ export default function SearchSong() {
       audioUrl: audioUrl || undefined,
       coverUrl: coverUrl,
       musicId: musicId || undefined, // music_id 저장
+      albumId: s.albumId ?? null, // 앨범 상세 API를 위한 album_id 저장
     };
   };
 

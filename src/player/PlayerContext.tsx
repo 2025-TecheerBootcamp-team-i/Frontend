@@ -18,6 +18,8 @@ export type PlayerTrack = {
   audioUrl?: string;
   likeCount?: number;
   musicId?: number;
+  /** 백엔드 앨범 ID (있으면 큰 커버 이미지 조회에 사용) */
+  albumId?: number | null;
 };
 
 export type PlayerContextValue = {

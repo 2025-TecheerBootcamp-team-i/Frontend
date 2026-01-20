@@ -647,6 +647,7 @@ export default function SearchHome() {
                                           audioUrl: audioUrl || undefined,
                                           coverUrl,
                                           musicId: musicId || undefined,
+                                          albumId: r.album_id ?? null,
                                         };
                                       })
                                     );
@@ -693,6 +694,7 @@ export default function SearchHome() {
                                       audioUrl,
                                       coverUrl,
                                       musicId: musicId || undefined,
+                                      albumId: original?.album_id ?? null,
                                     };
 
                                     playTracks([playerTrack]);

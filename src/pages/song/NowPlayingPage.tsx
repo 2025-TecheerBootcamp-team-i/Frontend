@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef, useCallback } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { MdFavorite, MdMoreHoriz } from "react-icons/md";
 import { MdQueueMusic, MdClose, MdDelete, MdDragIndicator } from "react-icons/md";
@@ -11,7 +11,7 @@ import {
     toggleTrackLike,
     subscribePlaylists,
 } from "../../mocks/playlistMock";
-import axios from "axios";
+import { getBestAlbumCover } from "../../api/album";
 
 type LyricLine = { t: number; text: string; timestamp?: string | null }; // t = 시작초, timestamp = 타임스탬프 문자열
 
@@ -30,8 +30,6 @@ export default function NowPlayingPage() {
         removeFromQueue, 
         moveQueueItem,
         shuffleQueue,
-        seekBackward,
-        seekForward,
         nextTrack,
         previousTrack,
         repeatMode,
@@ -60,12 +58,42 @@ export default function NowPlayingPage() {
     }, []);
     
     // 메인 앨범 이미지 (image_large_square 우선, 없으면 coverUrl)
-    const mainAlbumImage = useMemo(() => {
-        if (!current) return null;
-        // TODO: API에서 image_large_square 필드 가져오기
-        // 현재는 coverUrl 사용
-        return current.coverUrl || null;
+    const [mainAlbumImage, setMainAlbumImage] = useState<string | null>(null);
+
+    // 선택된 트랙이 바뀔 때마다 앨범 상세를 조회해 더 큰 커버 이미지를 시도
+    useEffect(() => {
+        let cancelled = false;
+
+        async function loadAlbumCover() {
+            if (!current) {
+                setMainAlbumImage(null);
+                return;
+            }
+
+            // PlayerTrack에 저장된 albumId와 coverUrl을 기반으로 베스트 커버를 조회
+            const albumId = current.albumId ?? null;
+            const fallback = current.coverUrl ?? null;
+
+            const best = await getBestAlbumCover(albumId, fallback);
+            if (!cancelled) {
+                setMainAlbumImage(best);
+            }
+        }
+
+        loadAlbumCover();
+
+        return () => {
+            cancelled = true;
+        };
     }, [current]);
+
+    // ✅ 전체 배경에 사용할 블러용 이미지 URL
+    // - 메인 앨범 이미지가 있을 때만 사용
+    // - processImageUrl로 절대 경로 변환
+    const blurredBackgroundImage = useMemo(() => {
+        if (!mainAlbumImage) return null;
+        return processImageUrl(mainAlbumImage);
+    }, [mainAlbumImage, processImageUrl]);
 
     // ✅ 가사 패널 (bottom sheet)
     const [lyricsOpen, setLyricsOpen] = useState(false);
@@ -487,7 +515,28 @@ export default function NowPlayingPage() {
     };
 
     return (
-        <div className="h-full w-full bg-[#2d2d2d] text-[#F6F6F6] overflow-hidden">
+        <div className="relative h-full w-full text-[#F6F6F6] overflow-hidden">
+        {/* ✅ 앨범 이미지를 이용한 전체 배경 블러
+            - 확대 화면 전체를 앨범 이미지로 채우고
+            - 강한 블러 + 살짝 어둡게 처리해서 가독성 확보 */}
+        {hasTrack && blurredBackgroundImage ? (
+            <>
+            {/* 실제 이미지 블러 배경 */}
+            <div
+                className="pointer-events-none absolute inset-0 bg-center bg-cover"
+                style={{
+                backgroundImage: `url(${blurredBackgroundImage})`,
+                filter: "blur(40px)",
+                transform: "scale(1.15)",
+                }}
+            />
+            {/* 위에 반투명 어두운 오버레이 */}
+            <div className="pointer-events-none absolute inset-0 bg-black/60" />
+            </>
+        ) : (
+            // 앨범 이미지가 없을 때 기본 배경
+            <div className="pointer-events-none absolute inset-0 bg-[#2d2d2d]" />
+        )}
         {/* 상단 바 */}
         <div className="h-16 px-6 flex items-center justify-between border-b border-[#3d3d3d]">
             {/* 좌측 */}
@@ -564,7 +613,8 @@ export default function NowPlayingPage() {
             style={{ marginLeft: leftShift, marginRight: rightShift }}
             >
             <div className="h-full">
-                <div className="h-full pt-4 bg-[#333333] overflow-hidden">
+                {/* 중앙 영역 배경을 투명하게 유지해서 전체 블러 배경이 그대로 보이도록 처리 */}
+                <div className="h-full pt-4 overflow-hidden">
                 <div className="h-full flex flex-col items-center justify-center px-6">
                     <div className="w-full max-w-[860px] flex flex-col items-center gap-4">
                     {/* 앨범아트 - image_large_square 사용 */}
