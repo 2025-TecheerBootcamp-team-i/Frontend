@@ -316,7 +316,18 @@ function HomePage() {
 
     const currentType = TAB_TO_CHARTTYPE[tab];
     const currentChart = chartByType[currentType];
-    const previewRows = currentChart?.items.slice(0, 6) ?? [];
+    
+    // ✅ musicId 기준 중복 제거
+    const previewRows = (() => {
+        if (!currentChart) return [];
+        const seen = new Set<string>();
+        const unique = currentChart.items.filter(item => {
+            if (seen.has(item.musicId)) return false;
+            seen.add(item.musicId);
+            return true;
+        });
+        return unique.slice(0, 6);
+    })();
 
     const formatDuration = (sec: number) => {
     const s = Math.max(0, Math.floor(sec || 0));
