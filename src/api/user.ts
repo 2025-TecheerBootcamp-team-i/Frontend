@@ -39,6 +39,20 @@ export type TopTag = {
   play_count: number;
 };
 
+/** Top 음악 */
+export type TopTrack = {
+  rank: number;
+  music_id: number;
+  music_name: string;
+  artist_id: number;
+  artist_name: string;
+  album_id: number;
+  album_name: string;
+  album_image: string | null;
+  play_count: number;
+  percentage: number;
+};
+
 /** AI 생성 활동 */
 export type AiGeneration = {
   total_generated: number;
@@ -154,4 +168,20 @@ export async function fetchAiGeneration(
     { params: { period } }
   );
   return res.data;
+}
+
+/**
+ * 사용자 Top 음악 차트 조회
+ * GET /api/v1/users/{user_id}/statistics/tracks/?period={period}&limit={limit}
+ */
+export async function fetchTopTracks(
+  userId: string | number,
+  period: StatisticsPeriod = "month",
+  limit: number = 50
+): Promise<TopTrack[]> {
+  const res = await axiosInstance.get<TopTrack[]>(
+    `/api/v1/users/${userId}/statistics/tracks/`,
+    { params: { period, limit } }
+  );
+  return Array.isArray(res.data) ? res.data : [];
 }

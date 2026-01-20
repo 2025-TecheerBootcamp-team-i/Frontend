@@ -12,7 +12,7 @@ import type { PlayerTrack } from "../../player/PlayerContext";
 import type { Playlist } from "../../components/layout/MainLayout";
 import { getMyAiSongs, subscribeAiSongs } from "../../mocks/aiSongMock";
 import type { AiTrack } from "../../mocks/aiSongMock";
-import { fetchUserStatistics, type UserStatistics } from "../../api/user";
+import { fetchUserStatistics, fetchTopTracks, type UserStatistics, type TopTrack } from "../../api/user";
 
 type Profile = {
     name: string;
@@ -29,19 +29,10 @@ type TopRow = {
     rank: number;
     title: string;
     artist: string;
+    album: string;
+    coverUrl?: string;
     total: number;
 };
-
-const top50Preview: TopRow[] = [
-    { id: "1", rank: 1, title: "곡 명", artist: "아티스트명", total: 63 },
-    { id: "2", rank: 2, title: "곡 명", artist: "아티스트명", total: 59 },
-    { id: "3", rank: 3, title: "곡 명", artist: "아티스트명", total: 34 },
-    { id: "4", rank: 4, title: "곡 명", artist: "아티스트명", total: 30 },
-    { id: "5", rank: 5, title: "곡 명", artist: "아티스트명", total: 27 },
-    { id: "6", rank: 6, title: "곡 명", artist: "아티스트명", total: 19 },
-    { id: "7", rank: 7, title: "곡 명", artist: "아티스트명", total: 1 },
-    { id: "8", rank: 8, title: "곡 명", artist: "아티스트명", total: 1 },
-];
 
 type HorizontalScrollerProps = {
     children: React.ReactNode;
@@ -232,34 +223,48 @@ export default function MyPage() {
     }, [CURRENT_USER_ID]);
 
 
-    const toTrack = (r: TopRow): PlayerTrack => ({
-    id: r.id,
-    title: r.title,
-    artist: r.artist,
-    audioUrl: "/audio/sample.mp3", // ✅ 임시(나중에 실제 URL로 교체)
-    // coverUrl 필요하면 추가:
-    // coverUrl: "/images/sample.jpg",
-    });
-
-
     // ✅ 추가: 분석 대시보드 탭 상태
     const [range, setRange] = useState<"month" | "all">("month");
 
     // ✅ API 데이터 상태
     const [statistics, setStatistics] = useState<UserStatistics | null>(null);
+    const [topTracks, setTopTracks] = useState<TopTrack[]>([]);
+
+    // ✅ TopTrack -> TopRow 변환
+    const topRows: TopRow[] = topTracks.map(track => ({
+        id: String(track.music_id),
+        rank: track.rank,
+        title: track.music_name,
+        artist: track.artist_name,
+        album: track.album_name,
+        coverUrl: track.album_image || undefined,
+        total: track.play_count
+    }));
+
+    const toTrack = (r: TopRow): PlayerTrack => ({
+    id: r.id,
+    title: r.title,
+    artist: r.artist,
+    audioUrl: "/audio/sample.mp3", // ✅ 임시(나중에 실제 URL로 교체)
+    coverUrl: r.coverUrl,
+    });
 
     // ✅ API 호출: range 변경 시마다 재호출
     useEffect(() => {
-        const loadStatistics = async () => {
+        const loadData = async () => {
             try {
-                const data = await fetchUserStatistics(CURRENT_USER_ID, range);
-                setStatistics(data);
+                const [statsData, tracksData] = await Promise.all([
+                    fetchUserStatistics(CURRENT_USER_ID, range),
+                    fetchTopTracks(CURRENT_USER_ID, range, 50)
+                ]);
+                setStatistics(statsData);
+                setTopTracks(tracksData);
             } catch (error) {
-                console.error("통계 로드 실패:", error);
+                console.error("데이터 로드 실패:", error);
             }
         };
 
-        loadStatistics();
+        loadData();
     }, [range, CURRENT_USER_ID]);
 
     // ✅ 대시보드 데이터 가공
@@ -692,7 +697,7 @@ export default function MyPage() {
                 <div className="mt-3 border-b border-[#464646]" />
 
                 <div className="divide-y divide-[#464646]">
-                    {top50Preview.map((r, idx) => (
+                    {topRows.slice(0, 8).map((r, idx) => (
                     <div
                         key={r.id}
                         className="
@@ -736,7 +741,15 @@ export default function MyPage() {
                         {/* 곡정보 */}
                         <div className="pl-2 min-w-0 border-l border-[#464646]">
                             <div className="flex items-center gap-5 min-w-0">
-                            <div className="h-12 w-12 shrink-0 rounded-xl bg-[#777777]" />
+                            <div className="h-12 w-12 shrink-0 rounded-xl bg-[#777777] overflow-hidden">
+                                {r.coverUrl ? (
+                                <img 
+                                    src={r.coverUrl} 
+                                    alt={r.title}
+                                    className="w-full h-full object-cover"
+                                />
+                                ) : null}
+                            </div>
                             <div className="min-w-0">
                                 <div className="truncate text-sm text-[#F6F6F6]">
                                 {r.title}
