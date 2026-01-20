@@ -94,8 +94,7 @@ export default function ChartAI() {
         setChart(null);
         setErrorMsg("AI 차트 데이터를 불러오지 못했어요.");
         } finally {
-        if (!alive) return;
-        setLoading(false);
+        if (alive) setLoading(false);
         }
     };
 
@@ -307,7 +306,7 @@ export default function ChartAI() {
                     <div
                         key={row.musicId}
                         className={`
-                        group grid ${GRID} items-center px-3 py-3
+                        group grid ${GRID} items-center px-3 py-2
                         ${row.rank % 2 === 0 ? "bg-[#2d2d2d]/80" : "bg-[#3b3b3b]/80"}
                         `}
                     >
@@ -355,7 +354,7 @@ export default function ChartAI() {
 
                         {/* 곡정보 */}
                         <div className="pl-2 flex items-center gap-4 min-w-0">
-                        <div className="w-10 h-10 rounded-lg bg-[#777777] shrink-0" />
+                        <div className="w-12 h-12 rounded-lg bg-[#777777] shrink-0" />
                         <div className="min-w-0">
                             <div className="text-sm text-[#F6F6F6] truncate">
                             {row.musicName}

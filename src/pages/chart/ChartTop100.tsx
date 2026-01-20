@@ -95,39 +95,38 @@ export default function ChartTop100() {
         setErrorMsg(null);
 
     try {
-      const data = await fetchChart("realtime");
-      if (!alive) return;
+        const data = await fetchChart("realtime");
+        if (!alive) return;
 
-      // ✅ 1) 이전 순위 맵(전 스냅샷)
-      const prev = prevRankByIdRef.current;
+        // ✅ 1) 이전 순위 맵(전 스냅샷)
+        const prev = prevRankByIdRef.current;
 
-      // ✅ 2) 이번 diff 계산 (이전 - 현재)
-      const nextDiff: Record<string, number> = {};
-      for (const item of data.items) {
-        const id = item.musicId; // ✅ 고유키
-        const prevRank = prev[id];
+        // ✅ 2) 이번 diff 계산 (이전 - 현재)
+        const nextDiff: Record<string, number> = {};
+        for (const item of data.items) {
+            const id = item.musicId; // ✅ 고유키
+            const prevRank = prev[id];
 
-        // 이전 스냅샷이 있으면 비교, 없으면 0 처리(—로 표시)
-        nextDiff[id] = typeof prevRank === "number" ? prevRank - item.rank : 0;
-      }
+            // 이전 스냅샷이 있으면 비교, 없으면 0 처리(—로 표시)
+            nextDiff[id] = typeof prevRank === "number" ? prevRank - item.rank : 0;
+        }
 
-      setDiffById(nextDiff);
-      setChart(data);
+        setDiffById(nextDiff);
+        setChart(data);
 
-      // ✅ 3) 이번 순위를 “다음번 비교용(전 스냅샷)”으로 저장
-      const nextPrev: Record<string, number> = {};
-      for (const item of data.items) {
-        nextPrev[item.musicId] = item.rank;
-      }
-      prevRankByIdRef.current = nextPrev;
-    } catch (err) {
-      if (!alive) return;
-      console.error(err);
-      setChart(null);
-      setErrorMsg("차트 데이터를 불러오지 못했어요.");
-    } finally {
-      if (!alive) return;
-      setLoading(false);
+        // ✅ 3) 이번 순위를 “다음번 비교용(전 스냅샷)”으로 저장
+        const nextPrev: Record<string, number> = {};
+        for (const item of data.items) {
+            nextPrev[item.musicId] = item.rank;
+        }
+        prevRankByIdRef.current = nextPrev;
+        } catch (err) {
+        if (!alive) return;
+        console.error(err);
+        setChart(null);
+        setErrorMsg("차트 데이터를 불러오지 못했어요.");
+        } finally {
+        if (alive) setLoading(false);
     }
     };
 
@@ -315,7 +314,7 @@ export default function ChartTop100() {
                     <div
                     key={row.musicId}
                     className={`
-                        group grid ${GRID} items-center px-3 py-3 
+                        group grid ${GRID} items-center px-3 py-2
                         ${row.rank % 2 === 0 ? "bg-[#2d2d2d]/80" : "bg-[#3b3b3b]/80"}`}
                     >
                     {/* 체크 */}
@@ -362,7 +361,7 @@ export default function ChartTop100() {
 
                     {/* 곡정보(커버+제목) */}
                     <div className="flex pl-2 items-center gap-4 min-w-0">
-                        <div className="w-10 h-10 rounded-lg bg-[#777777] shrink-0" />
+                        <div className="w-12 h-12 rounded-lg bg-[#777777] shrink-0" />
                         <div className="min-w-0">
                         <div className="text-sm text-[#F6F6F6] truncate">
                             {row.musicName}

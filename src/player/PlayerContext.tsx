@@ -14,6 +14,7 @@ export type PlayerTrack = {
   title: string;
   artist: string;
   album?: string;
+  isAi?: boolean;
   duration?: string;
   coverUrl?: string;
   audioUrl?: string;

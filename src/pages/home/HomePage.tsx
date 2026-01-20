@@ -436,7 +436,7 @@ function HomePage() {
                         className="
                         group w-full text-left grid
                         grid-cols-[60px_70px_1fr_1fr_80px]
-                        items-center px-2 py-3
+                        items-center px-2 py-2
                         hover:bg-[#3d3d3d] transition
                         "
                     >
@@ -468,7 +468,7 @@ function HomePage() {
                         </div>
 
                         <div className="ml-5 flex items-center gap-4 min-w-0 truncate">
-                        <div className="w-10 h-10 rounded-lg bg-[#D9D9D9]" />
+                        <div className="w-12 h-12 rounded-lg bg-[#D9D9D9]" />
                         <div className="text-sm text-[#F6F6F6] whitespace-nowrap">
                             {row.musicName}
                             {row.isAi && (
@@ -511,23 +511,11 @@ function HomePage() {
         <div className="rounded-3xl bg-[#2d2d2d]/80 p-6 pb-6">
             {/* 헤더 */}
             <div className="flex items-center justify-between mb-3">
-            <button
-                type="button"
-                onClick={() => navigate("/search")}
-                className="px-3 text-xl font-semibold hover:text-[#87B2B6] text-[#AFDEE2] whitespace-nowrap transition"
+            <div
+                className="px-3 text-xl font-semibold text-[#AFDEE2] whitespace-nowrap transition"
             >
                 인기 공개 플레이리스트
-            </button>
-
-            <button
-                type="button"
-                onClick={() => navigate("/search")}
-                className="px-4 shrink-0 text-[#AFDEE2] hover:text-[#87B2B6] text-xl leading-none"
-                aria-label="인기 공개 플레이리스트 더보기"
-                title="더보기"
-            >
-                <MdOutlineNavigateNext size={30} />
-            </button>
+            </div>
             </div>
 
             <div className="mb-4 border-b border-[#464646]" />
