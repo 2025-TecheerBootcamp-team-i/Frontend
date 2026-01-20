@@ -15,7 +15,6 @@ function Header() {
  const goSearch = () => {
     const q = query.trim();
     if (!q) {
-      navigate("/search");
       return;
     }
   

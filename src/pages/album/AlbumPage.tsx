@@ -613,8 +613,8 @@ export default function AlbumDetailPage() {
                     className={[
                     "w-full text-left",
                     "grid grid-cols-[28px_42px_1fr_90px] items-center",
-                    "gap-x-4",
-                    "py-3 px-6",
+                    "gap-x-6",
+                    "py-2 px-6",
                     "border-b border-[#464646]",
                     "hover:bg-white/5 transition",
                     ].join(" ")}
@@ -633,7 +633,7 @@ export default function AlbumDetailPage() {
                     />
                     </div>
 
-                    <div className="w-10 h-10 rounded-xl bg-[#6b6b6b]/50 border border-[#464646] overflow-hidden relative">
+                    <div className="w-12 h-12 rounded-xl bg-[#6b6b6b]/50 border border-[#464646] overflow-hidden relative">
                         {(trackImages[t.id] || album.albumImage) ? (
                             <img
                                 src={

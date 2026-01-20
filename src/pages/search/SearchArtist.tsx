@@ -215,9 +215,12 @@ export default function SearchArtist() {
           <div
             className="
               grid
-              [grid-template-columns:repeat(4,220px)]
-              justify-center
+              [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]
               gap-x-8 gap-y-12
+              w-full
+              max-w-[1100px]
+              mx-auto
+              justify-items-center
             "
           >
             {artists.map((a) => (
