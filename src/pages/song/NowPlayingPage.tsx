@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
 import type { DragEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { MdFavorite, MdMoreHoriz } from "react-icons/md";
+import { MdFavorite, MdAutoAwesome } from "react-icons/md";
 import { MdQueueMusic, MdClose, MdDelete, MdDragIndicator } from "react-icons/md";
 import {
     MdPlayArrow,
@@ -426,6 +426,15 @@ export default function NowPlayingPage() {
         setOverIndex(null);
     };
 
+    const handleStartStation = () => {
+        if (!current) return;
+
+        // 예:
+        // 1. 현재 곡 기반 추천 API 호출
+        // 2. 결과를 queue에 replace
+        // 3. play
+    };
+
     return (
         <div className="relative h-full w-full text-[#F6F6F6] overflow-hidden">
         {/* ✅ 앨범 이미지를 이용한 전체 배경 블러
@@ -673,11 +682,12 @@ export default function NowPlayingPage() {
             {/* 더보기 */}
             <button
                 type="button"
+                onClick={handleStartStation}
                 className="p-2 ml-1 rounded-full hover:bg-white/10 transition"
-                aria-label="더보기"
-                title="더보기"
+                aria-label="스테이션 생성"
+                title="스테이션 생성"
             >
-                <MdMoreHoriz size={20} className={"text-[#f6f6f6]/80"}/>
+                <MdAutoAwesome size={20} className={"text-[#f6f6f6]/80"}/>
             </button>
 
             {/* 화면 다시 줄이기 */}
