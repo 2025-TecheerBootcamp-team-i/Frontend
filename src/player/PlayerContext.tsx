@@ -7,6 +7,7 @@ import React, {
   useEffect,
   useRef,
 } from "react";
+import { logPlayTrack } from "../api/music";
 
 export type PlayerTrack = {
   id: string;
@@ -239,6 +240,24 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const a = audioRef.current;
     if (a) a.volume = volume;
   }, [volume]);
+
+  // ✅ 재생 로그 기록 (곡이 변경될 때만)
+  const lastLoggedTrackRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!current?.musicId || !isPlaying) return;
+
+    const musicId = current.musicId;
+
+    // 같은 곡이면 로그 기록 안 함 (일시정지 후 재생)
+    if (lastLoggedTrackRef.current === musicId) {
+      return;
+    }
+
+    // 새로운 곡으로 변경되고 재생될 때만 로그 기록
+    lastLoggedTrackRef.current = musicId;
+    logPlayTrack(musicId);
+  }, [current?.musicId, isPlaying]);
 
   // ✅ current 변경 시 오디오 src만 동기화
   useEffect(() => {
