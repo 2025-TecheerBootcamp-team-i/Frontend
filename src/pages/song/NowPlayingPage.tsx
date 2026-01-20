@@ -450,7 +450,7 @@ export default function NowPlayingPage() {
             <div className="pointer-events-none absolute inset-0 bg-[#2d2d2d]" />
         )}
         {/* 상단 바 */}
-        <div className="h-16 px-6 flex items-center justify-between border-b border-[#3d3d3d]">
+        <div className="relative h-16 px-6 flex items-center justify-between">
             {/* 좌측 */}
             <div className="min-w-0">
             <button
@@ -492,11 +492,11 @@ export default function NowPlayingPage() {
             {/* 더보기 */}
             <button
                 type="button"
-                className="p-2 rounded-full hover:bg-white/10 transition"
+                className="p-2 ml-1 rounded-full hover:bg-white/10 transition"
                 aria-label="더보기"
                 title="더보기"
             >
-                <MdMoreHoriz size={20} />
+                <MdMoreHoriz size={20} className={"text-[#f6f6f6]/80"}/>
             </button>
 
             {/* 화면 다시 줄이기 */}
@@ -507,7 +507,7 @@ export default function NowPlayingPage() {
                 aria-label="뒤로 가기"
                 title="뒤로 가기"
             >
-                <GrContract size={18} />
+                <GrContract size={18} className={"text-[#f6f6f6]/80"} />
             </button>
             </div>
         </div>
