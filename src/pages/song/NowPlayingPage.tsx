@@ -59,6 +59,7 @@ export default function NowPlayingPage() {
         previousTrack,
         repeatMode,
         toggleRepeat,
+        setTrackAndPlay,
     } = usePlayer();
 
     const hasTrack = !!current;
@@ -559,10 +560,15 @@ export default function NowPlayingPage() {
                             onDragEnter={handleDragEnter(i, isQueue)}
                             onDragOver={handleDragOver(i, isQueue)}
                             onDrop={handleDrop(i, isQueue)}
+                            onDoubleClick={() => {
+                                if (isQueue) {
+                                    setTrackAndPlay(t);
+                                }
+                            }}
                             className={[
                             "w-full transition",
                             "hover:bg-white/5",
-                            isQueue ? "select-none" : "",
+                            isQueue ? "select-none cursor-pointer" : "",
                             overIndex === i && dragIndex !== null && dragIndex !== i
                                 ? "bg-white/10 outline outline-1 outline-white/15"
                                 : "",
