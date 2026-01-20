@@ -1,8 +1,9 @@
 import { MdOutlineNavigateNext } from "react-icons/md";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Playlist } from "../../components/layout/MainLayout";
 import { createAiSong } from "../../mocks/aiSongMock";
+import { getProfile } from "../../utils/auth";
 
 const PLAYER_H = 85; // ✅ 플레이어 높이(px)
 
@@ -15,6 +16,22 @@ function Sidebar({
 }) {
   const navigate = useNavigate();
   const [prompt, setPrompt] = useState("");
+  
+  // ✅ 프로필 정보 (닉네임 + 사진) 상태로 관리
+  const [profile, setProfile] = useState(getProfile());
+  
+  // ✅ 프로필 변경 이벤트 리스너
+  useEffect(() => {
+    const handleProfileUpdate = () => {
+      setProfile(getProfile());
+    };
+    
+    window.addEventListener("profileUpdated", handleProfileUpdate);
+    
+    return () => {
+      window.removeEventListener("profileUpdated", handleProfileUpdate);
+    };
+  }, []);
 
   const CURRENT_USER_ID = "me";
   const CURRENT_USER_NAME = "나";
@@ -87,8 +104,16 @@ function Sidebar({
           <div className="mb-3 border-b border-[#464646]" />
 
           <div className="flex gap-4">
-            <div className="w-24 h-24 bg-[#777777] rounded-2xl" />
-            <span className="mt-1.5 text-base text-[#F6F6F6]">Name</span>
+            <div className="w-24 h-24 bg-[#777777] rounded-2xl overflow-hidden">
+              {profile.avatar ? (
+                <img
+                  src={profile.avatar}
+                  alt={profile.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : null}
+            </div>
+            <span className="mt-1.5 text-base text-[#F6F6F6]">{profile.name}</span>
           </div>
 
           <div>
