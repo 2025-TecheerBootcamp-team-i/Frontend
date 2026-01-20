@@ -100,9 +100,9 @@ function mapChartDTO(dto: ChartResponseDTO): ChartData {
 //  *  =========================
 
 const ENDPOINT_BY_TYPE: Record<ChartType, string> = {
-  realtime: "/api/v1/charts/realtime",
-  daily: "/api/v1/charts/daily",
-  ai: "/api/v1/charts/ai",
+  realtime: "/charts/realtime",
+  daily: "/charts/daily",
+  ai: "/charts/ai",
 };
 
 /** 타입만 바꿔 호출하면 됨 */

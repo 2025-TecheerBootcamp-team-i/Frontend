@@ -7,12 +7,15 @@ import {
   MdNavigateBefore,
   MdOutlineMail,
   MdLockOutline,
+  MdPersonOutline,
 } from "react-icons/md";
+import { signup } from "../../api/auth";
 
 export default function SignUpPage() {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
+  const [nickname, setNickname] = useState("");
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
 
@@ -23,6 +26,7 @@ export default function SignUpPage() {
   const [emailStatus, setEmailStatus] = useState<
     "idle" | "checking" | "ok" | "dup" | "invalid"
   >("idle");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const emailOk = useMemo(() => {
     if (!email.trim()) return false;
@@ -38,31 +42,36 @@ export default function SignUpPage() {
     const hasLetter = /[A-Za-z]/.test(pw);
     const hasNumber = /\d/.test(pw);
     const hasSpecial = /[!@#$%^&*()_+\-=\\[\]{}|;:'",.<>/?`~]/.test(pw);
-    return { hasLetter, hasNumber, hasSpecial };
+    const isValidLength = pw.length >= 8 && pw.length <= 16;
+    return { hasLetter, hasNumber, hasSpecial, isValidLength };
   }, [pw]);
 
   const pwOk = useMemo(() => {
     if (!pw) return false;
-    return pwRules.hasLetter && pwRules.hasNumber && pwRules.hasSpecial;
+    return pwRules.hasLetter && pwRules.hasNumber && pwRules.hasSpecial && pwRules.isValidLength;
   }, [pw, pwRules]);
 
   const pwInvalid = pw.length > 0 && !pwOk;
   const pw2Invalid = pw2.length > 0 && pwMismatch;
 
   const pwRuleText = useMemo(() => {
-    if (!pw) return "문자/숫자/특수기호를 각각 1개 이상 포함해 주세요.";
+    if (!pw) return "8-16자리, 문자/숫자/특수기호를 각각 1개 이상 포함해 주세요.";
     const missing: string[] = [];
+    if (!pwRules.isValidLength) {
+      if (pw.length < 8) missing.push("8자리 이상");
+      if (pw.length > 16) missing.push("16자리 이하");
+    }
     if (!pwRules.hasLetter) missing.push("문자");
     if (!pwRules.hasNumber) missing.push("숫자");
     if (!pwRules.hasSpecial) missing.push("특수기호");
     if (missing.length === 0) return "";
-    return `${missing.join(", ")}가 부족해요.`;
+    return `${missing.join(", ")}가 필요해요.`;
   }, [pw, pwRules]);
 
   const canSubmit = useMemo(() => {
     const emailDupOk = emailStatus === "ok";
-    return emailOk && emailDupOk && !!pw.trim() && pwOk && !pwMismatch;
-  }, [emailOk, emailStatus, pw, pwOk, pwMismatch]);
+    return emailOk && emailDupOk && !!nickname.trim() && !!pw.trim() && pwOk && !pwMismatch;
+  }, [emailOk, emailStatus, nickname, pw, pwOk, pwMismatch]);
 
   const checkEmailDup = async () => {
     const v = email.trim();
@@ -88,17 +97,32 @@ export default function SignUpPage() {
     setEmailStatus("idle");
   }, [email]);
 
-  const onSubmit = () => {
+  const onSubmit = async () => {
     if (!email.trim()) return alert("이메일을 입력해 주세요.");
     if (!emailOk) return alert("이메일 형식이 올바르지 않습니다.");
     if (emailStatus !== "ok") return alert("이메일 중복 확인을 완료해 주세요.");
+    
+    if (!nickname.trim()) return alert("닉네임을 입력해 주세요.");
 
     if (!pw.trim()) return alert("비밀번호를 입력해 주세요.");
-    if (!pwOk) return alert("비밀번호는 문자/숫자/특수기호를 모두 포함해야 합니다.");
+    if (!pwOk) return alert("비밀번호는 8-16자리, 문자/숫자/특수기호를 모두 포함해야 합니다.");
     if (pwMismatch) return alert("비밀번호가 일치하지 않습니다.");
 
-    alert("회원가입을 완료했습니다!");
-    navigate("/login");
+    setIsSubmitting(true);
+    try {
+      await signup({
+        email: email.trim(),
+        password: pw,
+        nickname: nickname.trim(),
+      });
+      alert("회원가입을 완료했습니다!");
+      navigate("/login");
+    } catch (error: any) {
+      const errorMsg = error?.response?.data?.message || error?.response?.data?.detail || "회원가입에 실패했습니다.";
+      alert(errorMsg);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // ✅ floating 텍스트 애니메이션만 유지 (blob 배경은 AuthLayout이 담당)
@@ -276,6 +300,36 @@ export default function SignUpPage() {
                   )}
                 </div>
 
+                {/* Nickname */}
+                <div className="relative w-full mt-4">
+                  <label className="w-full text-left block text-[12px] text-white/70 mb-1">
+                    Nickname
+                  </label>
+
+                  <div className="relative w-full">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#f6f6f6]">
+                      <MdPersonOutline size={18} />
+                    </div>
+
+                    <input
+                      type="text"
+                      value={nickname}
+                      onChange={(e) => setNickname(e.target.value)}
+                      placeholder="닉네임을 입력해 주세요"
+                      className="
+                        w-full h-11 rounded-md
+                        pl-11 pr-4
+                        bg-[#3d3d3d]/80
+                        text-[#f6f6f6] text-sm
+                        placeholder:text-white/40
+                        outline-none
+                        focus:ring-2
+                        focus:ring-white/30
+                      "
+                    />
+                  </div>
+                </div>
+
                 {/* Password */}
                 <div className="relative w-full mt-4">
                   <label className="w-full text-left block text-[12px] text-white/70 mb-1">
@@ -291,7 +345,7 @@ export default function SignUpPage() {
                       type={showPw ? "password" : "text"}
                       value={pw}
                       onChange={(e) => setPw(e.target.value)}
-                      placeholder="문자와 숫자, 특수기호 포함"
+                      placeholder="8-16자리, 문자/숫자/특수기호 포함"
                       className={[
                         `
                         w-full h-11 rounded-md
@@ -386,15 +440,15 @@ export default function SignUpPage() {
                 <button
                   type="button"
                   onClick={onSubmit}
-                  disabled={!canSubmit}
+                  disabled={!canSubmit || isSubmitting}
                   className={[
                     "mt-8 w-full h-12 rounded-full text-sm transition",
-                    canSubmit
+                    canSubmit && !isSubmitting
                       ? "bg-[#e45a4d] text-[#f6f6f6] hover:brightness-110"
                       : "bg-[#e45a4d]/40 text-white/50 cursor-not-allowed",
                   ].join(" ")}
                 >
-                  Sign up
+                  {isSubmitting ? "처리 중..." : "Sign up"}
                 </button>
 
                 <button

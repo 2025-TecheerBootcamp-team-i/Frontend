@@ -23,7 +23,7 @@ function unwrapList<T>(data: any): T[] {
 
 // 인기 아티스트 목록
 export async function fetchPopularArtists(limit = 7): Promise<PopularArtist[]> {
-  const res = await axiosInstance.get(`/api/v1/artists/popular`, {
+  const res = await axiosInstance.get(`/artists/popular`, {
     params: { limit },
   });
   return unwrapList<PopularArtist>(res.data);

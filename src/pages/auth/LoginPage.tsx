@@ -6,6 +6,7 @@ import {
   MdVisibility,
   MdVisibilityOff,
 } from "react-icons/md";
+import { login } from "../../api/auth";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ export default function LoginPage() {
   const [id, setId] = useState("");
   const [pw, setPw] = useState("");
   const [showPw, setShowPw] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // ✅ LEFT 문구 자동 float만 유지
   useEffect(() => {
@@ -38,10 +40,34 @@ export default function LoginPage() {
 
   const canLogin = id.trim().length > 0 && pw.trim().length > 0;
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canLogin) return;
-    navigate("/home");
+    if (!canLogin || isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await login({
+        email: id.trim(),
+        password: pw,
+      });
+      
+      // 토큰 저장 (localStorage 사용)
+      localStorage.setItem("access_token", response.access);
+      localStorage.setItem("refresh_token", response.refresh);
+      localStorage.setItem("user", JSON.stringify({
+        id: response.user_id,
+        email: response.email,
+        nickname: response.nickname,
+      }));
+      
+      alert(`환영합니다, ${response.nickname}님!`);
+      navigate("/home");
+    } catch (error: any) {
+      const errorMsg = error?.response?.data?.message || error?.response?.data?.detail || "로그인에 실패했습니다.";
+      alert(errorMsg);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -177,15 +203,15 @@ export default function LoginPage() {
               {/* Login */}
               <button
                 type="submit"
-                disabled={!canLogin}
+                disabled={!canLogin || isSubmitting}
                 className={[
                   "mt-10 w-full h-11 rounded-full text-sm transition",
-                  canLogin
+                  canLogin && !isSubmitting
                     ? "bg-[#e45a4d] text-[#f6f6f6] hover:brightness-110"
                     : "bg-[#e45a4d]/40 text-white/50 cursor-not-allowed",
                 ].join(" ")}
               >
-                Login
+                {isSubmitting ? "처리 중..." : "Login"}
               </button>
 
               <div className="w-full mt-4 flex">

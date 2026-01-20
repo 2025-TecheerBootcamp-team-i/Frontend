@@ -38,6 +38,7 @@ type ArtistAlbumApi = {
     title: string;
     year: string;
     album_image: string | null;
+    image_large_square: string | null; // ✅ RDS에 저장된 이미지 (우선 사용)
 };
 
     type HorizontalScrollerProps = {
@@ -276,7 +277,7 @@ export default function ArtistPage() {
                         id: a.id,
                         title: a.title,
                         year: a.year,
-                        albumImage: a.album_image,
+                        albumImage: a.image_large_square || a.album_image, // ✅ image_large_square 우선 사용
                     })),
                 });
             } catch (e: unknown) {
@@ -419,7 +420,7 @@ export default function ArtistPage() {
                                 });
                                 (e.target as HTMLImageElement).style.display = "none";
                             }}
-                            onLoad={(e) => {
+                            onLoad={() => {
                                 console.log(`[ArtistPage] ✅ 아티스트 이미지 로드 성공:`, {
                                     name: artist.name,
                                     id: artist.id,
@@ -465,13 +466,14 @@ export default function ArtistPage() {
                     className={[
                     "w-full text-left",
                     "grid grid-cols-[56px_1fr_90px] min-[1200px]:grid-cols-[56px_1fr_100px_450px] items-center",
-                    "py-3 px-2",
+                    "py-2 px-2",
+                    "gap-x-2",
                     "border-b border-[#464646]",
                     "hover:bg-white/5 transition",
                     ].join(" ")}
                 >
                     {/* 앨범 이미지 */}
-                    <div className="w-10 h-10 rounded-xl bg-[#6b6b6b]/50 border border-[#464646] overflow-hidden relative flex-shrink-0">
+                    <div className="w-12 h-12 rounded-xl bg-[#6b6b6b]/50 border border-[#464646] overflow-hidden relative flex-shrink-0">
                         {t.albumImage ? (
                             <>
                                 <img
@@ -574,7 +576,7 @@ export default function ArtistPage() {
                                         });
                                         (e.target as HTMLImageElement).style.display = "none";
                                     }}
-                                    onLoad={(e) => {
+                                    onLoad={() => {
                                         console.log(`[ArtistPage] ✅ 앨범 이미지 로드 성공:`, {
                                             title: al.title,
                                             id: al.id,

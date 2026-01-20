@@ -11,10 +11,55 @@ const axiosInstance = axios.create({
   withCredentials: true,
 });
 
-// (선택) 디버깅용
+// ✅ 요청 인터셉터: 토큰을 헤더에 자동 추가
+axiosInstance.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("access_token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// ✅ 응답 인터셉터: 401 에러 시 토큰 갱신 시도
 axiosInstance.interceptors.response.use(
   (res) => res,
-  (err) => {
+  async (err) => {
+    const originalRequest = err.config;
+    
+    // 401 에러이고, 재시도하지 않은 요청인 경우
+    if (err?.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      const refreshToken = localStorage.getItem("refresh_token");
+      if (refreshToken) {
+        try {
+          // 토큰 갱신 시도
+          const response = await axiosInstance.post("/auth/refresh/", {
+            refresh: refreshToken,
+          });
+          
+          const newAccessToken = response.data.access;
+          localStorage.setItem("access_token", newAccessToken);
+          
+          // 원래 요청 재시도
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+          return axiosInstance(originalRequest);
+        } catch (refreshError) {
+          // 토큰 갱신 실패 시 로그아웃 처리
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
+          localStorage.removeItem("user");
+          window.location.href = "/login";
+          return Promise.reject(refreshError);
+        }
+      }
+    }
+    
     console.error("[API ERROR]", err?.response?.status, err?.response?.data ?? err);
     return Promise.reject(err);
   }
