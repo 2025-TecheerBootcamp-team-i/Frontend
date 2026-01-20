@@ -580,6 +580,29 @@ export default function SearchSong() {
     }
   };
 
+  /**
+   * 곡 리스트 한 행을 더블클릭했을 때 해당 곡만 바로 재생하는 핸들러
+   * - 체크박스 선택과 상관없이, 더블클릭한 곡 1곡만 재생
+   */
+  const handleRowDoubleClick = async (song: Song) => {
+    try {
+      const track = await toTrack(song);
+
+      // audioUrl 이 없으면 재생 불가이므로 콘솔로만 경고
+      if (!track.audioUrl) {
+        console.warn("[SearchSong] 더블클릭한 곡의 audioUrl 이 없습니다. 재생 불가:", {
+          songId: song.id,
+          title: song.title,
+        });
+        return;
+      }
+
+      playTracks([track]);
+    } catch (e) {
+      console.error("[SearchSong] 행 더블클릭 재생 중 오류:", e);
+    }
+  };
+
   /* ===================== JSX ===================== */
 
   return (
@@ -666,6 +689,7 @@ export default function SearchSong() {
           <div
             key={s.id}
             className="grid grid-cols-[28px_56px_1fr_90px] items-center gap-x-3 px-6 py-2 hover:bg-white/5"
+            onDoubleClick={() => handleRowDoubleClick(s)}
           >
             <input
               type="checkbox"
