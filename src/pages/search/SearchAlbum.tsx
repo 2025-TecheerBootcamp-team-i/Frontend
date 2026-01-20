@@ -30,6 +30,7 @@ type ArtistAlbum = {
   title: string;
   year: string;
   album_image: string | null;
+  image_large_square: string | null; // ✅ RDS에 저장된 이미지 (우선 사용)
 };
 
 const ALL_ALBUMS: Album[] = Array.from({ length: 12 }).map((_, i) => ({
@@ -109,12 +110,40 @@ export default function SearchAlbum() {
 
         console.log(`[SearchAlbum] 최종 앨범 목록: ${allAlbums.length}개 앨범`);
         allAlbums.forEach((album) => {
-          if (album.album_image) {
+          // ✅ image_large_square 우선 사용 (RDS에 저장된 이미지), 없으면 album_image 사용
+          const albumImage = album.image_large_square || album.album_image;
+          
+          if (albumImage) {
+            const isExternal = albumImage.startsWith("http://") || 
+                              albumImage.startsWith("https://") || 
+                              albumImage.startsWith("//");
+            const isRdsPath = albumImage.startsWith("/");
+            
             console.log(`[SearchAlbum] 📸 앨범 이미지:`, {
               title: album.title,
               id: album.id,
-              image_url: album.album_image,
+              image_large_square: album.image_large_square,
+              album_image: album.album_image,
+              final_image_url: albumImage,
+              source_type: isExternal ? "외부 URL (iTunes/YouTube 등)" : isRdsPath ? "RDS 경로" : "기타",
+              is_external: isExternal,
+              is_rds_path: isRdsPath,
+              using_image_large_square: !!album.image_large_square,
             });
+            
+            // "SUPER REAL ME (Sped Up) - EP" 특별 추적
+            if (album.title?.includes("SUPER REAL ME")) {
+              console.warn(`[SearchAlbum] ⚠️ "SUPER REAL ME" 앨범 이미지 발견:`, {
+                album_id: album.id,
+                album_title: album.title,
+                image_large_square: album.image_large_square,
+                album_image: album.album_image,
+                final_image_url: albumImage,
+                source: isExternal ? "외부 API에서 가져온 것으로 추정" : "RDS 경로",
+                using_image_large_square: !!album.image_large_square,
+                api_endpoint: `${API_BASE}/artists/{artistId}/albums/`,
+              });
+            }
           }
         });
 
@@ -197,7 +226,7 @@ export default function SearchAlbum() {
         title: a.title,
         artist: "", // 아티스트 정보는 별도로 관리 필요
         year: a.year,
-        image: a.album_image,
+        image: a.image_large_square || a.album_image, // ✅ image_large_square 우선 사용
       }));
     }
     if (!q) return ALL_ALBUMS;
