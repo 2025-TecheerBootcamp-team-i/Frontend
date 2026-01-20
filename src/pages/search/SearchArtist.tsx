@@ -212,15 +212,14 @@ export default function SearchArtist() {
         </div>
       ) : (
         <>
+          <div className="overflow-x-auto">
           <div
             className="
               grid
-              [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]
-              gap-x-8 gap-y-12
-              w-full
-              max-w-[1100px]
-              mx-auto
-              justify-items-center
+              gap-x-6
+              gap-y-12
+              justify-between
+              [grid-template-columns:repeat(4,220px)]
             "
           >
             {artists.map((a) => (
@@ -296,6 +295,7 @@ export default function SearchArtist() {
                 <div className="mt-1 text-sm text-[#f6f6f6]/60">아티스트</div>
               </button>
             ))}
+          </div>
           </div>
 
           {/* 결과 없음 */}

@@ -113,7 +113,6 @@ export default function ArtistAlbumsPage() {
             </div>
         </div>
 
-        {/* ✅ MyPlaylistsPersonal UI 참고한 카드 섹션 */}
         <section className="mt-4 mx-4 rounded-3xl bg-[#2d2d2d]/80 border border-[#2d2d2d]">
             {/* 헤더 */}
             <div className="px-8 pt-6 pb-2 flex items-center justify-between">

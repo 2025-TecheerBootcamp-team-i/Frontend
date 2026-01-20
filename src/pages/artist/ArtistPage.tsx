@@ -428,7 +428,7 @@ export default function ArtistPage() {
                                 });
                             }}
                         />
-                        <div className="absolute inset-0 bg-[#777777] animate-pulse z-0" />
+                        <div className="absolute inset-0 bg-[#2d2d2d] animate-pulse z-0" />
                     </>
                 ) : (
                     <div className="w-full h-full bg-[#777777]" />
@@ -506,12 +506,7 @@ export default function ArtistPage() {
                         {artist.name}
                     </div>
                     </div>
-
-                        {/* # 예전 버전 className="hidden min-[1200px]:block text-sm text-[#F6F6F6]/70 text-right" */}
-                        <div className="
-                            text-sm text-[#F6F6F6]/70
-                            text-ellipsis line-clamp-2
-                            ">
+                        <div className="hidden min-[1200px]:block text-sm text-[#F6F6F6]/70 text-right">
                             {t.album}
                         </div>
                     <div className="text-sm text-[#F6F6F6]/70 text-right">{t.duration}</div>
@@ -600,9 +595,6 @@ export default function ArtistPage() {
                     </div>
                     <div className="mt-3 text-sm font-semibold text-[#F6F6F6] truncate">
                         {al.title}
-                    </div>
-                    <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">
-                        {al.year}
                     </div>
                     </button>
                 ))}
