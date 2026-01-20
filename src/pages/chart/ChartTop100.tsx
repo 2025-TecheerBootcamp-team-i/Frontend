@@ -50,7 +50,16 @@ export default function ChartTop100() {
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-    const rows = useMemo(() => chart?.items ?? [], [chart]);
+    // ✅ musicId 기준 중복 제거
+    const rows = useMemo(() => {
+        if (!chart) return [];
+        const seen = new Set<string>();
+        return chart.items.filter(item => {
+            if (seen.has(item.musicId)) return false;
+            seen.add(item.musicId);
+            return true;
+        });
+    }, [chart]);
 
     // ✅ PlayerTrack 변환
     const toTrack = (row: ApiChartRow): PlayerTrack => ({
