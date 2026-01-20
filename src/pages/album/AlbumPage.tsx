@@ -683,6 +683,21 @@ export default function AlbumDetailPage() {
                     "border-b border-[#464646]",
                     "hover:bg-white/5 transition",
                     ].join(" ")}
+                    onDoubleClick={async () => {
+                        try {
+                            const track = await toPlayerTrack(t);
+                            if (!track.audioUrl) {
+                                console.warn("[AlbumPage] 더블클릭한 곡의 audioUrl 이 없습니다. 재생 불가:", {
+                                    trackId: t.id,
+                                    title: t.title,
+                                });
+                                return;
+                            }
+                            playTracks([track]);
+                        } catch (e) {
+                            console.error("[AlbumPage] 행 더블클릭 재생 중 오류:", e);
+                        }
+                    }}
                 >
                     <div
                     className="flex items-center justify-center"
