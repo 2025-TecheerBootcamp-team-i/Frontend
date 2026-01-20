@@ -247,29 +247,41 @@ function HomePage() {
             try {
             setChartLoading(true);
             setChartError(null);
-    
-            const [realtime, daily, ai] = await Promise.all([
+
+            // ✅ Promise.allSettled로 변경: 일부 실패해도 성공한 것은 표시
+            const results = await Promise.allSettled([
                 fetchChart("realtime"),
                 fetchChart("daily"),
                 fetchChart("ai"),
             ]);
             if (!alive) return;
-    
+
+            const realtime = results[0].status === "fulfilled" ? results[0].value : null;
+            const daily = results[1].status === "fulfilled" ? results[1].value : null;
+            const ai = results[2].status === "fulfilled" ? results[2].value : null;
+
             // diff 계산 (realtime 기준)
-            const prev = prevRankByIdRef.current;
-            const nextDiff: Record<string, number> = {};
-            for (const item of realtime.items) {
-                const prevRank = prev[item.musicId];
-                nextDiff[item.musicId] = typeof prevRank === "number" ? prevRank - item.rank : 0;
+            if (realtime) {
+                const prev = prevRankByIdRef.current;
+                const nextDiff: Record<string, number> = {};
+                for (const item of realtime.items) {
+                    const prevRank = prev[item.musicId];
+                    nextDiff[item.musicId] = typeof prevRank === "number" ? prevRank - item.rank : 0;
+                }
+                setDiffById(nextDiff);
+
+                // 다음 비교용 스냅샷 저장
+                const nextPrev: Record<string, number> = {};
+                for (const item of realtime.items) nextPrev[item.musicId] = item.rank;
+                prevRankByIdRef.current = nextPrev;
             }
-            setDiffById(nextDiff);
-    
-            // 다음 비교용 스냅샷 저장
-            const nextPrev: Record<string, number> = {};
-            for (const item of realtime.items) nextPrev[item.musicId] = item.rank;
-            prevRankByIdRef.current = nextPrev;
-    
+
             setChartByType({ realtime, daily, ai });
+
+            // ✅ 모두 실패한 경우에만 에러 표시
+            if (!realtime && !daily && !ai) {
+                setChartError("차트 데이터를 불러올 수 없습니다.");
+            }
             } catch (e: unknown) {
             if (!alive) return;
             setChartError(getErrorMessage(e, "차트 로딩 실패"));

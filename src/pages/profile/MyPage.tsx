@@ -13,6 +13,7 @@ import type { Playlist } from "../../components/layout/MainLayout";
 import { getMyAiSongs, subscribeAiSongs } from "../../mocks/aiSongMock";
 import type { AiTrack } from "../../mocks/aiSongMock";
 import { fetchUserStatistics, fetchTopTracks, type UserStatistics, type TopTrack } from "../../api/user";
+import { getCurrentUserNickname, updateCurrentUserNickname, getCurrentUserId } from "../../utils/auth";
 
 type Profile = {
     name: string;
@@ -165,8 +166,9 @@ export default function MyPage() {
             // ignore
         }
         }
+        // ✅ 로그인한 사용자의 닉네임을 기본값으로 사용
         return {
-        name: "Name",
+        name: getCurrentUserNickname(),
         avatar: "", // 기본 비워두면 회색 원 표시
         };
     });
@@ -195,19 +197,29 @@ export default function MyPage() {
     }, [editOpen]);
 
     const saveProfile = () => {
+        const newName = draft.name.trim() || getCurrentUserNickname();
         const next = {
         ...draft,
-        name: draft.name.trim() || "Name",
+        name: newName,
         };
+        
+        // ✅ localStorage의 "profile"에 저장
         setProfile(next);
         localStorage.setItem(PROFILE_KEY, JSON.stringify(next));
+        
+        // ✅ localStorage의 "user"의 nickname도 업데이트
+        updateCurrentUserNickname(newName);
+        
+        // ✅ 프로필 업데이트 이벤트 발생
+        window.dispatchEvent(new CustomEvent("profileUpdated"));
+        
         setEditOpen(false);
     };
 
     const { setTrackAndPlay } = usePlayer();
 
-    // ✅ 너희 로그인 유저로 교체
-    const CURRENT_USER_ID = "me";
+    // ✅ 로그인한 사용자 ID 가져오기
+    const CURRENT_USER_ID = getCurrentUserId() || "me";
 
     // ✅ 마이페이지 프리뷰용 AI곡
     const [myAiPreview, setMyAiPreview] = useState<AiTrack[]>([]);
@@ -839,12 +851,47 @@ export default function MyPage() {
                             const file = e.target.files?.[0];
                             if (!file) return;
 
+                            // ✅ 이미지 리사이즈 및 압축
                             const reader = new FileReader();
-                            reader.onload = () => {
+                            reader.onload = (event) => {
+                                const img = new Image();
+                                img.onload = () => {
+                                // 최대 크기 설정 (300x300)
+                                const MAX_SIZE = 300;
+                                let width = img.width;
+                                let height = img.height;
+
+                                // 비율 유지하면서 리사이즈
+                                if (width > height) {
+                                    if (width > MAX_SIZE) {
+                                    height = (height * MAX_SIZE) / width;
+                                    width = MAX_SIZE;
+                                    }
+                                } else {
+                                    if (height > MAX_SIZE) {
+                                    width = (width * MAX_SIZE) / height;
+                                    height = MAX_SIZE;
+                                    }
+                                }
+
+                                // Canvas로 리사이즈
+                                const canvas = document.createElement("canvas");
+                                canvas.width = width;
+                                canvas.height = height;
+                                const ctx = canvas.getContext("2d");
+                                if (!ctx) return;
+
+                                ctx.drawImage(img, 0, 0, width, height);
+
+                                // JPEG로 압축 (품질 0.7)
+                                const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.7);
+
                                 setDraft((prev) => ({
-                                ...prev,
-                                avatar: String(reader.result || ""),
+                                    ...prev,
+                                    avatar: compressedDataUrl,
                                 }));
+                                };
+                                img.src = event.target?.result as string;
                             };
                             reader.readAsDataURL(file);
                             }}
