@@ -7,6 +7,7 @@ import React, {
   useEffect,
   useRef,
 } from "react";
+import { logPlayTrack } from "../api/music";
 
 export type PlayerTrack = {
   id: string;
@@ -101,9 +102,22 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const setVolume = useCallback((v: number) => {
     const vol = Math.max(0, Math.min(1, v));
     _setVolume(vol);
-    // ✅ 바로 반영 (슬라이더 드래그 시 즉시 적용)
     if (audioRef.current) audioRef.current.volume = vol;
   }, []);
+
+  // ✅ history helper: key = musicId 우선, 없으면 id
+  const trackKey = useCallback((t: PlayerTrack) => (t.musicId ?? t.id).toString(), []);
+
+  const pushHistory = useCallback(
+    (track: PlayerTrack) => {
+      setHistory((prev) => {
+        const key = trackKey(track);
+        const next = [track, ...prev.filter((x) => trackKey(x) !== key)];
+        return next.slice(0, 50);
+      });
+    },
+    [trackKey]
+  );
 
   // ✅ 오디오 초기화 & 이벤트 리스너 (1회)
   useEffect(() => {
@@ -115,15 +129,14 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     };
 
     const handleLoadedMetadata = () => {
-      // ✅ 메타데이터 로딩 후 duration 업데이트 (정석)
       setDuration(Number.isFinite(audio.duration) ? audio.duration : 0);
     };
 
     const handleEnded = () => {
       const currentRepeatMode = repeatModeRef.current;
-      const currentTrack = currentRef.current;
+      const cur = currentRef.current;
 
-      if (currentRepeatMode === "one" && currentTrack) {
+      if (currentRepeatMode === "one" && cur) {
         const a = audioRef.current;
         if (!a) return;
 
@@ -141,13 +154,21 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      // ✅ 곡 끝 → 큐에서 다음 곡으로 넘어가기 (여기서 history 업데이트!)
       setQueue((q) => {
         if (q.length > 0) {
           const next = q[0];
+
+          // ✅ 끝난 곡을 기록에 남김
+          if (cur) pushHistory(cur);
+
           setCurrent(next);
           setProgress(0);
           return q.slice(1);
         }
+
+        // 큐가 비면 정지
+        if (cur) pushHistory(cur);
         setIsPlaying(false);
         setProgress(0);
         return q;
@@ -166,7 +187,6 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
       if (err) {
         let msg = "알 수 없는 오류";
-        // ✅ TS/런타임 안정: MediaError 상수 대신 숫자 코드
         switch (err.code) {
           case 1:
             msg = "재생이 중단되었습니다";
@@ -212,20 +232,37 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       audio.pause();
       audio.src = "";
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pushHistory]);
 
-  // ✅ 볼륨 변경 시 오디오 볼륨 동기화 (항상 보장)
+  // ✅ 볼륨 변경 시 오디오 볼륨 동기화
   useEffect(() => {
     const a = audioRef.current;
     if (a) a.volume = volume;
   }, [volume]);
 
+  // ✅ 재생 로그 기록 (곡이 변경될 때만)
+  const lastLoggedTrackRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!current?.musicId || !isPlaying) return;
+
+    const musicId = current.musicId;
+
+    // 같은 곡이면 로그 기록 안 함 (일시정지 후 재생)
+    if (lastLoggedTrackRef.current === musicId) {
+      return;
+    }
+
+    // 새로운 곡으로 변경되고 재생될 때만 로그 기록
+    lastLoggedTrackRef.current = musicId;
+    logPlayTrack(musicId);
+  }, [current?.musicId, isPlaying]);
+
   // ✅ current 변경 시 오디오 src만 동기화
-  //    (주의) 여기서 setState를 "동기"로 때리면 린트가 싫어하므로 rAF로 미룸
   useEffect(() => {
     const a = audioRef.current;
 
-    // helper: 린트 룰 피하면서 state 초기화
     const resetReactSide = () => {
       const id = requestAnimationFrame(() => {
         setProgress(0);
@@ -263,14 +300,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       };
     }
 
-    // ✅ 외부 시스템(오디오)만 업데이트
     a.src = url;
     a.load();
 
-    // ✅ 재생 상태 유지: 현재 isPlaying이면 play() 트리거는 아래 isPlaying effect가 담당
-    // (여기서 play()까지 하면 effect 간 꼬일 수 있음)
-
-    // 진행률은 새 곡이니까 0으로. (rAF로 미룸)
     return resetReactSide();
   }, [current]);
 
@@ -293,13 +325,24 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isPlaying, current]);
 
-  const playList = useCallback((tracks: PlayerTrack[]) => {
-    if (tracks.length === 0) return;
-    setCurrent(tracks[0]);
-    setIsPlaying(true);
-    setProgress(0);
-    setQueue(tracks.slice(1));
-  }, []);
+  const playList = useCallback(
+    (tracks: PlayerTrack[]) => {
+      if (tracks.length === 0) return;
+
+      // ✅ 현재 곡이 있었다면 기록에 남김
+      const cur = currentRef.current;
+      if (cur) pushHistory(cur);
+
+      setCurrent(tracks[0]);
+      setIsPlaying(true);
+      setProgress(0);
+      setQueue(tracks.slice(1));
+
+      // ✅ 새로 재생 시작한 곡도 기록에 포함시키고 싶으면:
+      pushHistory(tracks[0]);
+    },
+    [pushHistory]
+  );
 
   const playListShuffled = useCallback(
     (tracks: PlayerTrack[]) => {
@@ -309,34 +352,38 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     [playList]
   );
 
-  const setTrackAndPlay = useCallback((track: PlayerTrack) => {
-    setCurrent(track);
-    setIsPlaying(true);
-    setProgress(0);
+  const setTrackAndPlay = useCallback(
+    (track: PlayerTrack) => {
+      const cur = currentRef.current;
+      if (cur) pushHistory(cur);
 
-    setHistory((prev) => {
-      const next = [track, ...prev.filter((t) => t.id !== track.id)];
-      return next.slice(0, 50);
-    });
-  }, []);
+      setCurrent(track);
+      setIsPlaying(true);
+      setProgress(0);
 
-  const playTracks = useCallback((tracks: PlayerTrack[], opts?: { shuffle?: boolean }) => {
-    if (tracks.length === 0) return;
+      pushHistory(track);
+    },
+    [pushHistory]
+  );
 
-    const list = opts?.shuffle ? shuffleCopy(tracks) : tracks;
+  const playTracks = useCallback(
+    (tracks: PlayerTrack[], opts?: { shuffle?: boolean }) => {
+      if (tracks.length === 0) return;
 
-    setCurrent(list[0]);
-    setIsPlaying(true);
-    setProgress(0);
+      const list = opts?.shuffle ? shuffleCopy(tracks) : tracks;
 
-    setQueue(list.slice(1));
+      const cur = currentRef.current;
+      if (cur) pushHistory(cur);
 
-    setHistory((prev) => {
-      const first = list[0];
-      const next = [first, ...prev.filter((t) => t.id !== first.id)];
-      return next.slice(0, 50);
-    });
-  }, []);
+      setCurrent(list[0]);
+      setIsPlaying(true);
+      setProgress(0);
+      setQueue(list.slice(1));
+
+      pushHistory(list[0]);
+    },
+    [pushHistory]
+  );
 
   const toggle = useCallback(() => {
     if (!current?.audioUrl) return;
@@ -405,29 +452,49 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   );
 
   const nextTrack = useCallback(() => {
+    const cur = currentRef.current;
+
     setQueue((q) => {
       if (q.length > 0) {
         const next = q[0];
+
+        // ✅ 스킵 시에도 현재곡을 기록에 남김
+        if (cur) pushHistory(cur);
+
         setCurrent(next);
         setProgress(0);
+        setIsPlaying(true);
+        // ✅ 다음 곡도 기록에 포함시키고 싶으면
+        pushHistory(next);
+
         return q.slice(1);
       }
       return q;
     });
-  }, []);
+  }, [pushHistory]);
 
   const previousTrack = useCallback(() => {
+    // history 구조: [가장 최근, ...]
+    // 우리는 "현재곡도 history에 들어감" 정책이니까,
+    // 이전곡은 history[1]이 될 가능성이 큼.
     setHistory((h) => {
-      if (h.length > 0) {
-        const prev = h[0];
-        setCurrent(prev);
-        setProgress(0);
-        if (current) setQueue((q) => [current, ...q]);
-        return h.slice(1);
-      }
-      return h;
+      if (h.length <= 1) return h;
+
+      const cur = currentRef.current;
+      const prev = h[1];
+
+      if (cur) setQueue((q) => [cur, ...q]);
+
+      setCurrent(prev);
+      setProgress(0);
+      setIsPlaying(true);
+
+      // ✅ prev를 맨 앞으로 올려서 "현재곡"으로 만들기
+      const key = trackKey(prev);
+      const nextHist = [prev, ...h.filter((x) => trackKey(x) !== key)].slice(0, 50);
+      return nextHist;
     });
-  }, [current]);
+  }, [trackKey]);
 
   const toggleRepeat = useCallback(() => {
     setRepeatMode((m) => (m === "off" ? "one" : "off"));

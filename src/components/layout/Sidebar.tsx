@@ -56,10 +56,13 @@ function Sidebar({
         <div
           className="
             w-full
-            bg-[#3d3d3d]/80
+            bg-gradient-to-tr
+            from-[#3d3d3d]
+            to-[#2d2d2d]
             rounded-3xl
             px-5 py-4
             flex-none
+            shadow-[0_4px_12px_rgba(0,0,0,0.25)]
           "
           style={{
             height: "clamp(320px, 42vh, 400px)", // ✅ 화면 크기에 따라 적당히
@@ -139,11 +142,14 @@ function Sidebar({
         <div
           className="
             w-full
-            bg-[#3d3d3d]/80
+            bg-gradient-to-tr
+            from-[#3d3d3d]
+            to-[#2d2d2d]
             rounded-3xl
             px-5 py-4
             flex flex-col
             min-h-0
+            shadow-[0_4px_12px_rgba(0,0,0,0.25)]
             overflow-hidden
           "
           style={{

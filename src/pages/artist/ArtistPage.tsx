@@ -38,6 +38,7 @@ type ArtistAlbumApi = {
     title: string;
     year: string;
     album_image: string | null;
+    image_large_square: string | null; // ✅ RDS에 저장된 이미지 (우선 사용)
 };
 
     type HorizontalScrollerProps = {
@@ -276,7 +277,7 @@ export default function ArtistPage() {
                         id: a.id,
                         title: a.title,
                         year: a.year,
-                        albumImage: a.album_image,
+                        albumImage: a.image_large_square || a.album_image, // ✅ image_large_square 우선 사용
                     })),
                 });
             } catch (e: unknown) {
