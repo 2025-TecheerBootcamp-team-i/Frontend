@@ -241,8 +241,7 @@ export default function SearchArtist() {
                   className="
                     w-52 h-52
                     rounded-full
-                    bg-[#777777]
-                    border border-[#464646]
+                    bg-[#2d2d2d]/80
                     transition
                     hover:shadow-[0_10px_28px_rgba(0,0,0,0.38)]
                     overflow-hidden
