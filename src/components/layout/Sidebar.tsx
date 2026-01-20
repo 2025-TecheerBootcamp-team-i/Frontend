@@ -56,7 +56,9 @@ function Sidebar({
         <div
           className="
             w-full
-            bg-[#3d3d3d]/80
+            bg-gradient-to-tr
+            from-[#3d3d3d]
+            to-[#2d2d2d]
             rounded-3xl
             px-5 py-4
             flex-none
@@ -140,7 +142,9 @@ function Sidebar({
         <div
           className="
             w-full
-            bg-[#3d3d3d]/80
+            bg-gradient-to-tr
+            from-[#3d3d3d]
+            to-[#2d2d2d]
             rounded-3xl
             px-5 py-4
             flex flex-col
