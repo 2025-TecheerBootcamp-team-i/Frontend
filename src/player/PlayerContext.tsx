@@ -245,16 +245,32 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const lastLoggedTrackRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!current?.musicId || !isPlaying) return;
+    console.log('🎵 재생 로그 체크:', {
+      current_전체: current,
+      hasMusicId: !!current?.musicId,
+      musicId: current?.musicId,
+      isPlaying,
+      lastLogged: lastLoggedTrackRef.current,
+      조건_통과: !!(current?.musicId && isPlaying),
+    });
+
+    if (!current?.musicId || !isPlaying) {
+      console.log('❌ 로그 기록 조건 미충족:', {
+        reason: !current?.musicId ? 'musicId 없음' : 'isPlaying false',
+      });
+      return;
+    }
 
     const musicId = current.musicId;
 
     // 같은 곡이면 로그 기록 안 함 (일시정지 후 재생)
     if (lastLoggedTrackRef.current === musicId) {
+      console.log('⏭️ 같은 곡 재생, 로그 스킵:', musicId);
       return;
     }
 
     // 새로운 곡으로 변경되고 재생될 때만 로그 기록
+    console.log('✅ 재생 로그 기록 시도:', musicId);
     lastLoggedTrackRef.current = musicId;
     logPlayTrack(musicId);
   }, [current?.musicId, isPlaying]);
