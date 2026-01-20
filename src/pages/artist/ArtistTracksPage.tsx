@@ -1,11 +1,16 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { IoChevronBack, IoPlayCircle, IoShuffle } from "react-icons/io5";
 import { MdPlaylistAdd, MdFavorite } from "react-icons/md";
 
-import { ARTISTS } from "../../mocks/artistsMock";
 import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
+import {
+  fetchArtistDetail,
+  fetchArtistTracks,
+  type ArtistDetail,
+  type ArtistTrack,
+} from "../../api/artist";
 
 const actions = [
     { key: "play", label: "재생", icon: <IoPlayCircle size={18} /> },
@@ -20,12 +25,65 @@ export default function ArtistTracksPage() {
     const { artistId } = useParams();
     const navigate = useNavigate();
 
+    const [artist, setArtist] = useState<ArtistDetail | null>(null);
+    const [tracks, setTracks] = useState<ArtistTrack[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+    if (!artistId) {
+        setError("아티스트 ID가 없습니다.");
+        setArtist(null);
+        setTracks([]);
+        return;
+    }
+
+    const idNum = Number(artistId);
+    if (Number.isNaN(idNum)) {
+        setError("유효하지 않은 아티스트 ID입니다.");
+        setArtist(null);
+        setTracks([]);
+        return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+        try {
+        setLoading(true);
+        setError(null);
+
+        const [detail, list] = await Promise.all([
+            fetchArtistDetail(idNum),
+            fetchArtistTracks(idNum),
+        ]);
+
+        if (cancelled) return;
+
+        setArtist(detail);
+        setTracks(list);
+
+        // 새 데이터 로드되면 체크 상태 초기화(원하면 제거 가능)
+        setCheckedIds({});
+        } catch (e: unknown) {
+        if (cancelled) return;
+        setError(e instanceof Error ? e.message : "알 수 없는 오류");
+        setArtist(null);
+        setTracks([]);
+        } finally {
+        if (!cancelled) setLoading(false);
+        }
+    })();
+
+    return () => {
+        cancelled = true;
+    };
+    }, [artistId]);
+
+
+
     // ✅ PlayerContext에 있는 이름 그대로 쓰기 (너가 위에서 playTracks로 가져왔으니 그걸로)
     const { playTracks } = usePlayer();
-
-    const artist = useMemo(() => ARTISTS[artistId ?? ""], [artistId]);
-
-    const tracks = artist?.tracks ?? [];
 
     // ✅ 체크박스 상태
     const [checkedIds, setCheckedIds] = useState<Record<string, boolean>>({});
@@ -41,9 +99,9 @@ export default function ArtistTracksPage() {
         setCheckedIds((prev) => ({ ...prev, [id]: !prev[id] }));
     };
 
-    if (!artist) {
+    if (loading) {
         return (
-        <div className="w-full min-w-0 px-6 py-5 text-white">
+            <div className="w-full min-w-0 px-6 py-5 text-white">
             <button
             type="button"
             onClick={() => navigate(-1)}
@@ -52,25 +110,34 @@ export default function ArtistTracksPage() {
             >
             <IoChevronBack size={24} />
             </button>
-
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-            <div className="text-xl font-semibold">아티스트를 찾을 수 없어요.</div>
-            <div className="mt-2 text-sm text-[#aaa]">
-                요청한 ID: <span className="text-white">{artistId ?? "(없음)"}</span>
-            </div>
-            </div>
+            <div className="text-center py-12 text-[#999]">로딩 중...</div>
         </div>
         );
     }
 
-    // ✅ ARTISTS mock track 타입 (any 없음)
-    type ArtistTrack = (typeof ARTISTS)[string]["tracks"][number];
+    if (!artist || error) {
+            return (
+            <div className="w-full min-w-0 px-6 py-5 text-white">
+            <button type="button" onClick={() => navigate(-1)} className="mb-6 text-[#aaa] hover:text-white transition">
+                <IoChevronBack size={24} />
+            </button>
+
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+                <div className="text-xl font-semibold">아티스트를 찾을 수 없어요.</div>
+                <div className="mt-2 text-sm text-[#aaa]">
+                요청한 ID: <span className="text-white">{artistId ?? "(없음)"}</span>
+                </div>
+                {error && <div className="mt-2 text-sm text-red-400">오류: {error}</div>}
+            </div>
+            </div>
+        );
+        }
 
     // ✅ 단 하나의 변환 함수만 유지
     const toPlayerTrack = (t: ArtistTrack): PlayerTrack => ({
         id: t.id,
         title: t.title,
-        artist: artist.name,
+        artist: artist.artist_name,
         album: t.album,
         duration: t.duration, // "mm:ss"
         audioUrl: "/audio/sample.mp3",
@@ -119,7 +186,7 @@ export default function ArtistTracksPage() {
             >
                 <IoChevronBack size={22} />
             </button>
-            <h1 className="text-xl font-semibold text-[#F6F6F6]">{artist.name} · 전체 곡</h1>
+            <h1 className="text-xl font-semibold text-[#F6F6F6]">{artist.artist_name} · 전체 곡</h1>
             </div>
         </div>
 
@@ -217,7 +284,7 @@ export default function ArtistTracksPage() {
 
                 <div className="min-w-0">
                     <div className="text-sm font-semibold text-[#F6F6F6] truncate">{t.title}</div>
-                    <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">{artist.name}</div>
+                    <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">{artist.artist_name}</div>
                 </div>
 
                 <div className="hidden min-[1200px]:block text-sm text-[#F6F6F6]/70 text-left truncate">
