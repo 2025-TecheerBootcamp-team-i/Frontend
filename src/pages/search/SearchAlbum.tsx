@@ -274,6 +274,7 @@ export default function SearchAlbum() {
                 "
               >
                 {/* 앨범 커버 */}
+                <div className="w-[208px]">
                 <div
                   className="
                     w-52 h-52
@@ -329,16 +330,18 @@ export default function SearchAlbum() {
                 {/* 텍스트 */}
                 <div className="mt-4 w-full min-w-0">
                   <div className="
-                    text-base font-semibold 
-                    text-[#f6f6f6]
-                    text-center
-                    group-hover:text-[#AFDEE2] transition 
-                    break-words leading-snug">
+                      text-base font-semibold text-[#f6f6f6]
+                      group-hover:text-[#AFDEE2] transition
+                      w-[208px] text-left
+                      break-words
+                      line-clamp-2
+                    ">
                     {a.title}
                   </div>
                   {a.artist && (
                     <div className="mt-1 text-sm text-[#f6f6f6]/60 truncate">{a.artist}</div>
                   )}
+                </div>
                 </div>
               </button>
             ))}

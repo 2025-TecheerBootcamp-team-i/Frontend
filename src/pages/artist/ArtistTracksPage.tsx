@@ -280,7 +280,19 @@ export default function ArtistTracksPage() {
                     />
                 </div>
 
-                <div className="ml-4 w-10 h-10 rounded-xl bg-[#6b6b6b]/50 border border-[#464646]" />
+                    <div className="ml-4 w-10 h-10 rounded-xl bg-[#6b6b6b]/50 border border-[#464646]">
+                        {t.album_image ? (
+                        <img
+                        src={t.album_image}
+                        alt={t.title}
+                        className="w-full h-full rounded-xl object-cover"
+                        />
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center text-[#F6F6F6] text-xl">
+                            {t.title?.[0] ?? "?"}
+                            </div>
+                        )}
+                    </div>
 
                 <div className="min-w-0">
                     <div className="text-sm font-semibold text-[#F6F6F6] truncate">{t.title}</div>
