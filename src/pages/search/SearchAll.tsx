@@ -569,7 +569,7 @@ export default function SearchHome() {
                           <div className="flex flex-col">
                             <div
                               className={[
-                                "w-[228px] h-[228px] bg-white/10 relative overflow-hidden",
+                                "w-[228px] h-[228px] bg-[#3d3d3d]/10 relative overflow-hidden",
                                 isArtist ? "rounded-full" : "rounded-2xl",
                               ].join(" ")}
                             >
