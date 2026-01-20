@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { IoChevronBack, IoPlayCircle, IoShuffle } from "react-icons/io5";
 import { MdPlaylistAdd, MdFavorite } from "react-icons/md";
+import { FaPlay } from "react-icons/fa6";
 
 import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
@@ -21,14 +22,39 @@ const actions = [
 
 type ActionKey = (typeof actions)[number]["key"];
 
+type TrackPlayApi = {
+  music_id: number;
+  music_name: string;
+  artist_name: string;
+  album_name: string;
+  album_image: string | null;
+  audio_url: string | null;
+  duration: number | null; // seconds
+  genre: string | null;
+  is_ai: boolean;
+  itunes_id: number;
+};
+
+function formatSeconds(sec: number | null): string {
+  if (typeof sec !== "number" || Number.isNaN(sec)) return "0:00";
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+
 export default function ArtistTracksPage() {
     const { artistId } = useParams();
     const navigate = useNavigate();
 
+    const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
+
+    // API 상태
     const [artist, setArtist] = useState<ArtistDetail | null>(null);
     const [tracks, setTracks] = useState<ArtistTrack[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [playingId, setPlayingId] = useState<string | null>(null);
 
     useEffect(() => {
     if (!artistId) {
@@ -80,7 +106,45 @@ export default function ArtistTracksPage() {
     };
     }, [artistId]);
 
+    const handlePlayById = async (musicId: string) => {
 
+    try {
+        setPlayingId(musicId);
+
+        const res = await fetch(`${API_BASE}/tracks/${musicId}/play`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        });
+
+        if (!res.ok) {
+        throw new Error(`트랙 재생 정보 조회 실패: ${res.status}`);
+        }
+
+        const data: TrackPlayApi = await res.json();
+
+        if (!data.audio_url) {
+        throw new Error("재생할 오디오 URL이 없습니다.");
+        }
+
+        const track: PlayerTrack = {
+        musicId: data.music_id,
+        id: String(data.music_id),
+        title: data.music_name,
+        artist: data.artist_name,
+        album: data.album_name,
+        duration: formatSeconds(data.duration),
+        coverUrl: data.album_image ?? undefined,
+        audioUrl: data.audio_url,
+        };
+
+        playTracks([track]);
+    } catch (e) {
+        console.error("[ArtistTracksPage] play error:", e);
+        alert(e instanceof Error ? e.message : "재생 중 오류가 발생했습니다.");
+    } finally {
+        setPlayingId(null);
+    }
+    };
 
     // ✅ PlayerContext에 있는 이름 그대로 쓰기 (너가 위에서 playTracks로 가져왔으니 그걸로)
     const { playTracks } = usePlayer();
@@ -263,6 +327,11 @@ export default function ArtistTracksPage() {
             {tracks.map((t) => (
                 <div
                 key={t.id}
+                 onDoubleClick={(e)=> {
+                        e.preventDefault();
+                        if (playingId) return;
+                        void handlePlayById(t.id);
+                    }}
                 className={[
                     "w-full text-left",
                     "grid grid-cols-[28px_56px_1fr_90px] min-[1200px]:grid-cols-[28px_56px_1fr_450px_90px] items-center",
@@ -280,12 +349,16 @@ export default function ArtistTracksPage() {
                     />
                 </div>
 
-                    <div className="ml-4 w-10 h-10 rounded-xl bg-[#6b6b6b]/50 border border-[#464646]">
+                    <div className="ml-4 w-10 h-10 rounded-xl bg-[#6b6b6b]/50 border border-[#464646] overflow-hidden relative group flex-shrink-0">
                         {t.album_image ? (
                         <img
                         src={t.album_image}
                         alt={t.title}
                         className="w-full h-full rounded-xl object-cover"
+                        loading="lazy"
+                        onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = "none";
+                            }}
                         />
                         ) : (
                             <div className="w-full h-full flex items-center justify-center text-[#F6F6F6] text-xl">
