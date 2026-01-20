@@ -30,7 +30,6 @@ type ArtistAlbum = {
   title: string;
   year: string;
   album_image: string | null;
-  image_large_square: string | null; // ✅ RDS에 저장된 이미지 (우선 사용)
 };
 
 const ALL_ALBUMS: Album[] = Array.from({ length: 12 }).map((_, i) => ({
@@ -110,40 +109,12 @@ export default function SearchAlbum() {
 
         console.log(`[SearchAlbum] 최종 앨범 목록: ${allAlbums.length}개 앨범`);
         allAlbums.forEach((album) => {
-          // ✅ image_large_square 우선 사용 (RDS에 저장된 이미지), 없으면 album_image 사용
-          const albumImage = album.image_large_square || album.album_image;
-          
-          if (albumImage) {
-            const isExternal = albumImage.startsWith("http://") || 
-                              albumImage.startsWith("https://") || 
-                              albumImage.startsWith("//");
-            const isRdsPath = albumImage.startsWith("/");
-            
+          if (album.album_image) {
             console.log(`[SearchAlbum] 📸 앨범 이미지:`, {
               title: album.title,
               id: album.id,
-              image_large_square: album.image_large_square,
-              album_image: album.album_image,
-              final_image_url: albumImage,
-              source_type: isExternal ? "외부 URL (iTunes/YouTube 등)" : isRdsPath ? "RDS 경로" : "기타",
-              is_external: isExternal,
-              is_rds_path: isRdsPath,
-              using_image_large_square: !!album.image_large_square,
+              image_url: album.album_image,
             });
-            
-            // "SUPER REAL ME (Sped Up) - EP" 특별 추적
-            if (album.title?.includes("SUPER REAL ME")) {
-              console.warn(`[SearchAlbum] ⚠️ "SUPER REAL ME" 앨범 이미지 발견:`, {
-                album_id: album.id,
-                album_title: album.title,
-                image_large_square: album.image_large_square,
-                album_image: album.album_image,
-                final_image_url: albumImage,
-                source: isExternal ? "외부 API에서 가져온 것으로 추정" : "RDS 경로",
-                using_image_large_square: !!album.image_large_square,
-                api_endpoint: `${API_BASE}/artists/{artistId}/albums/`,
-              });
-            }
           }
         });
 
@@ -226,7 +197,7 @@ export default function SearchAlbum() {
         title: a.title,
         artist: "", // 아티스트 정보는 별도로 관리 필요
         year: a.year,
-        image: a.image_large_square || a.album_image, // ✅ image_large_square 우선 사용
+        image: a.album_image,
       }));
     }
     if (!q) return ALL_ALBUMS;
@@ -239,7 +210,7 @@ export default function SearchAlbum() {
   }, [API_BASE, q, apiAlbums]);
 
   return (
-    <section className="w-full mt-4 rounded-3xl bg-[#2d2d2d]/80 border border-[#464646] px-8 py-10 min-h-[560px]">
+    <section className="w-full mt-4 rounded-3xl bg-[#2d2d2d]/80 border border-[#464646] px-6 py-8 min-h-[560px]">
       {loading && albums.length === 0 ? (
         <div className="text-center text-[#999] py-12">검색 중...</div>
       ) : error && albums.length === 0 ? (
@@ -249,15 +220,14 @@ export default function SearchAlbum() {
       ) : (
         <>
           {/* 앨범 그리드 */}
+          <div className="overflow-x-auto">
           <div
             className="
               grid
-              [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]
-              gap-x-8 gap-y-12
-              w-full
-              max-w-[1100px]
-              mx-auto
-              justify-items-center
+              gap-x-6
+              gap-y-12
+              justify-between
+              [grid-template-columns:repeat(4,220px)]
             "
           >
             {albums.map((a) => (
@@ -280,6 +250,7 @@ export default function SearchAlbum() {
                     w-52 h-52
                     rounded-2xl
                     bg-[#777777]
+                    border border-[#464646]
                     transition
                     hover:shadow-[0_10px_28px_rgba(0,0,0,0.38)]
                     overflow-hidden
@@ -329,13 +300,7 @@ export default function SearchAlbum() {
 
                 {/* 텍스트 */}
                 <div className="mt-4 w-full min-w-0">
-                  <div className="
-                      text-base font-semibold text-[#f6f6f6]
-                      group-hover:text-[#AFDEE2] transition
-                      w-[208px] text-left
-                      break-words
-                      line-clamp-2
-                    ">
+                  <div className="text-base font-semibold text-[#f6f6f6] truncate group-hover:text-[#AFDEE2] transition">
                     {a.title}
                   </div>
                   {a.artist && (
@@ -345,6 +310,7 @@ export default function SearchAlbum() {
                 </div>
               </button>
             ))}
+          </div>
           </div>
 
           {/* 결과 없음 */}

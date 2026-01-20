@@ -5,9 +5,10 @@ import type { PlayerTrack } from "../../player/PlayerContext";
 import {
   getAllAiSongs,
   subscribeAiSongs,
-  createAiSong,
 } from "../../mocks/aiSongMock";
 import type { AiTrack } from "../../mocks/aiSongMock";
+import { generateMusicAsync, getTaskStatus } from "../../api/ai";
+import { getCurrentUserId } from "../../utils/auth";
 
 import {
   getPlaylistById,
@@ -63,7 +64,6 @@ export default function AiCreatePage() {
    ========================= */
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
-  const [coverFile, setCoverFile] = useState<File | null>(null);
 
   useEffect(() => {
     return () => {
@@ -93,7 +93,6 @@ export default function AiCreatePage() {
     }
 
     const url = URL.createObjectURL(file);
-    setCoverFile(file);
     setCoverUrl(url);
     e.target.value = "";
   };
@@ -103,6 +102,9 @@ export default function AiCreatePage() {
    ========================= */
   const [prompt, setPrompt] = useState("");
   const maxPrompt = 1500;
+  const [makeInstrumental, setMakeInstrumental] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   /** =========================
    * ✅ 우측 리스트(업로드된 곡만)
@@ -165,30 +167,97 @@ export default function AiCreatePage() {
   };
 
   /** =========================
-   * ✅ 생성: 생성 후 "나의 AI 곡 목록"으로 이동
+   * ✅ 생성: 실제 백엔드 API 호출
    ========================= */
-  const CURRENT_USER_ID = "me";
-  const CURRENT_USER_NAME = "나";
+  const handleCreateSong = async () => {
+    const trimmed = prompt.trim();
+    if (!trimmed || isGenerating) return;
 
-  const handleCreateSong = () => {
-    if (!prompt.trim()) return;
+    const userId = getCurrentUserId();
+    if (userId === null) {
+      alert("로그인이 필요합니다.");
+      navigate("/login");
+      return;
+    }
 
-    createAiSong({
-      title: "새 AI 곡",
-      desc: "AI로 생성한 곡",
-      prompt,
-      coverUrl: coverUrl ?? undefined,
-      ownerId: CURRENT_USER_ID,
-      ownerName: CURRENT_USER_NAME,
-      status: "Draft",
-    });
+    try {
+      setIsGenerating(true);
+      setErrorMessage(null);
 
-    // ✅ 생성 후: "나의 AI 곡 목록"으로 이동
-    navigate("/my/ai-songs");
+      // 1. 음악 생성 요청 (비동기)
+      const response = await generateMusicAsync({
+        prompt: trimmed,
+        user_id: userId,
+        make_instrumental: makeInstrumental,
+      });
 
-    // (선택) 입력 초기화
-    setPrompt("");
-    setSelected(new Set());
+      console.log("[AI 음악 생성] 작업 시작:", response.task_id);
+
+      // 2. 작업 상태 폴링 시작
+      const pollTaskStatus = async (taskId: string) => {
+        const maxAttempts = 120; // 최대 10분 (5초 * 120)
+        let attempts = 0;
+
+        const poll = async (): Promise<void> => {
+          if (attempts >= maxAttempts) {
+            setErrorMessage("음악 생성 시간이 초과되었습니다. 나중에 다시 확인해주세요.");
+            setIsGenerating(false);
+            return;
+          }
+
+          try {
+            const status = await getTaskStatus(taskId);
+            console.log("[작업 상태]", status.status, status);
+
+            if (status.status === "SUCCESS" && status.result) {
+              // 생성 완료!
+              const music = status.result;
+              console.log("[AI 음악 생성 완료]", music);
+
+              // 입력 초기화
+              setPrompt("");
+              setSelected(new Set());
+              setIsGenerating(false);
+
+              // 곡 상세 페이지로 이동 (또는 목록으로)
+              if (music.music_id) {
+                navigate(`/aisong/${music.music_id}`);
+              } else {
+                navigate("/my/ai-songs");
+              }
+            } else if (status.status === "FAILURE") {
+              // 생성 실패
+              setErrorMessage(
+                status.error || "음악 생성에 실패했습니다. 다시 시도해주세요."
+              );
+              setIsGenerating(false);
+            } else {
+              // 아직 진행 중 (PENDING, STARTED 등)
+              attempts++;
+              setTimeout(poll, 5000); // 5초 후 다시 확인
+            }
+          } catch (error) {
+            console.error("[작업 상태 조회 실패]", error);
+            attempts++;
+            setTimeout(poll, 5000);
+          }
+        };
+
+        poll();
+      };
+
+      // 폴링 시작
+      pollTaskStatus(response.task_id);
+    } catch (error: any) {
+      console.error("[AI 음악 생성 실패]", error);
+      const errorMsg =
+        error?.response?.data?.error ||
+        error?.response?.data?.details ||
+        error?.message ||
+        "AI 노래 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
+      setErrorMessage(errorMsg);
+      setIsGenerating(false);
+    }
   };
 
   /** =========================
@@ -331,7 +400,7 @@ export default function AiCreatePage() {
             <button
               type="button"
               onClick={onPickCover}
-              className="w-72 h-72 rounded-2xl shadow-md bg-[#3d3d3d]/90 border border-[#3d3d3d] hover:bg-[#3d3d3d]/40 transition flex flex-col items-center justify-center overflow-hidden"
+              className="w-72 h-72 rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.25)] bg-[#3d3d3d]/90 hover:bg-[#3d3d3d]/40 transition flex flex-col items-center justify-center overflow-hidden"
               aria-label="add cover"
             >
               {coverUrl ? (
@@ -369,7 +438,7 @@ export default function AiCreatePage() {
           />
 
           {/* 프롬프트 카드 */}
-          <div className="mt-10 mx-4 rounded-2xl bg-[#3d3d3d]/80 backdrop-blur-xl border border-[#3d3d3d] shadow-md p-5">
+          <div className="mt-10 mx-4 rounded-2xl bg-[#3d3d3d]/80 backdrop-blur-xl border border-[#3d3d3d] shadow-[0_4px_12px_rgba(0,0,0,0.25)] p-5">
             <div className="p-2 text-sm font-semibold text-[#f6f6f6]">
               AI 노래 프롬프트
             </div>
@@ -380,18 +449,31 @@ export default function AiCreatePage() {
                 onChange={(e) => setPrompt(e.target.value.slice(0, maxPrompt))}
                 placeholder="예) 새벽 감성, 로파이 힙합, 잔잔한 피아노와 드럼, 한국어 보컬..."
                 className="placeholder-[#777777] mt-2 p-2 w-full resize-none bg-transparent text-sm text-[#f6f6f6] outline-none min-h-[180px]"
+                disabled={isGenerating}
               />
               <div className="mt-2 text-right text-[11px] text-[#888888]">
                 {prompt.length}/{maxPrompt}
               </div>
             </div>
+
+            {/* make_instrumental 체크박스 */}
+            <label className="mt-4 flex items-center gap-2 text-xs text-[#f6f6f6] cursor-pointer">
+              <input
+                type="checkbox"
+                checked={makeInstrumental}
+                onChange={(e) => setMakeInstrumental(e.target.checked)}
+                disabled={isGenerating}
+                className="accent-[#AFDEE2] cursor-pointer disabled:cursor-not-allowed"
+              />
+              <span>보컬 없이 연주곡(Instrumental)으로 만들기</span>
+            </label>
           </div>
 
           {/* 생성 버튼 */}
-          <div className="mt-6 mb-4 flex justify-center">
+          <div className="mt-6 mb-4 flex flex-col items-center gap-2">
             <button
               type="button"
-              disabled={!prompt.trim()}
+              disabled={!prompt.trim() || isGenerating}
               onClick={handleCreateSong}
               className="
                 px-4 py-3
@@ -409,14 +491,21 @@ export default function AiCreatePage() {
             >
               <div className="flex gap-2 items-center">
                 <MdMusicNote size={18} />
-                AI 노래 생성하기
+                {isGenerating ? "AI 노래 생성 중..." : "AI 노래 생성하기"}
               </div>
             </button>
+            {errorMessage && (
+              <p className="text-center text-xs text-red-400 max-w-[300px]">
+                {errorMessage}
+              </p>
+            )}
           </div>
         </section>
 
         {/* ===================== 우측: 리스트/테이블 ===================== */}
-        <section className="-mb-24 rounded-2xl bg-[#2d2d2d]/80 border border-[#2d2d2d] overflow-hidden text-[#f6f6f6]">
+        <section className="
+            -mb-24 rounded-2xl bg-[#2d2d2d]/80 bg-gradient-to-tr
+            shadow-[0_4px_12px_rgba(0,0,0,0.25)] border border-[#2d2d2d] overflow-hidden text-[#f6f6f6]">
           <div className="px-8 py-6 border-b border-[#464646]">
             {/* 검색바 */}
             <div className="flex items-center gap-3 rounded-full bg-[#3d3d3d] px-4 py-2 text-[#666666]">
@@ -425,7 +514,7 @@ export default function AiCreatePage() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="AI 곡 검색하기"
-                className="w-full bg-transparent text-sm outline-none placeholder:text-[#666666]"
+                className="w-full bg-transparent text-[#f6f6f6] text-sm outline-none placeholder:text-[#666666]"
               />
             </div>
 

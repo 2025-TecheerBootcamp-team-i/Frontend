@@ -504,7 +504,7 @@ export default function SearchHome() {
                     "
                   >
                     {/* Skeleton */}
-                    {loading && hasQuery ? (
+                    {loading ? hasQuery && (
                       <div className="flex flex-col">
                         <SkeletonBox className="w-[228px] h-[228px] rounded-2xl" />
                         <SkeletonBox className="mt-5 h-5 w-44 rounded-md" />
@@ -687,6 +687,7 @@ export default function SearchHome() {
                                           audioUrl: audioUrl || undefined,
                                           coverUrl,
                                           musicId: musicId || undefined,
+                                          albumId: r.album_id ?? null,
                                         };
                                       })
                                     );
@@ -750,6 +751,7 @@ export default function SearchHome() {
                                       audioUrl,
                                       coverUrl,
                                       musicId: musicId || undefined,
+                                      albumId: original?.album_id ?? null,
                                     };
 
                                     playTracks([playerTrack]);

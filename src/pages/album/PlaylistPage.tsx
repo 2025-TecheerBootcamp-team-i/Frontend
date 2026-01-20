@@ -41,7 +41,7 @@ const formatTotal = (sec: number) => {
 
 export default function PlaylistDetailPage() {
     const { playlistId } = useParams();
-    const { playTracks } = usePlayer();
+    const { playTracks, enqueueTracks } = usePlayer();
     const navigate = useNavigate();
 
     // store 변경(emit)에도 반응하게 playlist를 state로 들고 sync
@@ -56,6 +56,31 @@ export default function PlaylistDetailPage() {
     
     
     const [checkedIds, setCheckedIds] = useState<Record<string, boolean>>({});
+
+    type PendingPlay = {
+        key: "play" | "shuffle";
+        tracks: PlayerTrack[];
+    };
+
+    const [playConfirmOpen, setPlayConfirmOpen] = useState(false);
+    const [pendingPlay, setPendingPlay] = useState<PendingPlay | null>(null);
+
+    const runPendingPlay = (mode: "replace" | "enqueue") => {
+            if (!pendingPlay) return;
+        
+            const isShuffle = pendingPlay.key === "shuffle";
+        
+            if (mode === "replace") {
+            playTracks(pendingPlay.tracks, { shuffle: isShuffle });
+            } else {
+            enqueueTracks(pendingPlay.tracks, { shuffle: isShuffle });
+            }
+        
+            setCheckedIds({});
+            setPendingPlay(null);
+            setPlayConfirmOpen(false);
+    };
+
 
     const tracks = playlist?.tracks ?? [];
 
@@ -243,7 +268,7 @@ export default function PlaylistDetailPage() {
                 </div>
                 </div>
 
-               <div className="mt-4 flex flex-nowrap gap-3 overflow-x-auto no-scrollbar">
+            <div className="mt-4 flex flex-nowrap gap-3 overflow-x-auto no-scrollbar">
                 {actions.filter((a) => !(isLikedSystem && a.key === "delete")).map((a) => {
                     const disabled =
                     (a.key === "play" || a.key === "shuffle"|| a.key === "delete") && selectedCount === 0;
@@ -258,15 +283,19 @@ export default function PlaylistDetailPage() {
                     // ✅ play / shuffle은 "선택된 곡"이 없으면 동작 X
                     if (a.key === "play") {
                         if (selectedCount === 0) return;
-                        playTracks(checkedTracks);
+                        setPendingPlay({ key: "play", tracks: checkedTracks });
+                        setPlayConfirmOpen(true);
                         return;
                     }
 
+
                     if (a.key === "shuffle") {
                         if (selectedCount === 0) return;
-                        playTracks(checkedTracks, { shuffle: true });
+                        setPendingPlay({ key: "shuffle", tracks: checkedTracks });
+                        setPlayConfirmOpen(true);
                         return;
                     }
+
                     };
 
                     return (
@@ -318,7 +347,7 @@ export default function PlaylistDetailPage() {
                 {tracks.map((t) => (
                 <div
                     key={t.id}
-                    className="w-full text-left grid grid-cols-[28px_42px_1fr_90px] items-center gap-x-4 py-3 px-6 border-b border-[#464646] hover:bg-white/5 transition"
+                    className="w-full text-left grid grid-cols-[28px_42px_1fr_90px] items-center gap-x-5 py-2 px-6 border-b border-[#464646] hover:bg-white/5 transition"
                 >
                     <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
                     <input
@@ -331,7 +360,7 @@ export default function PlaylistDetailPage() {
                     />
                     </div>
 
-                    <div className="w-10 h-10 rounded-xl bg-[#6b6b6b]/50 border border-[#464646]" />
+                    <div className="w-12 h-12 rounded-xl bg-[#6b6b6b]/50 border border-[#464646]" />
 
                     <div className="min-w-0">
                     <div className="text-sm font-semibold text-[#F6F6F6] truncate">{t.title}</div>
@@ -341,9 +370,86 @@ export default function PlaylistDetailPage() {
                     </div>
                     </div>
 
-                    <div className="text-sm text-[#F6F6F6]/70 text-right tabular-nums">{t.duration}</div>
+                    <div className="mr-1 text-sm text-[#F6F6F6]/70 text-right tabular-nums">{t.duration}</div>
                 </div>
                 ))}
+
+                {/* ✅ 재생 방식 선택 모달 */}
+                {playConfirmOpen && pendingPlay && (
+                <div className="fixed inset-0 z-[999] whitespace-normal">
+                    <button
+                    type="button"
+                    className="absolute inset-0 bg-black/50"
+                    onClick={() => {
+                        setPlayConfirmOpen(false);
+                        setPendingPlay(null);
+                    }}
+                    aria-label="닫기"
+                    />
+                    <div className="absolute inset-0 grid place-items-center p-6">
+                    <div className="w-full max-w-[440px] rounded-3xl bg-[#2d2d2d] border border-[#464646] shadow-2xl overflow-hidden">
+                        <div className="px-6 py-4 flex items-center justify-between border-b border-[#464646]">
+                        <div className="text-base font-semibold text-[#F6F6F6]">재생 방식 선택</div>
+                        <button
+                            type="button"
+                            onClick={() => {
+                            setPlayConfirmOpen(false);
+                            setPendingPlay(null);
+                            }}
+                            className="text-[#F6F6F6]/70 hover:text-white transition"
+                            aria-label="닫기"
+                        >
+                            ✕
+                        </button>
+                        </div>
+
+                        <div className="px-6 py-4 text-sm text-[#F6F6F6]/70">
+                        선택한 {pendingPlay.tracks.length}곡을{" "}
+                        {pendingPlay.key === "shuffle" ? "셔플로 " : ""}
+                        어떻게 재생할까요?
+                        </div>
+
+                        <div className="px-6 pb-6 grid grid-cols-1 gap-3">
+                        <button
+                            type="button"
+                            onClick={() => runPendingPlay("replace")}
+                            className="w-full px-4 py-3 rounded-2xl text-sm text-[#F6F6F6] outline outline-1 outline-[#464646] hover:bg-white/10 transition text-left"
+                        >
+                            <div className="font-semibold text-[#afdee2]">현재 재생 대기목록 지우고 재생</div>
+                            <div className="mt-1 text-xs text-[#999]">
+                            지금 재생 대기목록을 초기화하고 선택한 곡들로 새로 재생합니다.
+                            </div>
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => runPendingPlay("enqueue")}
+                            className="w-full px-4 py-3 rounded-2xl text-sm text-[#F6F6F6] outline outline-1 outline-[#464646] hover:bg-white/10 transition text-left"
+                        >
+                            <div className="font-semibold text-[#afdee2]">재생 대기목록 맨 뒤에 추가</div>
+                            <div className="mt-1 text-xs text-[#999]">
+                            현재 재생은 유지하고, 선택한 곡들을 재생 대기 목록 마지막에 둡니다.
+                            </div>
+                        </button>
+                        </div>
+
+                        <div className="px-6 py-4 border-t border-[#464646] flex justify-end">
+                        <button
+                            type="button"
+                            onClick={() => {
+                            setPlayConfirmOpen(false);
+                            setPendingPlay(null);
+                            }}
+                            className="px-4 py-2 rounded-2xl text-sm text-[#F6F6F6] hover:bg-white/10 transition"
+                        >
+                            취소
+                        </button>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+                )}
+
             </div>
             </section>
         </div>

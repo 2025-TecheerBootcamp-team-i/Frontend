@@ -113,6 +113,7 @@ export default function SignUpPage() {
       await signup({
         email: email.trim(),
         password: pw,
+        password_confirm: pw2,
         nickname: nickname.trim(),
       });
       alert("회원가입을 완료했습니다!");

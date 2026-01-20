@@ -505,7 +505,7 @@ export default function ArtistPage() {
                                 });
                             }}
                         />
-                        <div className="absolute inset-0 bg-[#777777] animate-pulse z-0" />
+                        <div className="absolute inset-0 bg-[#2d2d2d] animate-pulse z-0" />
                     </>
                 ) : (
                     <div className="w-full h-full bg-[#777777]" />
@@ -546,14 +546,14 @@ export default function ArtistPage() {
                         void handlePlayById(t.id);
                     }}
                     className={[
-                        "w-full text-left group",
-                        "grid grid-cols-[56px_1fr_90px] min-[1200px]:grid-cols-[56px_1fr_100px_450px] items-center",
-                        "py-2 px-2",
-                        "gap-x-2",
-                        "border-b border-[#464646]",
-                        "hover:bg-white/5 transition",
-                        ].join(" ")}
-                    >
+                    "w-full text-left",
+                    "grid grid-cols-[56px_1fr_90px] min-[1200px]:grid-cols-[56px_1fr_200px_450px] items-center",
+                    "py-2 px-2",
+                    "gap-x-2",
+                    "border-b border-[#464646]",
+                    "hover:bg-white/5 transition",
+                    ].join(" ")}
+                >
                     {/* 앨범 이미지 */}
                     <div className="w-12 h-12 rounded-xl bg-[#6b6b6b]/50 border border-[#464646] overflow-hidden relative flex-shrink-0">
                         {t.albumImage ? (
@@ -588,12 +588,7 @@ export default function ArtistPage() {
                         {artist.name}
                     </div>
                     </div>
-
-                        {/* # 예전 버전 className="hidden min-[1200px]:block text-sm text-[#F6F6F6]/70 text-right" */}
-                        <div className="
-                            text-sm text-[#F6F6F6]/70
-                            text-ellipsis line-clamp-2
-                            ">
+                        <div className="hidden min-[1200px]:block text-sm text-[#F6F6F6]/70 text-right">
                             {t.album}
                         </div>
                     <div className="text-sm text-[#F6F6F6]/70 text-right">{t.duration}</div>

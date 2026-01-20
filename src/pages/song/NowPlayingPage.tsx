@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
 import type { DragEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { MdFavorite, MdMoreHoriz } from "react-icons/md";
+import { MdFavorite, MdAutoAwesome } from "react-icons/md";
 import { MdQueueMusic, MdClose, MdDelete, MdDragIndicator } from "react-icons/md";
 import {
     MdPlayArrow,
@@ -19,6 +19,7 @@ import {
     toggleTrackLike,
     subscribePlaylists,
 } from "../../mocks/playlistMock";
+import { getBestAlbumCover } from "../../api/album";
 
 type LyricLine = { t: number; text: string; timestamp?: string | null };
 
@@ -80,11 +81,42 @@ export default function NowPlayingPage() {
     }, []);
 
     // 메인 앨범 이미지 (image_large_square 우선, 없으면 coverUrl)
-    const mainAlbumImage = useMemo(() => {
-        if (!current) return null;
-        // TODO: API에서 image_large_square 필드 가져오기
-        return current.coverUrl || null;
+    const [mainAlbumImage, setMainAlbumImage] = useState<string | null>(null);
+
+    // 선택된 트랙이 바뀔 때마다 앨범 상세를 조회해 더 큰 커버 이미지를 시도
+    useEffect(() => {
+        let cancelled = false;
+
+        async function loadAlbumCover() {
+            if (!current) {
+                setMainAlbumImage(null);
+                return;
+            }
+
+            // PlayerTrack에 저장된 albumId와 coverUrl을 기반으로 베스트 커버를 조회
+            const albumId = (current as { albumId?: number | null }).albumId ?? null;
+            const fallback = current.coverUrl ?? null;
+
+            const best = await getBestAlbumCover(albumId, fallback);
+            if (!cancelled) {
+                setMainAlbumImage(best);
+            }
+        }
+
+        loadAlbumCover();
+
+        return () => {
+            cancelled = true;
+        };
     }, [current]);
+
+    // ✅ 전체 배경에 사용할 블러용 이미지 URL
+    // - 메인 앨범 이미지가 있을 때만 사용
+    // - processImageUrl로 절대 경로 변환
+    const blurredBackgroundImage = useMemo(() => {
+        if (!mainAlbumImage) return null;
+        return processImageUrl(mainAlbumImage);
+    }, [mainAlbumImage, processImageUrl]);
 
     // ✅ 가사 패널 (bottom sheet)
     const [lyricsOpen, setLyricsOpen] = useState(false);
@@ -394,154 +426,56 @@ export default function NowPlayingPage() {
         setOverIndex(null);
     };
 
+    const handleStartStation = () => {
+        if (!current) return;
+
+        // 예:
+        // 1. 현재 곡 기반 추천 API 호출
+        // 2. 결과를 queue에 replace
+        // 3. play
+    };
+
     return (
-        <div className="h-full w-full bg-[#2d2d2d] text-[#F6F6F6] overflow-hidden">
-        {/* 상단 바 */}
-        <div className="h-16 px-6 flex items-center justify-between border-b border-[#3d3d3d]">
-            {/* 좌측 */}
-            <div className="min-w-0">
-            <button
-                type="button"
-                onClick={toggleLeft}
-                className={[
-                "p-2 rounded-full transition hover:bg-white/10",
-                leftOpen ? "text-[#AFDEE2]" : "text-[#F6F6F6]",
-                ].join(" ")}
-                aria-label="분석 대시보드 토글"
-                title="분석 대시보드"
-            >
-                <RiDashboardFill size={18} />
-            </button>
-            </div>
-
-            {/* 우측 */}
-            <div className="flex items-center gap-2">
-            {/* 좋아요 */}
-            <button
-                type="button"
-                onClick={(ev) => {
-                ev.stopPropagation();
-                toggleLike();
-                }}
-                className={[
-                "h-11 rounded-2xl",
-                "flex items-center gap-2",
-                "transition relative",
-                liked ? "text-[#AFDEE2]" : "text-[#F6F6F6]/80",
-                ].join(" ")}
-                aria-label="좋아요"
-                title="좋아요"
-            >
-                <MdFavorite size={22} className={liked ? "text-[#AFDEE2]" : "text-[#F6F6F6]/70"} />
-                <span className="text-sm tabular-nums">{shownLikeCount.toLocaleString()}</span>
-            </button>
-
-            {/* 더보기 */}
-            <button
-                type="button"
-                className="p-2 rounded-full hover:bg-white/10 transition"
-                aria-label="더보기"
-                title="더보기"
-            >
-                <MdMoreHoriz size={20} />
-            </button>
-
-            {/* 화면 다시 줄이기 */}
-            <button
-                type="button"
-                onClick={() => navigate(-1)}
-                className="p-2 rounded-full hover:bg-white/10 transition"
-                aria-label="뒤로 가기"
-                title="뒤로 가기"
-            >
-                <GrContract size={18} />
-            </button>
-            </div>
-        </div>
-
-        {/* 본문 */}
-        <div className="h-[calc(100%-4rem)] relative">
-            {/* 중앙 메인 */}
+        <div className="relative h-full w-full text-[#F6F6F6] overflow-hidden">
+        {/* ✅ 앨범 이미지를 이용한 전체 배경 블러
+            - 확대 화면 전체를 앨범 이미지로 채우고
+            - 강한 블러 + 살짝 어둡게 처리해서 가독성 확보 */}
+        {hasTrack && blurredBackgroundImage ? (
+            <>
+            {/* 실제 이미지 블러 배경 */}
             <div
-            className="h-full transition-all duration-300 ease-out"
-            style={{ marginLeft: leftShift, marginRight: rightShift }}
-            >
-            <div className="h-full">
-                <div className="h-full pt-4 bg-[#333333] overflow-hidden">
-                <div className="h-full flex flex-col items-center justify-center px-6">
-                    <div className="w-full max-w-[860px] flex flex-col items-center gap-4">
-                    {/* 앨범아트 */}
-                    <div className="w-[360px] aspect-square rounded-3xl bg-white/25 border border-white/10 overflow-hidden relative">
-                        {hasTrack && mainAlbumImage ? (
-                        <>
-                            <img
-                            src={processImageUrl(mainAlbumImage) || undefined}
-                            alt={current.title}
-                            className="w-full h-full object-cover relative z-10"
-                            onError={(ev) => {
-                                console.error(`[NowPlayingPage] ❌ 메인 앨범 이미지 로드 실패:`, {
-                                title: current.title,
-                                image_url: mainAlbumImage,
-                                });
-                                (ev.currentTarget as HTMLImageElement).style.display = "none";
-                            }}
-                            loading="lazy"
-                            />
-                            <div className="absolute inset-0 bg-white/25 animate-pulse z-0" />
-                        </>
-                        ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                            <span className="text-white/60 text-sm">사진</span>
-                        </div>
-                        )}
-                    </div>
-
-                    <div className="min-w-0 text-center">
-                        <div className="text-lg font-semibold text-[#F6F6F6] truncate">
-                        {hasTrack ? current.title : "재생 중인 곡이 없어요"}
-                        </div>
-                        <div className="mt-1 text-sm text-white/60 truncate">
-                        {hasTrack ? current.artist : "—"}
-                        </div>
-                    </div>
-
-                    {/* 가사 */}
-                    <button
-                        type="button"
-                        onClick={() => {
-                        setLyricsOpen(true);
-                        setLeftOpen(false);
-                        setRightOpen(false);
-                        }}
-                        className={["w-[520px]", "transition text-center relative", "hover:opacity-80"].join(
-                        " "
-                        )}
-                    >
-                        <div className="mt-4 text-sm text-[#f6f6f6]/80">전체 가사 보기</div>
-                    </button>
-                    </div>
-                </div>
-                </div>
-            </div>
-            </div>
-
-            {/* 좌측 대시보드 */}
-            <aside
+                className="pointer-events-none absolute inset-0 bg-center bg-cover"
+                style={{
+                backgroundImage: `url(${blurredBackgroundImage})`,
+                filter: "blur(40px)",
+                transform: "scale(1.15)",
+                }}
+            />
+            {/* 위에 반투명 어두운 오버레이 */}
+            <div className="pointer-events-none absolute inset-0 bg-black/60" />
+            </>
+        ) : (
+            // 앨범 이미지가 없을 때 기본 배경
+            <div className="pointer-events-none absolute inset-0 bg-[#2d2d2d]" />
+        )}
+        
+        {/* 좌측 대시보드 */}
+        <aside
             className={[
                 "absolute left-0 top-0 h-full bg-[#2f2f2f] border-r border-[#3d3d3d]",
-                "transition-transform duration-300 ease-out",
+                "transition-transform duration-300 ease-out z-10",
             ].join(" ")}
             style={{
                 width: LEFT_W,
                 transform: leftOpen ? "translateX(0)" : `translateX(-${LEFT_W}px)`,
             }}
             >
-            <div className="h-16 px-4 flex items-center justify-between border-b border-[#3d3d3d]">
-                <div className="text-sm font-semibold text-white/80">분석 대시보드</div>
+            <div className="mt-12 h-16 px-4 flex items-center justify-between border-b border-[#3d3d3d]">
+                <div className="px-4 text-sm font-semibold text-white/80">분석 대시보드</div>
                 <button
                 type="button"
                 onClick={toggleLeft}
-                className="p-2 rounded-full hover:bg-white/10 transition"
+                className="rounded-full p-2 hover:bg-white/10 transition"
                 aria-label="대시보드 닫기"
                 >
                 <MdClose size={18} />
@@ -559,18 +493,18 @@ export default function NowPlayingPage() {
                 <div className="mt-2 text-xs text-white/55">그래프/요약</div>
                 </div>
             </div>
-            </aside>
+        </aside>
 
-            {/* 우측 재생목록 */}
-            <aside
-            className="absolute right-0 top-0 h-full bg-[#2f2f2f] border-l border-[#3d3d3d] transition-transform duration-300 ease-out flex flex-col"
+        {/* 우측 재생목록 */}
+        <aside
+            className="absolute right-0 top-0 h-full bg-[#2f2f2f] border-l border-[#3d3d3d] transition-transform duration-300 ease-out flex flex-col z-10"
             style={{
                 width: RIGHT_W,
                 transform: rightOpen ? "translateX(0)" : `translateX(${RIGHT_W}px)`,
             }}
             >
-            <div className="h-16 px-4 flex items-center justify-between border-b border-[#3d3d3d]">
-                <div className="text-sm font-semibold text-white/80">재생목록</div>
+            <div className="mt-12 h-16 px-4 flex items-center justify-between border-b border-[#3d3d3d]">
+                <div className="px-4 text-sm font-semibold text-white/80">재생목록</div>
                 <button
                 type="button"
                 onClick={toggleRight}
@@ -703,7 +637,139 @@ export default function NowPlayingPage() {
                 )}
                 </div>
             </div>
-            </aside>
+        </aside>
+
+        {/* 상단 바 */}
+        <div className="relative z-10 h-16 px-6 flex items-center justify-between">
+            {/* 좌측 */}
+            <div className="min-w-0">
+            <button
+                type="button"
+                onClick={toggleLeft}
+                className={[
+                "p-2 rounded-full transition hover:bg-white/10",
+                leftOpen ? "text-[#AFDEE2]" : "text-[#F6F6F6]",
+                ].join(" ")}
+                aria-label="분석 대시보드 토글"
+                title="분석 대시보드"
+            >
+                <RiDashboardFill size={18} />
+            </button>
+            </div>
+
+            {/* 우측 */}
+            <div className="flex items-center gap-2">
+            {/* 좋아요 */}
+            <button
+                type="button"
+                onClick={(ev) => {
+                ev.stopPropagation();
+                toggleLike();
+                }}
+                className={[
+                "h-11 rounded-2xl",
+                "flex items-center gap-2",
+                "transition relative",
+                liked ? "text-[#AFDEE2]" : "text-[#F6F6F6]/80",
+                ].join(" ")}
+                aria-label="좋아요"
+                title="좋아요"
+            >
+                <MdFavorite size={22} className={liked ? "text-[#AFDEE2]" : "text-[#F6F6F6]/70"} />
+                <span className="text-sm tabular-nums">{shownLikeCount.toLocaleString()}</span>
+            </button>
+
+            {/* 더보기 */}
+            <button
+                type="button"
+                onClick={handleStartStation}
+                className="p-2 ml-1 rounded-full hover:bg-white/10 transition"
+                aria-label="스테이션 생성"
+                title="스테이션 생성"
+            >
+                <MdAutoAwesome size={20} className={"text-[#f6f6f6]/80"}/>
+            </button>
+
+            {/* 화면 다시 줄이기 */}
+            <button
+                type="button"
+                onClick={() => navigate(-1)}
+                className="p-2 rounded-full hover:bg-white/10 transition"
+                aria-label="뒤로 가기"
+                title="뒤로 가기"
+            >
+                <GrContract size={18} className={"text-[#f6f6f6]/80"} />
+            </button>
+            </div>
+        </div>
+
+        {/* 본문 */}
+        <div className="h-[calc(100%-4rem)] relative">
+            {/* 중앙 메인 */}
+            <div
+            className="h-full transition-all duration-300 ease-out"
+            style={{ marginLeft: leftShift, marginRight: rightShift }}
+            >
+            <div className="h-full">
+                {/* 중앙 영역 배경을 투명하게 유지해서 전체 블러 배경이 그대로 보이도록 처리 */}
+                <div className="h-full pt-4 overflow-hidden">
+                <div className="h-full flex flex-col items-center justify-center px-6">
+                    <div className="w-full max-w-[860px] flex flex-col items-center gap-4">
+                    {/* 앨범아트 */}
+                    <div className="w-[360px] aspect-square rounded-3xl bg-white/25 overflow-hidden relative">
+                        {hasTrack && mainAlbumImage ? (
+                        <>
+                            <img
+                            src={processImageUrl(mainAlbumImage) || undefined}
+                            alt={current.title}
+                            className="w-full h-full object-cover relative z-10"
+                            onError={(ev) => {
+                                console.error(`[NowPlayingPage] ❌ 메인 앨범 이미지 로드 실패:`, {
+                                title: current.title,
+                                image_url: mainAlbumImage,
+                                });
+                                (ev.currentTarget as HTMLImageElement).style.display = "none";
+                            }}
+                            loading="lazy"
+                            />
+                            <div className="absolute inset-0 bg-white/25 animate-pulse z-0" />
+                        </>
+                        ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                            <span className="text-white/60 text-sm">사진</span>
+                        </div>
+                        )}
+                    </div>
+
+                    <div className="min-w-0 text-center">
+                        <div className="text-lg font-semibold text-[#F6F6F6] truncate">
+                        {hasTrack ? current.title : "재생 중인 곡이 없어요"}
+                        </div>
+                        <div className="mt-1 text-sm text-white/60 truncate">
+                        {hasTrack ? current.artist : "—"}
+                        </div>
+                    </div>
+
+                    {/* 가사 */}
+                    <button
+                        type="button"
+                        onClick={() => {
+                        setLyricsOpen(true);
+                        setLeftOpen(false);
+                        setRightOpen(false);
+                        }}
+                        className={["w-[520px]", "transition text-center relative", "hover:opacity-80"].join(
+                        " "
+                        )}
+                    >
+                        <div className="mt-4 text-sm text-[#f6f6f6]/80">전체 가사 보기</div>
+                    </button>
+                    </div>
+                </div>
+                </div>
+            </div>
+            </div>
+
 
             {/* 손잡이 */}
             {!leftOpen && (
