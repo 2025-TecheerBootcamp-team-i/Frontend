@@ -12,6 +12,7 @@ import type { PlayerTrack } from "../../player/PlayerContext";
 import type { Playlist } from "../../components/layout/MainLayout";
 import { getMyAiSongs, subscribeAiSongs } from "../../mocks/aiSongMock";
 import type { AiTrack } from "../../mocks/aiSongMock";
+import { fetchUserStatistics, type UserStatistics } from "../../api/user";
 
 type Profile = {
     name: string;
@@ -244,29 +245,52 @@ export default function MyPage() {
     // ✅ 추가: 분석 대시보드 탭 상태
     const [range, setRange] = useState<"month" | "all">("month");
 
-    // ✅ (예시) 탭별로 보여줄 데이터만 갈아끼우기
-    const dashboard =
-        range === "month"
-        ? {
-            listen: { value: "123시간", sub: "지난달 대비 +12%" },
-            genre: { value: "Indie", sub: "2위: Pop" },
-            ai: { value: "3곡", sub: "최근 생성: 2일 전" },
-            insight: {
-                main1: "밤 시간대",
-                main2: "잔잔한 음악",
-                text: "이번 달은",
-            },
+    // ✅ API 데이터 상태
+    const [statistics, setStatistics] = useState<UserStatistics | null>(null);
+
+    // ✅ API 호출: range 변경 시마다 재호출
+    useEffect(() => {
+        const loadStatistics = async () => {
+            try {
+                const data = await fetchUserStatistics(CURRENT_USER_ID, range);
+                setStatistics(data);
+            } catch (error) {
+                console.error("통계 로드 실패:", error);
             }
-        : {
-            listen: { value: "1,240시간", sub: "누적 청취 시간" },
-            genre: { value: "Pop", sub: "2위: Indie" },
-            ai: { value: "28곡", sub: "누적 생성: 최근 생성 5일 전" },
-            insight: {
-                main1: "오후 시간대",
-                main2: "업템포/댄스",
-                text: "전체 기간 기준으로는",
-            },
-            };
+        };
+
+        loadStatistics();
+    }, [range, CURRENT_USER_ID]);
+
+    // ✅ 대시보드 데이터 가공
+    const dashboard = statistics ? {
+        listen: {
+            value: `${statistics.listening_time.total_hours.toFixed(1)}시간`,
+            sub: range === "month" 
+                ? `지난달 대비 ${statistics.listening_time.change_percent > 0 ? '+' : ''}${statistics.listening_time.change_percent.toFixed(1)}%`
+                : `총 재생 횟수: ${statistics.listening_time.play_count}회`
+        },
+        genre: {
+            value: statistics.top_genres[0]?.genre || "—",
+            sub: statistics.top_genres[1] ? `2위: ${statistics.top_genres[1].genre}` : "—"
+        },
+        ai: {
+            value: `${statistics.ai_generation.total_generated}곡`,
+            sub: statistics.ai_generation.last_generated_days_ago !== null
+                ? `최근 생성: ${statistics.ai_generation.last_generated_days_ago}일 전`
+                : "생성 기록 없음"
+        },
+        insight: {
+            main1: statistics.top_genres[0]?.genre || "—",
+            main2: statistics.top_artists[0]?.artist_name || "—",
+            text: range === "month" ? "이번 달은" : "전체 기간 기준으로는",
+        },
+    } : {
+        listen: { value: "—", sub: "로딩 중..." },
+        genre: { value: "—", sub: "—" },
+        ai: { value: "—", sub: "—" },
+        insight: { main1: "—", main2: "—", text: range === "month" ? "이번 달은" : "전체 기간 기준으로는" },
+    };
 
     // ✅ 버튼 스타일 함수 (중복 줄이기)
     const tabBtn = (key: "month" | "all", label: string) => {
@@ -409,24 +433,37 @@ export default function MyPage() {
                             </div>
 
                             <div className="space-y-3">
-                            {["아티스트A", "아티스트B", "아티스트C"].map((name, i) => (
-                                <div key={name} className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-xl bg-[#777777]" />
+                            {statistics?.top_artists.slice(0, 3).map((artist) => (
+                                <div key={artist.artist_id} className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-xl bg-[#777777] overflow-hidden">
+                                    {artist.artist_image ? (
+                                    <img 
+                                        src={artist.artist_image} 
+                                        alt={artist.artist_name}
+                                        className="w-full h-full object-cover"
+                                    />
+                                    ) : null}
+                                </div>
 
                                 <div className="flex-1 min-w-0">
                                     <div className="text-sm text-[#F6F6F6] truncate">
-                                    {i + 1}. {name}
+                                    {artist.rank}. {artist.artist_name}
                                     </div>
                                     <div className="text-xs text-[#999999]">
-                                    반복 재생 높음
+                                    재생 횟수: {artist.play_count}회
                                     </div>
                                 </div>
 
                                 <div className="text-sm font-semibold text-[#F6F6F6]/80 whitespace-nowrap">
-                                    {Math.max(1, 12 - i * 4)}%
+                                    {artist.percentage.toFixed(1)}%
                                 </div>
                                 </div>
                             ))}
+                            {(!statistics || statistics.top_artists.length === 0) && (
+                                <div className="text-sm text-[#999999] text-center py-4">
+                                데이터 없음
+                                </div>
+                            )}
                             </div>
                         </div>
 
@@ -436,19 +473,22 @@ export default function MyPage() {
                             </div>
 
                             <div className="flex flex-wrap gap-2">
-                            {["새벽감성", "잔잔함", "집중", "드라이브", "감성팝", "힐링"].map(
-                                (t) => (
+                            {statistics?.top_tags.slice(0, 6).map((tag) => (
                                 <span
-                                    key={t}
+                                    key={tag.tag_id}
                                     className="
                                     px-3 py-2 rounded-full
                                     bg-[#3d3d3d] border border-[#2d2d2d]
                                     text-sm text-[#AFDEE2]/85
                                     "
                                 >
-                                    {t}
+                                    {tag.tag_key}
                                 </span>
-                                )
+                            ))}
+                            {(!statistics || statistics.top_tags.length === 0) && (
+                                <div className="text-sm text-[#999999] text-center py-4 w-full">
+                                데이터 없음
+                                </div>
                             )}
                             </div>
                         </div>
@@ -463,7 +503,7 @@ export default function MyPage() {
                             <span className="font-semibold text-[#AFDEE2]">
                             {dashboard.insight.main1}
                             </span>
-                            에{" "}
+                            {" 장르와 "}
                             <span className="font-semibold text-[#AFDEE2]">
                             {dashboard.insight.main2}
                             </span>
