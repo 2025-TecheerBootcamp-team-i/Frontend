@@ -471,7 +471,7 @@ export default function NowPlayingPage() {
                 <div className="h-full flex flex-col items-center justify-center px-6">
                     <div className="w-full max-w-[860px] flex flex-col items-center gap-4">
                     {/* 앨범아트 */}
-                    <div className="w-[360px] aspect-square rounded-3xl bg-white/25 border border-white/10 overflow-hidden relative">
+                    <div className="w-[360px] aspect-square rounded-3xl bg-white/25 overflow-hidden relative">
                         {hasTrack && mainAlbumImage ? (
                         <>
                             <img
