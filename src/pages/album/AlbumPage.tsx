@@ -92,7 +92,7 @@ function findAlbumById(albumId: string | undefined): Found {
 
 export default function AlbumDetailPage() {
     const { albumId } = useParams();
-    const { playTracks } = usePlayer();
+    const { playTracks, enqueueTracks } = usePlayer();
     const navigate = useNavigate();
 
     const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
@@ -257,6 +257,31 @@ export default function AlbumDetailPage() {
 
     // ✅ 담기 모달 (⚠️ if (!found) return 보다 위에 있어야 함)
     const [addOpen, setAddOpen] = useState(false);
+
+    type PendingPlay = {
+        key: "play" | "shuffle";     // 여기 페이지에서는 이 둘만 쓰면 됨
+        tracks: PlayerTrack[];
+    };
+
+    const [playConfirmOpen, setPlayConfirmOpen] = useState(false);
+    const [pendingPlay, setPendingPlay] = useState<PendingPlay | null>(null);
+
+    const runPendingPlay = (mode: "replace" | "enqueue") => {
+            if (!pendingPlay) return;
+        
+            const isShuffle = pendingPlay.key === "shuffle";
+        
+            if (mode === "replace") {
+            playTracks(pendingPlay.tracks, { shuffle: isShuffle });
+            } else {
+            enqueueTracks(pendingPlay.tracks, { shuffle: isShuffle });
+            }
+        
+            setCheckedIds({});
+            setPendingPlay(null);
+            setPlayConfirmOpen(false);
+    };
+
 
     // ✅ 담기 대상(유저 플리만) - 구독 emit에 맞춰 목록도 동기화
     const [addTargets, setAddTargets] = useState(() => getUserPlaylists());
@@ -592,18 +617,12 @@ export default function AlbumDetailPage() {
                         await addSelectedToLiked();
                         return;
                     }
-                    if (a.key === "play") {
+                    if (a.key === "play" || a.key === "shuffle") {
                         if (selectedCount === 0) return;
+
                         const playerTracks = await Promise.all(selectedTracks.map(toPlayerTrack));
-                        playTracks(playerTracks);
-                        setCheckedIds({}); 
-                        return;
-                    }
-                    if (a.key === "shuffle") {
-                        if (selectedCount === 0) return;
-                        const playerTracks = await Promise.all(selectedTracks.map(toPlayerTrack));
-                        playTracks(playerTracks, { shuffle: true });
-                        setCheckedIds({}); 
+                        setPendingPlay({ key: a.key, tracks: playerTracks });
+                        setPlayConfirmOpen(true);
                         return;
                     }
                     if (a.key === "add") {
@@ -805,6 +824,82 @@ export default function AlbumDetailPage() {
             </div>
             </div>
         )}
+        {/* ✅ 재생 방식 선택 모달 */}
+        {playConfirmOpen && pendingPlay && (
+        <div className="fixed inset-0 z-[999] whitespace-normal">
+            <button
+            type="button"
+            className="absolute inset-0 bg-black/50"
+            onClick={() => {
+                setPlayConfirmOpen(false);
+                setPendingPlay(null);
+            }}
+            aria-label="닫기"
+            />
+            <div className="absolute inset-0 grid place-items-center p-6">
+            <div className="w-full max-w-[440px] rounded-3xl bg-[#2d2d2d] border border-[#464646] shadow-2xl overflow-hidden">
+                <div className="px-6 py-4 flex items-center justify-between border-b border-[#464646]">
+                <div className="text-base font-semibold text-[#F6F6F6]">재생 방식 선택</div>
+                <button
+                    type="button"
+                    onClick={() => {
+                    setPlayConfirmOpen(false);
+                    setPendingPlay(null);
+                    }}
+                    className="text-[#F6F6F6]/70 hover:text-white transition"
+                    aria-label="닫기"
+                >
+                    ✕
+                </button>
+                </div>
+
+                <div className="px-6 py-4 text-sm text-[#F6F6F6]/70">
+                선택한 {pendingPlay.tracks.length}곡을{" "}
+                {pendingPlay.key === "shuffle" ? "셔플로 " : ""}
+                어떻게 재생할까요?
+                </div>
+
+                <div className="px-6 pb-6 grid grid-cols-1 gap-3">
+                <button
+                    type="button"
+                    onClick={() => runPendingPlay("replace")}
+                    className="w-full px-4 py-3 rounded-2xl text-sm text-[#F6F6F6] outline outline-1 outline-[#464646] hover:bg-white/10 transition text-left"
+                >
+                    <div className="font-semibold text-[#afdee2]">현재 재생 대기목록 지우고 재생</div>
+                    <div className="mt-1 text-xs text-[#999]">
+                    지금 재생 대기목록을 초기화하고 선택한 곡들로 새로 재생합니다.
+                    </div>
+                </button>
+
+                <button
+                    type="button"
+                    onClick={() => runPendingPlay("enqueue")}
+                    className="w-full px-4 py-3 rounded-2xl text-sm text-[#F6F6F6] outline outline-1 outline-[#464646] hover:bg-white/10 transition text-left"
+                >
+                    <div className="font-semibold text-[#afdee2]">재생 대기목록 맨 뒤에 추가</div>
+                    <div className="mt-1 text-xs text-[#999]">
+                    현재 재생은 유지하고, 선택한 곡들을 재생 대기 목록 마지막에 둡니다.
+                    </div>
+                </button>
+                </div>
+
+                <div className="px-6 py-4 border-t border-[#464646] flex justify-end">
+                <button
+                    type="button"
+                    onClick={() => {
+                    setPlayConfirmOpen(false);
+                    setPendingPlay(null);
+                    }}
+                    className="px-4 py-2 rounded-2xl text-sm text-[#F6F6F6] hover:bg-white/10 transition"
+                >
+                    취소
+                </button>
+                </div>
+            </div>
+            </div>
+        </div>
+        )}
+
         </div>
     );
 }

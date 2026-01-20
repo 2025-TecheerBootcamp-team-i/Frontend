@@ -465,7 +465,7 @@ export default function ArtistPage() {
                     key={t.id}
                     className={[
                     "w-full text-left",
-                    "grid grid-cols-[56px_1fr_90px] min-[1200px]:grid-cols-[56px_1fr_100px_450px] items-center",
+                    "grid grid-cols-[56px_1fr_90px] min-[1200px]:grid-cols-[56px_1fr_200px_450px] items-center",
                     "py-2 px-2",
                     "gap-x-2",
                     "border-b border-[#464646]",
