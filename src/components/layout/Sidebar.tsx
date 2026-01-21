@@ -57,8 +57,8 @@ function Sidebar({
     <aside
       className="
         w-[355px]
-        bg-[#2D2D2D]
-        border-r border-[#3d3d3d]
+        bg-[#1d1d1d]
+        border-r border-[#2d2d2d]
         p-4
         flex flex-col
         overflow-hidden
@@ -79,7 +79,7 @@ function Sidebar({
             rounded-3xl
             px-5 py-4
             flex-none
-            shadow-[0_4px_12px_rgba(0,0,0,0.25)]
+            shadow-[0_10px_24px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.08)]
           "
           style={{
             height: "clamp(320px, 42vh, 400px)", // ✅ 화면 크기에 따라 적당히
@@ -174,7 +174,7 @@ function Sidebar({
             px-5 py-4
             flex flex-col
             min-h-0
-            shadow-[0_4px_12px_rgba(0,0,0,0.25)]
+            shadow-[0_10px_24px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.08)]
             overflow-hidden
           "
           style={{

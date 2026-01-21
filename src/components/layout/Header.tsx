@@ -29,9 +29,9 @@ function Header() {
     <header
       className="
         h-20 
-        bg-[#2D2D2D] 
+        bg-[#1d1d1d] 
         border-b 
-        border-[#3d3d3d]
+        border-[#2d2d2d]
         flex items-center 
         px-6 gap-4
         "
@@ -48,7 +48,7 @@ function Header() {
             from-[#3d3d3d]
             to-[#2d2d2d]
 
-            shadow-[0_4px_12px_rgba(0,0,0,0.25)]
+            shadow-[0_10px_24px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.08)]
             text-[#AFDEE2]
             rounded-full"
       ><FaMusic size={18}/></div>
@@ -71,7 +71,7 @@ function Header() {
           hover:to-[#3a3a3a]
 
           text-[#AFDEE2]
-          shadow-[0_4px_12px_rgba(0,0,0,0.25)]
+          shadow-[0_10px_24px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.08)]
         "
       >
         <TiHome size={25} />
@@ -91,7 +91,7 @@ function Header() {
             bg-gradient-to-tr
             from-[#3d3d3d]
             to-[#2d2d2d]
-            shadow-[0_4px_12px_rgba(0,0,0,0.25)]
+            shadow-[0_10px_24px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.08)]
             rounded-full 
             px-4 py-3"
       >

@@ -120,7 +120,7 @@ export default function Player({ height = 92 }: Props) {
     
         return (
         <div
-            className="fixed bottom-0 left-0 right-0 z-[60] border-t border-white/10 bg-[#2b2b2b]/80 backdrop-blur"
+            className="fixed bottom-0 left-0 right-0 z-[60] border-t border-[#2d2d2d] bg-[#1d1d1d]/80 backdrop-blur"
             style={{ height }}
         >
             {/* ✅ grid에는 grid만 (flex 제거) */}

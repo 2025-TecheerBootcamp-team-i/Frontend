@@ -601,7 +601,7 @@ export default function AiCreatePage() {
                 <div
                   key={r.id}
                   className={[
-                    "grid items-center grid-cols-[40px_minmax(0,1fr)_84px_140px] px-4 py-3 transition group",
+                    "grid items-center grid-cols-[40px_minmax(0,1fr)_84px_140px] px-4 py-2 transition group",
                     idx % 2 === 0 ? "bg-[#2d2d2d]/80" : "bg-[#3b3b3b]/80",
                     "hover:bg-white/5",
                   ].join(" ")}
@@ -615,7 +615,7 @@ export default function AiCreatePage() {
                   />
 
                   <div className="pl-2 border-l border-[#E6E6E6]/20 min-w-0 flex items-center gap-3">
-                    <div className="relative h-11 w-11 rounded-xl bg-white/20 shrink-0" />
+                    <div className="relative h-12 w-12 rounded-xl bg-white/20 shrink-0" />
                     <div className="min-w-0">
                       <button
                         type="button"
