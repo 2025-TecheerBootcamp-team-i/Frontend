@@ -342,7 +342,7 @@ export default function ChartTop100() {
                     {/* 순위 + 변동 + hover 재생 */}
                     <div className="flex items-center gap-3">
                         <div className="relative w-8 flex items-center justify-center">
-                        <span className="text-sm text-[#F6F6F6] transition-opacity group-hover:opacity-0">
+                        <span className="ml-2 text-sm text-[#F6F6F6] transition-opacity group-hover:opacity-0">
                             {row.rank}
                         </span>
                         <button
@@ -351,7 +351,7 @@ export default function ChartTop100() {
                             e.stopPropagation();
                             setTrackAndPlay(toTrack(row));
                             }}
-                            className="absolute opacity-0 transition-opacity group-hover:opacity-100 text-[#AFDEE2]"
+                            className="ml-2 absolute opacity-0 transition-opacity group-hover:opacity-100 text-[#AFDEE2]"
                             aria-label={`${row.musicName}재생`}
                             title="재생"
                         >
