@@ -9,11 +9,11 @@ import { FaCheckCircle } from "react-icons/fa";
 import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
 import { requireLogin } from "../../api/auth";
+import { likeTrack } from "../../api/music";
 
 import {
   listPlaylists,
   addPlaylistItems,
-  likeTrack,
   type PlaylistSummary,
 } from "../../api/playlist";
 
