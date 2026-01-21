@@ -2,7 +2,7 @@
     export type AiTrackStatus = "Upload" | "Draft";
 
     export type AiTrack = {
-    id: string;
+    musicId: number; // music_id를 숫자로 저장 (앨범 API 호출에 필요)
     status: AiTrackStatus;
 
     title: string;
@@ -37,7 +37,7 @@
     // ✅ 초기 더미: 지금 네 DUMMY_TRACKS랑 비슷하게
     let TRACKS: AiTrack[] = [
     {
-        id: "t1",
+        musicId: 1,
         status: "Upload",
         title: "테커의 새벽",
         desc:
@@ -47,13 +47,13 @@
         isAi: true,
         artist: "Andrew Park",
         plays: 100,
-        lyrics: `[Verse 1]\n퇴근 시간 한참 전에\n우리 하루 이제 시작\n모니터 불빛 아래\n눈은 빨갛지만 입꼬린 살아 있어\n\n커피 줄 서 있는 사이에러 메시지 또 뜨네\n“이건 어제도 봤는데”\n웃으면서 다시 로그를 따라가\n\n[Chorus]`,
+        lyrics: `[Verse 1]\n퇴근 시간 한참 전에\n우리 하루 이제 시작\n모니터 불빛 아래\n눈은 빨갛지만 입꼬린 살아 있어\n\n커피 줄 서 있는 사이에러 메시지 또 뜨네\n"이건 어제도 봤는데"\n웃으면서 다시 로그를 따라가\n\n[Chorus]`,
         prompt: "새벽 감성, 로파이 힙합, 잔잔한 피아노와 드럼, 한국어 보컬...",
         ownerId: "me",
         ownerName: "나",
     },
     ...Array.from({ length: 10 }).map((_, i) => ({
-        id: `t${i + 2}`,
+        musicId: i + 2,
         status: "Draft" as const,
         title: "곡 이름",
         desc: "곡 설명",
@@ -83,8 +83,8 @@
     return getAllAiSongs().filter((t) => (t.ownerId ?? "") === ownerId);
     }
 
-    export function getAiSongById(id: string) {
-    return TRACKS.find((t) => t.id === id) ?? null;
+    export function getAiSongById(musicId: number) {
+    return TRACKS.find((t) => t.musicId === musicId) ?? null;
     }
 
     export function createAiSong(input: {
@@ -102,8 +102,9 @@
     lyrics?: string;
     audioUrl?: string;
     }) {
+    const maxMusicId = TRACKS.length > 0 ? Math.max(...TRACKS.map(t => t.musicId)) : 0;
     const t: AiTrack = {
-        id: genId(),
+        musicId: maxMusicId + 1,
         status: input.status ?? "Draft",
         title: input.title || "제목 없음",
         desc: input.desc || "곡 설명",
@@ -125,17 +126,17 @@
     return t;
     }
 
-    export function updateAiSong(id: string, patch: Partial<Omit<AiTrack, "id" | "isAi">>) {
-    const idx = TRACKS.findIndex((t) => t.id === id);
+    export function updateAiSong(musicId: number, patch: Partial<Omit<AiTrack, "musicId" | "isAi">>) {
+    const idx = TRACKS.findIndex((t) => t.musicId === musicId);
     if (idx < 0) return null;
     TRACKS[idx] = { ...TRACKS[idx], ...patch };
     emit();
     return TRACKS[idx];
     }
 
-    export function deleteAiSong(id: string) {
+    export function deleteAiSong(musicId: number) {
     const prev = TRACKS.length;
-    TRACKS = TRACKS.filter((t) => t.id !== id);
+    TRACKS = TRACKS.filter((t) => t.musicId !== musicId);
     const ok = TRACKS.length !== prev;
     if (ok) emit();
     return ok;

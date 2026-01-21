@@ -2,12 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
-import {
-  getAllAiSongs,
-  subscribeAiSongs,
-} from "../../mocks/aiSongMock";
 import type { AiTrack } from "../../mocks/aiSongMock";
 import { generateMusicAsync, getTaskStatus, convertPromptOnly } from "../../api/ai";
+import { fetchUserAiMusic } from "../../api/user";
+import { listAllAiMusic, type MusicListItem, getMusicDetail } from "../../api/music";
+import { getBestAlbumCover } from "../../api/album";
 import { getCurrentUserId } from "../../utils/auth";
 import { Typewriter } from "../../components/Typewriter/Typewriter";
 import { CursorStyle } from "../../components/Typewriter/types";
@@ -153,33 +152,222 @@ export default function AiCreatePage() {
    ========================= */
   const [query, setQuery] = useState("");
   const [rows, setRows] = useState<AiTrack[]>([]);
+  const [listLoading, setListLoading] = useState(false);
+
+  // duration 초 → "mm:ss"
+  const formatDuration = (seconds: number): string => {
+    if (!seconds || Number.isNaN(seconds)) return "0:00";
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  // 날짜 포맷: YYYY년 M월 D일
+  const formatKoreanDate = (dateString: string): string => {
+    try {
+      const d = new Date(dateString);
+      return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
+    } catch {
+      return dateString ?? "";
+    }
+  };
 
   useEffect(() => {
-    const sync = () => setRows(getAllAiSongs());
-    sync();
-    return subscribeAiSongs(sync);
+    const load = async () => {
+      console.log("[AICreatePage] 🔍 모든 사용자의 AI 곡 목록 로드 시작 (랜덤 10개)");
+
+      try {
+        setListLoading(true);
+        console.log("[AICreatePage] 📡 listAllAiMusic API 호출 시작");
+        
+        const allData = await listAllAiMusic({ is_ai: true });
+        console.log("[AICreatePage] ✅ API 응답 받음", { 
+          dataLength: allData?.length ?? 0,
+          data: allData 
+        });
+
+        if (!allData || !Array.isArray(allData)) {
+          console.warn("[AICreatePage] ⚠️ data가 배열이 아님", { allData });
+          setRows([]);
+          return;
+        }
+
+        // duration이 null이 아닌 곡만 필터링
+        const validData = allData.filter(m => m.duration != null && m.duration > 0);
+        console.log("[AICreatePage] 🎵 유효한 곡 필터링 완료", {
+          totalCount: allData.length,
+          validCount: validData.length,
+          filteredOut: allData.length - validData.length,
+        });
+
+        // 랜덤으로 10개 선택
+        const shuffled = [...validData].sort(() => Math.random() - 0.5);
+        const random10 = shuffled.slice(0, 10);
+        
+        console.log("[AICreatePage] 🎲 랜덤 선택 완료", {
+          totalCount: allData.length,
+          selectedCount: random10.length,
+          selected: random10.map(m => ({ musicId: m.music_id, title: m.music_name }))
+        });
+
+        console.log("[AICreatePage] 🔄 데이터 매핑 시작", { count: random10.length });
+        
+        // 각 곡에 대해 병렬로 앨범 이미지 가져오기 (music_id로 조회)
+        const mappedWithCovers = await Promise.all(
+          random10.map(async (m, index) => {
+            let coverUrl: string | undefined = undefined;
+            
+            try {
+              // music_id로 음악 상세 조회하여 앨범 이미지 가져오기
+              const musicDetail = await getMusicDetail(m.music_id);
+              
+              if (musicDetail) {
+                // 우선순위: image_square > image_large_square > album_image
+                if (musicDetail.image_square) {
+                  coverUrl = musicDetail.image_square;
+                  console.log(`[AICreatePage] 앨범 이미지 가져오기 성공 (image_square) ${index + 1}`, {
+                    musicId: m.music_id,
+                    coverUrl: coverUrl,
+                  });
+                } else if (musicDetail.image_large_square) {
+                  coverUrl = musicDetail.image_large_square;
+                  console.log(`[AICreatePage] 앨범 이미지 가져오기 성공 (image_large_square) ${index + 1}`, {
+                    musicId: m.music_id,
+                    coverUrl: coverUrl,
+                  });
+                } else if (musicDetail.album_image) {
+                  coverUrl = musicDetail.album_image;
+                  console.log(`[AICreatePage] 앨범 이미지 가져오기 성공 (album_image) ${index + 1}`, {
+                    musicId: m.music_id,
+                    coverUrl: coverUrl,
+                  });
+                } else if (musicDetail.album_id) {
+                  // 앨범 이미지 필드가 없으면 album_id로 앨범 상세 조회
+                  const albumCover = await getBestAlbumCover(musicDetail.album_id, null);
+                  coverUrl = albumCover || undefined;
+                  console.log(`[AICreatePage] 앨범 이미지 가져오기 성공 (album_id 조회) ${index + 1}`, {
+                    musicId: m.music_id,
+                    albumId: musicDetail.album_id,
+                    coverUrl: coverUrl,
+                  });
+                } else {
+                  console.log(`[AICreatePage] 앨범 이미지 없음 ${index + 1}`, {
+                    musicId: m.music_id,
+                    musicDetail: musicDetail,
+                  });
+                }
+              }
+            } catch (error) {
+              console.warn(`[AICreatePage] 앨범 이미지 가져오기 실패 ${index + 1}`, {
+                musicId: m.music_id,
+                error,
+              });
+            }
+            
+            const mappedItem: AiTrack = {
+              musicId: m.music_id,
+              status: (m.audio_url ? "Upload" : "Draft") as AiTrack["status"],
+              title: m.music_name || "제목 없음",
+              desc: m.lyrics || m.genre || "",
+              duration: formatDuration(m.duration ?? 0),
+              createdAt: m.created_at ? formatKoreanDate(m.created_at) : "",
+              isAi: m.is_ai ?? true,
+              artist: m.artist_name || "AI Artist",
+              plays: 0,
+              lyrics: m.lyrics || "",
+              coverUrl: coverUrl,
+              audioUrl: m.audio_url || undefined,
+              prompt: "",
+              ownerId: undefined,
+              ownerName: undefined,
+            };
+            
+            console.log(`[AICreatePage] 📝 매핑된 항목 ${index + 1}/${random10.length}`, {
+              musicId: mappedItem.musicId,
+              title: mappedItem.title,
+              status: mappedItem.status,
+              hasAudioUrl: !!mappedItem.audioUrl,
+              hasCoverUrl: !!mappedItem.coverUrl,
+              artist: mappedItem.artist,
+            });
+            
+            return mappedItem;
+          })
+        );
+        
+        const mapped = mappedWithCovers;
+
+        console.log("[AICreatePage] 📊 매핑 완료", { 
+          mappedCount: mapped.length,
+          mappedItems: mapped 
+        });
+
+        // 최신순 정렬
+        mapped.sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+
+        console.log("[AICreatePage] ✅ 정렬 완료, rows 상태 업데이트", { 
+          finalCount: mapped.length,
+          finalRows: mapped 
+        });
+
+        setRows(mapped);
+      } catch (e) {
+        console.error("[AICreatePage] ❌ AI 목록 불러오기 실패", e);
+        if (e instanceof Error) {
+          console.error("[AICreatePage] 에러 상세:", {
+            message: e.message,
+            stack: e.stack,
+          });
+        }
+        setRows([]);
+      } finally {
+        setListLoading(false);
+        console.log("[AICreatePage] 🏁 로드 완료, listLoading=false");
+      }
+    };
+
+    load();
   }, []);
 
   const filtered = useMemo(() => {
-    const uploaded = rows.filter((r) => r.status === "Upload");
-
+    console.log("[AICreatePage] 🔍 filtered 계산 시작", { 
+      rowsCount: rows.length,
+      query: query,
+      rows: rows 
+    });
+    
     const q = query.trim().toLowerCase();
-    if (!q) return uploaded;
+    if (!q) {
+      console.log("[AICreatePage] ✅ 검색어 없음, 모든 rows 반환", { count: rows.length });
+      return rows;
+    }
 
-    return uploaded.filter(
+    const result = rows.filter(
       (r) =>
         r.title.toLowerCase().includes(q) ||
         r.desc.toLowerCase().includes(q)
     );
+    
+    console.log("[AICreatePage] 🔍 검색 결과", { 
+      query: q,
+      totalRows: rows.length,
+      filteredCount: result.length,
+      filtered: result 
+    });
+    
+    return result;
   }, [query, rows]);
 
   /** =========================
    * ✅ 선택 체크
    ========================= */
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Set<number>>(new Set());
   const selectAllRef = useRef<HTMLInputElement | null>(null);
 
-  const visibleIds = useMemo(() => filtered.map((r) => r.id), [filtered]);
+  const visibleIds = useMemo(() => filtered.map((r) => r.musicId), [filtered]);
   const allChecked =
     visibleIds.length > 0 && visibleIds.every((id) => selected.has(id));
   const someChecked =
@@ -190,7 +378,7 @@ export default function AiCreatePage() {
     selectAllRef.current.indeterminate = someChecked;
   }, [someChecked]);
 
-  const toggleOne = (id: string) => {
+  const toggleOne = (id: number) => {
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -524,16 +712,17 @@ export default function AiCreatePage() {
    * ✅ 선택된 row → PlayerTrack
    ========================= */
   const selectedRows = useMemo(
-    () => rows.filter((r) => selected.has(r.id)),
+    () => rows.filter((r) => selected.has(r.musicId)),
     [rows, selected]
   );
 
   const toTrack = (r: AiTrack): PlayerTrack => ({
-    id: r.id,
+    id: r.musicId.toString(),
     title: r.title,
-    artist: "AI Artist",
+    artist: r.artist ?? "AI Artist",
     duration: r.duration,
-    audioUrl: "/audio/sample.mp3",
+    audioUrl: r.audioUrl,
+    musicId: r.musicId,
   });
 
   const selectedTracks = useMemo(
@@ -626,7 +815,7 @@ export default function AiCreatePage() {
     if (key === "share") shareSelected();
   };
 
-  const goToAlSongPage = (trackId: string) => {
+  const goToAlSongPage = (trackId: number) => {
     navigate(`/aisong/${trackId}`);
   };
 
@@ -997,57 +1186,90 @@ export default function AiCreatePage() {
 
             <div className="border-b border-[#464646]" />
 
-            <div className="divide-y divide-[#464646]">
-              {filtered.map((r, idx) => (
-                <div
-                  key={r.id}
-                  className={[
-                    "grid items-center grid-cols-[40px_minmax(0,1fr)_84px_140px] px-4 py-2 transition group",
-                    idx % 2 === 0 ? "bg-[#2d2d2d]/80" : "bg-[#3b3b3b]/80",
-                    "hover:bg-white/5",
-                  ].join(" ")}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selected.has(r.id)}
-                    onChange={() => toggleOne(r.id)}
-                    aria-label={`select ${r.title}`}
-                    className="ml-2 accent-[#f6f6f6]"
-                  />
+            {(() => {
+              console.log("[AICreatePage] 🎨 렌더링 상태", {
+                listLoading,
+                filteredCount: filtered.length,
+                rowsCount: rows.length,
+                filtered: filtered,
+              });
+              return null;
+            })()}
+            {listLoading ? (
+              <div className="px-8 py-10 text-center text-sm text-[#f6f6f6] whitespace-normal">
+                불러오는 중...
+              </div>
+            ) : (
+              <>
+                <div className="divide-y divide-[#464646]">
+                  {filtered.map((r, idx) => {
+                    console.log(`[AICreatePage] 🎨 렌더링 항목 ${idx + 1}`, {
+                      musicId: r.musicId,
+                      title: r.title,
+                      status: r.status,
+                      coverUrl: r.coverUrl,
+                    });
+                    return (
+                    <div
+                      key={r.musicId}
+                      className={[
+                        "grid items-center grid-cols-[40px_minmax(0,1fr)_84px_140px] px-4 py-2 transition group",
+                        idx % 2 === 0 ? "bg-[#2d2d2d]/80" : "bg-[#3b3b3b]/80",
+                        "hover:bg-white/5",
+                      ].join(" ")}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selected.has(r.musicId)}
+                        onChange={() => toggleOne(r.musicId)}
+                        aria-label={`select ${r.title}`}
+                        className="ml-2 accent-[#f6f6f6]"
+                      />
 
-                  <div className="pl-2 border-l border-[#E6E6E6]/20 min-w-0 flex items-center gap-3">
-                    <div className="relative h-12 w-12 rounded-xl bg-white/20 shrink-0" />
-                    <div className="min-w-0">
-                      <button
-                        type="button"
-                        onClick={() => goToAlSongPage(r.id)}
-                        className="block w-full truncate text-left text-[12px] text-[#f6f6f6] hover:underline underline-offset-2"
-                      >
-                        {r.title}
-                      </button>
-                      <div className="truncate text-[12px] text-[#999999]">
-                        {r.desc}
+                      <div className="pl-2 border-l border-[#E6E6E6]/20 min-w-0 flex items-center gap-3">
+                        <div className="relative h-12 w-12 rounded-xl bg-white/20 shrink-0 overflow-hidden">
+                          {r.coverUrl ? (
+                            <img
+                              src={r.coverUrl}
+                              alt={r.title}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : null}
+                        </div>
+                        <div className="min-w-0">
+                          <button
+                            type="button"
+                            onClick={() => goToAlSongPage(r.musicId)}
+                            className="block w-full truncate text-left text-[12px] text-[#f6f6f6] hover:underline underline-offset-2"
+                          >
+                            {r.title}
+                          </button>
+                          <div className="truncate text-[12px] text-[#999999]">
+                            {r.desc}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pl-2 border-l border-[#E6E6E6]/20 text-left text-xs text-[#f6f6f6]">
+                        {r.duration}
+                      </div>
+
+                      <div className="pr-2 border-r border-[#E6E6E6]/20 text-right text-xs text-[#f6f6f6]">
+                        {r.createdAt}
                       </div>
                     </div>
-                  </div>
-
-                  <div className="pl-2 border-l border-[#E6E6E6]/20 text-left text-xs text-[#f6f6f6]">
-                    {r.duration}
-                  </div>
-
-                  <div className="pr-2 border-r border-[#E6E6E6]/20 text-right text-xs text-[#f6f6f6]">
-                    {r.createdAt}
-                  </div>
+                    );
+                  })}
                 </div>
-              ))}
-            </div>
-          </div>
 
-          {filtered.length === 0 && (
-            <div className="px-8 py-10 text-center text-sm text-[#f6f6f6] whitespace-normal">
-              {query}에 대한 검색 결과가 없습니다.
-            </div>
-          )}
+                {filtered.length === 0 && (
+                  <div className="px-8 py-10 text-center text-sm text-[#f6f6f6] whitespace-normal">
+                    {query}에 대한 검색 결과가 없습니다.
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </section>
 
         {/* ✅ 담기 모달 */}

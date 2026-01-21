@@ -24,7 +24,7 @@ import {
 import { IoChevronBack } from "react-icons/io5";
 
 type AiTrack = {
-  id: string;
+  musicId: number; // 백엔드 music_id (id 대신 musicId 사용)
   status: "Upload" | "Draft";
   title: string;
   desc: string;
@@ -41,7 +41,6 @@ type AiTrack = {
 
   ownerId?: string;
   ownerName?: string;
-  musicId?: number; // 백엔드 music_id
 };
 
 const FADE_STYLE = `
@@ -146,7 +145,9 @@ export default function AiSongPage() {
 
   const dummyFound = useMemo(() => {
     if (!id) return null;
-    return getAiSongById(id);
+    const musicId = parseInt(id, 10);
+    if (isNaN(musicId)) return null;
+    return getAiSongById(musicId);
   }, [id]);
 
   useEffect(() => {
@@ -166,7 +167,7 @@ export default function AiSongPage() {
 
     const syncLiked = () => {
       const likedPl = getPlaylistById(LIKED_SYSTEM_ID);
-      const isLiked = !!likedPl?.tracks?.some((t) => t.id === track.id);
+      const isLiked = !!likedPl?.tracks?.some((t) => t.id === track.musicId.toString());
       setLiked(isLiked);
     };
 
@@ -183,16 +184,17 @@ export default function AiSongPage() {
       return;
     }
 
-    const exists = likedPl.tracks.some((t) => t.id === track.id);
+    const trackIdStr = track.musicId.toString();
+    const exists = likedPl.tracks.some((t) => t.id === trackIdStr);
 
     if (exists) {
-      const next = likedPl.tracks.filter((t) => t.id !== track.id);
+      const next = likedPl.tracks.filter((t) => t.id !== trackIdStr);
       updatePlaylist(LIKED_SYSTEM_ID, { tracks: next });
       return;
     }
 
     const incoming = {
-      id: track.id,
+      id: trackIdStr,
       title: track.title,
       artist: track.artist ?? "AI Artist",
       album: "",
@@ -337,7 +339,7 @@ export default function AiSongPage() {
     if (!track) return [];
     return [
       {
-        id: track.id,
+        id: track.musicId.toString(),
         title: track.title,
         artist: track.artist ?? "AI Artist",
         duration: track.duration,
@@ -426,7 +428,7 @@ export default function AiSongPage() {
 
     // 3) mock 반영
     try {
-      updateAiSong(track.id, { status: "Upload" });
+      updateAiSong(track.musicId, { status: "Upload" });
     } catch (e) {
       console.error("mock upload failed", e);
     }
