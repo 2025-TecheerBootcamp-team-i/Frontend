@@ -269,7 +269,7 @@ export default function AiCreatePage() {
           console.log("[AICreatePage] ⚠️ parsed.prompt 없음, 전체 객체 사용");
           finalConvertedPrompt = convertResponse.converted_prompt;
         }
-      } catch (error) {
+      } catch {
         console.log("[AICreatePage] ⚠️ JSON 파싱 실패 - 일반 문자열로 처리");
         finalConvertedPrompt = convertResponse.converted_prompt;
       }
@@ -329,6 +329,7 @@ export default function AiCreatePage() {
 
             if (status.status === "SUCCESS" && status.result) {
               // 1차: 작업 자체는 SUCCESS → 이제 music_id 기준으로 상세 조회를 폴링
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const result: any = status.result as any;
               const musicIdFromResult =
                 result?.music?.music_id ?? result?.music_id ?? null;
@@ -401,7 +402,7 @@ export default function AiCreatePage() {
                     setTimeout(pollMusicDetail, 5000);
                     return;
                   }
-
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   const data: any = await res.json();
 
                   // 백엔드 상세 응답 스펙에 맞춰 audio_url 경로 확인
@@ -503,6 +504,7 @@ export default function AiCreatePage() {
 
       // 폴링 시작
       pollTaskStatus(response.task_id);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("[AI 음악 생성 실패]", error);
       const errorMsg =
@@ -727,18 +729,32 @@ export default function AiCreatePage() {
             >
               {/* 앞면: 사용자 입력 */}
               <div 
-                className="absolute inset-0 [backface-visibility:hidden] rounded-2xl bg-[#3d3d3d]/80 backdrop-blur-xl border border-[#3d3d3d] shadow-[0_4px_12px_rgba(0,0,0,0.25)] p-5"
+                className="
+                  absolute inset-0 [backface-visibility:hidden] 
+                  rounded-2xl bg-[#3d3d3d]/80 backdrop-blur-xl 
+                  border border-[#3d3d3d] 
+                  shadow-[0_4px_12px_rgba(0,0,0,0.25)] p-5
+                  overflow-hidden"
                 style={{ backfaceVisibility: 'hidden' }}
               >
                 <div className="relative flex flex-col items-center justify-center min-h-full">
-                  <div className="absolute top-4 left-4 text-xs text-white/40">
-                    {prompt ? "사용자 입력" : ""}
+                  <div className="absolute top-2 left-2 text-xs text-white/40">
+                    {prompt ? "사용자 입력" : "프롬프트 입력"}
                   </div>
                   
                   {/* Typewriter 애니메이션 표시 영역 */}
-                  <div className="relative w-full flex flex-col items-center justify-center min-h-[300px]">
+                  <div className="
+                    relative w-full 
+                    flex flex-col items-center 
+                    justify-center min-h-[250px]
+                    max-h-[250px] overflow-y-auto
+                    ">
                     {prompt ? (
-                      <div className="w-full flex flex-col items-center justify-center">
+                      <div className="
+                       w-full flex flex-col text-lg
+                        items-center justify-center
+                        whitespace-pre-wrap break-words
+                        leading-relaxed px-4">
                         <Typewriter
                           text={prompt}
                           config={typewriterConfig}
@@ -746,7 +762,7 @@ export default function AiCreatePage() {
                         />
                       </div>
                     ) : (
-                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-[#777777] text-2xl text-center w-full">
+                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-base text-[#777777] text-base text-center w-full">
                         예) 새벽 감성, 로파이 힙합, 잔잔한 피아노와 드럼, 한국어 보컬...
                       </div>
                     )}
@@ -765,7 +781,14 @@ export default function AiCreatePage() {
                       setPrompt(newValue);
                     }}
                     placeholder="예) 새벽 감성, 로파이 힙합, 잔잔한 피아노와 드럼, 한국어 보컬..."
-                    className="ai-prompt-textarea absolute inset-0 w-full h-full resize-none bg-transparent text-4xl text-transparent outline-none placeholder:text-transparent font-bold leading-relaxed text-center"
+                    className="
+                      ai-prompt-textarea absolute 
+                      inset-0 w-full h-full resize-none 
+                      bg-transparent text-lg text-transparent 
+                      outline-none placeholder:text-transparent 
+                      font-bold leading-relaxed text-center
+                      overflow-y-auto
+                      "
                     style={{ 
                       caretColor: 'transparent',
                       zIndex: 10,
@@ -775,7 +798,7 @@ export default function AiCreatePage() {
                   />
                   
                   {/* 글자 수 표시 */}
-                  <div className="absolute bottom-4 right-4 text-right text-sm text-[#888888] z-20">
+                  <div className="absolute bottom-2 right-2 text-right text-xs text-[#888888] z-20">
                     {prompt.length}/{maxPrompt}
                   </div>
                 </div>
@@ -783,7 +806,7 @@ export default function AiCreatePage() {
 
               {/* 뒷면: 변환 결과 */}
               <div 
-                className="ai-back-gradient absolute inset-0 [backface-visibility:hidden] rounded-2xl backdrop-blur-xl border border-white/10 shadow-[0_8px_24px_rgba(0,0,0,0.45)] p-5 [transform:rotateY(180deg)]"
+                className="ai-back-gradient absolute inset-0 [backface-visibility:hidden] rounded-2xl backdrop-blur-xl border border-white/10 shadow-[0_8px_24px_rgba(0,0,0,0.45)] p-5 overflow-hidden [transform:rotateY(180deg)]"
                 style={{
                   backfaceVisibility: "hidden",
                   backgroundImage:
@@ -792,15 +815,15 @@ export default function AiCreatePage() {
                   animation: "aiGradientShift 12s ease-in-out infinite",
                 }}
               >
-                <div className="relative flex flex-col items-center justify-center min-h-full">
+                <div className="relative flex flex-col items-center justify-center h-full min-h-0">
                   <div className="absolute top-4 left-4 text-xs text-white">
                     {isGenerating && !convertedPrompt ? "생성 중..." : convertedPrompt ? "변환 결과" : ""}
                   </div>
                   
                   {/* Typewriter 애니메이션 표시 영역 */}
-                  <div className="relative w-full flex flex-col items-center justify-start pt-20 min-h-[300px]">
+                  <div className="relative w-full flex flex-col items-center justify-start pt-20 min-h-[300px] max-h-[320px] overflow-y-auto">
                     {displayText ? (
-                      <div className="w-full flex flex-col items-center justify-center px-4">
+                      <div className="w-full flex flex-col items-center justify-center whitespace-pre-wrap break-words leading-snug px-4">
                         <Typewriter
                           text={displayText}
                           config={typewriterConfig}
