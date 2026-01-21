@@ -7,9 +7,10 @@ export interface TypewriterConfig {
   loop: boolean;
 }
 
-export enum CursorStyle {
-  Block = '█',
-  Pipe = '|',
-  Underscore = '_',
-  Circle = '●',
-}
+export const CursorStyle = {
+  Pipe: "|",
+  Block: "█",
+  None: "",
+} as const;
+
+export type CursorStyle = (typeof CursorStyle)[keyof typeof CursorStyle];

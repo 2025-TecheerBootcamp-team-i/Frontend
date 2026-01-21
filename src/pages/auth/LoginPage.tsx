@@ -1,3 +1,5 @@
+// ✅ LoginPage.tsx (성능 개선 버전)
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -8,6 +10,30 @@ import {
 } from "react-icons/md";
 import { login } from "../../api/auth";
 
+// ✅ CHANGED: useEffect로 style 주입하지 않고, 모듈 스코프에서 1번만 주입
+let __verticalFloatStyleInjected = false;
+function ensureVerticalFloatStyle() {
+  if (__verticalFloatStyleInjected) return;
+  __verticalFloatStyleInjected = true;
+
+  const style = document.createElement("style");
+  style.setAttribute("data-login-vertical-float", "true");
+  style.innerHTML = `
+    @keyframes verticalFloat {
+      0%   { transform: translate3d(0,0,0); }
+      50%  { transform: translate3d(0,-10px,0); }
+      100% { transform: translate3d(0,0,0); }
+    }
+    .animate-verticalFloat {
+      display: inline-block;
+      animation: verticalFloat 7s ease-in-out infinite;
+      transform: translate3d(0,0,0);
+      will-change: transform;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 export default function LoginPage() {
   const navigate = useNavigate();
 
@@ -16,26 +42,9 @@ export default function LoginPage() {
   const [showPw, setShowPw] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // ✅ LEFT 문구 자동 float만 유지
+  // ✅ CHANGED: 마운트 시 1회 보장(언마운트 때 제거 안 함 = 다시 들어와도 재삽입 X)
   useEffect(() => {
-    const style = document.createElement("style");
-    style.innerHTML = `
-      @keyframes verticalFloat {
-        0%   { transform: translate3d(0,0,0); }
-        50%  { transform: translate3d(0,-10px,0); }
-        100% { transform: translate3d(0,0,0); }
-      }
-      .animate-verticalFloat {
-        display: inline-block;
-        animation: verticalFloat 7s ease-in-out infinite;
-        transform: translate3d(0,0,0);
-        will-change: transform;
-      }
-    `;
-    document.head.appendChild(style);
-    return () => {
-      document.head.removeChild(style);
-    };
+    ensureVerticalFloatStyle();
   }, []);
 
   const canLogin = id.trim().length > 0 && pw.trim().length > 0;
@@ -50,21 +59,27 @@ export default function LoginPage() {
         email: id.trim(),
         password: pw,
       });
-      
+
       // 토큰 저장 (localStorage 사용)
       localStorage.setItem("access_token", response.access);
       localStorage.setItem("refresh_token", response.refresh);
-      localStorage.setItem("user", JSON.stringify({
-        id: response.user_id,
-        email: response.email,
-        nickname: response.nickname,
-      }));
-      
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          id: response.user_id,
+          email: response.email,
+          nickname: response.nickname,
+        })
+      );
+
       alert(`환영합니다, ${response.nickname}님!`);
       navigate("/home");
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      const errorMsg = error?.response?.data?.message || error?.response?.data?.detail || "로그인에 실패했습니다.";
+      const errorMsg =
+        error?.response?.data?.message ||
+        error?.response?.data?.detail ||
+        "로그인에 실패했습니다.";
       alert(errorMsg);
     } finally {
       setIsSubmitting(false);
@@ -74,7 +89,8 @@ export default function LoginPage() {
   return (
     // ✅ 배경은 AuthLayout이 처리 → 여기선 카드만
     <div className="min-h-[100dvh] w-full flex items-center justify-center p-6">
-      <div className="relative w-full max-w-[920px] rounded-3xl bg-[#1b1b22]/70 backdrop-blur-xl border border-[#2d2d2d] shadow-[0_70px_200px_rgba(0,0,0,0.85)] overflow-hidden">
+      {/* ✅ CHANGED: huge shadow 줄임 + 배경 불투명 쪽으로 (backdrop-blur 없음 유지) */}
+      <div className="relative w-full max-w-[920px] rounded-3xl bg-[#1b1b22] border border-[#2d2d2d] shadow-[0_24px_80px_rgba(0,0,0,0.5)] overflow-hidden">
         {/* ✅ 중앙 경계 그라데이션 (md 이상에서만) */}
         <div
           className="
@@ -97,11 +113,17 @@ export default function LoginPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 min-h-[560px]">
           {/* LEFT */}
           <div className="relative h-full p-8 md:p-10 flex flex-col justify-between">
-            <div className="absolute inset-0">
+            {/* ✅ CHANGED: content-visibility로 페인트 최적화 + blur 원 크기 줄임 */}
+            <div
+              className="absolute inset-0"
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              style={{ contentVisibility: "auto" as any }} // ✅ CHANGED
+            >
               <div className="h-full w-full bg-gradient-to-br from-[#5fd8e4] via-[#9fd6db] to-[#eef6f6]" />
               <div className="absolute inset-0 bg-black/15" />
-              <div className="absolute -top-24 -left-24 h-64 w-64 rounded-full bg-white/20 blur-3xl" />
-              <div className="absolute -bottom-24 -right-24 h-64 w-64 rounded-full bg-black/20 blur-3xl" />
+              {/* ✅ CHANGED: blur 유지하되 원 크기 줄여서 부담 감소 */}
+              <div className="absolute -top-24 -left-24 h-48 w-48 rounded-full bg-white/20 blur-xl" />
+              <div className="absolute -bottom-24 -right-24 h-48 w-48 rounded-full bg-black/20 blur-xl" />
             </div>
 
             <div className="relative z-10 flex items-center justify-between">
@@ -141,7 +163,10 @@ export default function LoginPage() {
 
           {/* RIGHT */}
           <div className="h-full p-8 md:p-10 bg-[#3d3d3d]/30 flex items-center justify-center">
-            <form onSubmit={onSubmit} className="w-[320px] flex flex-col items-center">
+            <form
+              onSubmit={onSubmit}
+              className="w-[320px] flex flex-col items-center"
+            >
               {/* 헤더 */}
               <div className="w-full text-center mb-6">
                 <div className="text-[#f6f6f6] font-semibold">Login</div>
@@ -176,7 +201,7 @@ export default function LoginPage() {
                   <MdLockOutline size={18} />
                 </div>
                 <input
-                  type={showPw ? "password" : "text"}
+                  type={showPw ? "text" : "password"}
                   value={pw}
                   onChange={(e) => setPw(e.target.value)}
                   placeholder="Password"
@@ -195,9 +220,13 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => setShowPw((v) => !v)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white transition"
-                  aria-label={showPw ? "비밀번호 숨기기" : "비밀번호 보기"}
+                  aria-label={showPw ? "비밀번호 보기" : "비밀번호 숨기기"}
                 >
-                  {showPw ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
+                  {showPw ? (
+                    <MdVisibility size={18} />
+                  ) : (
+                    <MdVisibilityOff size={18} />
+                  )}
                 </button>
               </div>
 

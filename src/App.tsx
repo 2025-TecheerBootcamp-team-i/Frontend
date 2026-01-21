@@ -1,13 +1,13 @@
+import { Suspense, lazy } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import MainLayout from "./components/layout/MainLayout";
 import MainLayout2 from "./components/layout/MainLayout2";
 import PlainLayout from "./components/layout/PlainLayout";
 import Nolayout from "./components/layout/Nolayout";
 
-import LoginPage from "./pages/auth/LoginPage";
-import SignUpPage from "./pages/auth/SignupPage";
+const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
+const SignUpPage = lazy(() => import("./pages/auth/SignupPage"));
 import RequireAuth from "./pages/auth/RequireAuth";
-
 
 import HomePage from "./pages/home/HomePage";
 import ChartPage from "./pages/chart/ChartPage";
@@ -42,7 +42,15 @@ import ChartAI from "./pages/chart/ChartAI";
 import NowPlayingPage from "./pages/song/NowPlayingPage";
 import { PlayerProvider } from "./player/PlayerContext";
 
-import OnboardingPage from "./pages/OnboardingPage";
+const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
+
+function AuthFallback() {
+  return (
+    <div className="min-h-[100dvh] w-full grid place-items-center bg-[#2d2d2d]">
+      <div className="text-sm text-white/60">Loading...</div>
+    </div>
+  );
+}
 
 // 검색 페이지 쿼리 파라미터 유지하면서 리다이렉트
 function SearchRedirect() {
@@ -54,7 +62,7 @@ function SearchRedirect() {
 export default function App() {
   return (
     <PlayerProvider>
-     <Routes>
+      <Routes>
 
       {/* ✅ 사이드바가 필요한 모든 페이지 */}
       <Route element={<MainLayout />}>
@@ -101,11 +109,38 @@ export default function App() {
 
       {/* ✅ 사이드바, 헤더, 플레이바 없는 구간 (로그인/회원가입 용도) */}
       <Route element={<Nolayout />}>
-        <Route index element={<OnboardingPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignUpPage />} />
-
-        <Route path="/onboarding" element={<OnboardingPage />} />
+      <Route
+            index
+            element={
+              <Suspense fallback={<AuthFallback />}>
+                <OnboardingPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/login"
+            element={
+              <Suspense fallback={<AuthFallback />}>
+                <LoginPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/signup"
+            element={
+              <Suspense fallback={<AuthFallback />}>
+                <SignUpPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/onboarding"
+            element={
+              <Suspense fallback={<AuthFallback />}>
+                <OnboardingPage />
+              </Suspense>
+            }
+          />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

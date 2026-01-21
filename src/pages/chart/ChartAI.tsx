@@ -53,7 +53,7 @@ export default function ChartAI() {
 
     // diff(순위 변동) 저장소
     const prevRankByIdRef = useRef<Record<string, number>>({});
-    const [diffById, setDiffById] = useState<Record<string, number>>({});
+    // const [diffById, setDiffById] = useState<Record<string, number>>({});
 
     useEffect(() => {
     let alive = true;
@@ -79,7 +79,7 @@ export default function ChartAI() {
         }
 
         // ✅ 화면용 diff + 데이터 저장
-        setDiffById(nextDiff);
+        // setDiffById(nextDiff);
         setChart(data);
 
         // ✅ 다음 비교를 위해 이번 rank 저장(스냅샷 업데이트)

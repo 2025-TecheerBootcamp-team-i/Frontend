@@ -192,7 +192,7 @@ function HomePage() {
     
         // ✅ 이전 순위 스냅샷 저장
         const prevRankByIdRef = useRef<Record<string, number>>({});
-        const [diffById, setDiffById] = useState<Record<string, number>>({});
+        // const [diffById, setDiffById] = useState<Record<string, number>>({});
     
         // ✅ 인기 아티스트 fetch (finally 추가해서 loading 정상 종료)
         useEffect(() => {
@@ -284,7 +284,7 @@ function HomePage() {
                 const prevRank = prev[item.musicId];
                 nextDiff[item.musicId] = typeof prevRank === "number" ? prevRank - item.rank : 0;
             }
-            setDiffById(nextDiff);
+            // setDiffById(nextDiff);
 
             // 다음 비교용 스냅샷 저장
             const nextPrev: Record<string, number> = {};
