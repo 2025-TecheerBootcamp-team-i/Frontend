@@ -11,11 +11,11 @@ import type { PlayerTrack } from "../../player/PlayerContext";
 import { requireLogin } from "../../api/auth";
 
 import {
-  fetchMyPlaylists,
+  listPlaylists,
   addPlaylistItems,
   likeTrack,
   type PlaylistSummary,
-} from "../../api/SearchSongAPI";
+} from "../../api/playlist";
 
 
 /* ===================== 타입 ===================== */
@@ -476,10 +476,10 @@ export default function SearchSong() {
         setAddTargetsLoading(true);
         setAddTargetsError(null);
 
-        const list = await fetchMyPlaylists();
+        const data = await listPlaylists();
         if (cancelled) return;
 
-        setAddTargets(list);
+        setAddTargets(data);
       } catch (e) {
         console.error("[SearchSong] 플레이리스트 목록 불러오기 실패:", e);
         if (cancelled) return;
@@ -839,14 +839,14 @@ try {
                       ) : (
                       addTargets.map((p) => (
                         <button
-                        key={p.id}
+                        key={p.playlist_id}
                         type="button"
-                        onClick={() => addSelectedToPlaylist(p.id)}
+                        onClick={() => addSelectedToPlaylist(p.playlist_id.toString())}
                         className="w-full text-left px-6 py-4 hover:bg-white/5 transition border-b border-[#464646]"
                         >
                         <div className="text-sm font-semibold text-[#F6F6F6] truncate">{p.title}</div>
                         <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">
-                            {p.owner} · {p.isPublic ? "공개" : "비공개"}
+                            {p.creator_nickname} · {p.visibility ? "공개" : "비공개"}
                         </div>
                         </button>
                     ))
