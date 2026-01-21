@@ -11,12 +11,12 @@ import type { PlayerTrack } from "../../player/PlayerContext";
 import { requireLogin } from "../../api/auth";
 
 import {
-  getPlaylistById,
-  getUserPlaylists,
-  subscribePlaylists,
-  updatePlaylist,
-  LIKED_SYSTEM_ID,
-} from "../../mocks/playlistMock";
+  fetchMyPlaylists,
+  addPlaylistItems,
+  likeTrack,
+  type PlaylistSummary,
+} from "../../api/SearchSongAPI";
+
 
 /* ===================== 타입 ===================== */
 
@@ -62,17 +62,6 @@ type ApiSearchResponse = {
   previous: string | null;
   results: ApiSearchResult[];
 };
-
-/* ===================== 더미 데이터 ===================== */
-
-const ALL_SONGS: Song[] = Array.from({ length: 12 }).map((_, i) => ({
-  id: String(i + 1),
-  title: "곡 명",
-  artist: "아티스트명",
-  album: "앨범명",
-  duration: "2:27",
-  isAi: i % 4 === 0,
-}));
 
 /* ===================== 액션 ===================== */
 
@@ -269,27 +258,16 @@ export default function SearchSong() {
   /* ===================== 검색/필터 ===================== */
 
   const songs = useMemo(() => {
-    // API 데이터가 있으면 API 데이터 사용, 없으면 더미 데이터
-    if (API_BASE && q.trim() && apiSongs.length > 0) {
-      return apiSongs.filter((s) => !excludeAi || !s.isAi);
-    }
+    // ✅ 검색어 없으면 빈 리스트 (mock 안 씀)
+    if (!q.trim()) return [];
 
-    // 더미 데이터 필터링 (API가 없을 때만)
-    let result = ALL_SONGS;
+    // ✅ API_BASE 없으면 API 호출 안 하는 상태니까 빈 리스트
+    if (!API_BASE) return [];
 
-    if (q) {
-      const lower = q.toLowerCase();
-      result = result.filter(
-        (s) =>
-          s.title.toLowerCase().includes(lower) ||
-          s.artist.toLowerCase().includes(lower) ||
-          s.album.toLowerCase().includes(lower)
-      );
-    }
+    // ✅ API 결과만 사용 (+ AI 제외 필터)
+    return apiSongs.filter((s) => !excludeAi || !s.isAi);
+  }, [API_BASE, q, apiSongs, excludeAi]);
 
-    if (excludeAi) result = result.filter((s) => !s.isAi);
-    return result;
-  }, [API_BASE, q, excludeAi, apiSongs]);
 
   /* ===================== 체크박스 ===================== */
 
@@ -484,75 +462,104 @@ export default function SearchSong() {
   /* ===================== 담기 모달 ===================== */
 
   const [addOpen, setAddOpen] = useState(false);
-  const [addTargets, setAddTargets] = useState(() => getUserPlaylists());
+  const [addTargets, setAddTargets] = useState<PlaylistSummary[]>([]);
+  const [addTargetsLoading, setAddTargetsLoading] = useState(false);
+  const [addTargetsError, setAddTargetsError] = useState<string | null>(null);
 
   useEffect(() => {
-    const sync = () => setAddTargets(getUserPlaylists());
-    sync();
-    return subscribePlaylists(sync);
-  }, []);
+    if (!addOpen) return;
 
-  const addSelectedToPlaylist = async (playlistId: string) => {
-    if (selectedCount === 0) return;
+    let cancelled = false;
 
-    const curr = getPlaylistById(playlistId);
-    if (!curr) return;
+    (async () => {
+      try {
+        setAddTargetsLoading(true);
+        setAddTargetsError(null);
 
-    const checkedTracks = await Promise.all(checkedSongs.map(toTrack));
-    const incoming = checkedTracks.map((t) => ({
-      id: t.id,
-      title: t.title,
-      artist: t.artist,
-      album: t.album ?? "",
-      duration: t.duration ?? "0:00",
-      likeCount: 0,
-      kind: "track" as const,
-    }));
+        const list = await fetchMyPlaylists();
+        if (cancelled) return;
 
-    const exists = new Set(curr.tracks.map((x) => x.id));
-    const merged = [...curr.tracks];
+        setAddTargets(list);
+      } catch (e) {
+        console.error("[SearchSong] 플레이리스트 목록 불러오기 실패:", e);
+        if (cancelled) return;
 
-    for (const tr of incoming) {
-      if (exists.has(tr.id)) continue;
-      merged.push(tr);
-      exists.add(tr.id);
-    }
+        setAddTargets([]);
+        setAddTargetsError(e instanceof Error ? e.message : "플레이리스트 목록을 불러오지 못했어요.");
+      } finally {
+        if (!cancelled) setAddTargetsLoading(false);
+      }
+    })();
 
-    updatePlaylist(playlistId, { tracks: merged });
+    return () => {
+      cancelled = true;
+    };
+  }, [addOpen]);
+
+
+
+const addSelectedToPlaylist = async (playlistId: string) => {
+  if (selectedCount === 0) return;
+
+  try {
+    // 담기에는 audioUrl/coverUrl가 필요 없음 → music_id만 있으면 됨
+    const musicIds = (await Promise.all(checkedSongs.map(findMusicId)))
+      .filter((id): id is number => typeof id === "number");
+
+    const unique = Array.from(new Set(musicIds));
+    if (unique.length === 0) return;
+
+    await addPlaylistItems(playlistId, unique);
+
+    // 성공하면
     setAddOpen(false);
     setCheckedIds({});
-  };
+  } catch (e) {
+    console.error("[SearchSong] 플레이리스트 담기 실패:", e);
+    alert("플레이리스트에 담기 실패했어요. 잠시 후 다시 시도해주세요.");
+  }
+};
 
-  const addSelectedToLiked = async () => {
-    if (selectedCount === 0) return;
+const addSelectedToLiked = async () => {
+if (selectedCount === 0) return;
 
-    const curr = getPlaylistById(LIKED_SYSTEM_ID);
-    if (!curr) return;
+try {
+  // ✅ 좋아요 API는 itunes_id가 아니라 music_id가 필요
+  const musicIds = (await Promise.all(checkedSongs.map(findMusicId)))
+    .filter((id): id is number => typeof id === "number");
 
-    const checkedTracks = await Promise.all(checkedSongs.map(toTrack));
-    const incoming = checkedTracks.map((t) => ({
-      id: t.id,
-      title: t.title,
-      artist: t.artist,
-      album: t.album ?? "",
-      duration: t.duration ?? "0:00",
-      likeCount: 0,
-      kind: "track" as const,
-    }));
+  const unique = Array.from(new Set(musicIds));
+  if (unique.length === 0) return;
 
-    const exists = new Set(curr.tracks.map((x) => x.id));
-    const merged = [...curr.tracks];
+  // ✅ 병렬 호출 + 부분 실패 허용 (이미 좋아요 등의 케이스)
+  const results = await Promise.allSettled(
+    unique.map(async (id) => {
+      try {
+        await likeTrack(id);
+        return { id, ok: true };
+      } catch (e) {
+        // (선택) 이미 좋아요를 백엔드가 409로 주는 경우가 있으면 성공 취급 가능
+        if (axios.isAxiosError(e) && e.response?.status === 409) {
+          return { id, ok: true, already: true };
+        }
+        throw e;
+      }
+    })
+  );
 
-    for (const tr of incoming) {
-      if (exists.has(tr.id)) continue;
-      merged.push(tr);
-      exists.add(tr.id);
-    }
+  const ok = results.filter((r) => r.status === "fulfilled").length;
+  const fail = results.length - ok;
 
-    updatePlaylist(LIKED_SYSTEM_ID, { tracks: merged });
-    setCheckedIds({});
-  };
+  setCheckedIds({});
 
+  if (fail > 0) {
+    alert(`좋아요 완료: ${ok}곡 / 실패: ${fail}곡`);
+  }
+} catch (e) {
+  console.error("[SearchSong] 좋아요 실패:", e);
+  alert("좋아요 실패했어요. 잠시 후 다시 시도해주세요.");
+}
+};
   /* ===================== 액션 ===================== */
   type PendingPlay = {
     key: ActionKey;           // "play" | "shuffle"
@@ -578,7 +585,6 @@ export default function SearchSong() {
     }
     if (key === "like") {
       await addSelectedToLiked();
-      setCheckedIds({});
       return;
     }
   };
@@ -818,13 +824,20 @@ export default function SearchSong() {
                 </div>
 
                 <div className="max-h-[360px] overflow-y-auto border-t border-[#464646]">
-                    {addTargets.length === 0 ? (
-                    <div className="px-6 py-6 text-sm text-[#aaa]">
-                        담을 수 있는 플레이리스트가 없어요.
-                        <div className="mt-2 text-xs text-[#777]">(liked 같은 시스템 플리는 제외됨)</div>
-                    </div>
-                    ) : (
-                    addTargets.map((p) => (
+                     {addTargetsLoading ? (
+                      <div className="px-6 py-6 text-sm text-[#aaa]">
+                        플레이리스트 불러오는 중...
+                      </div>
+                      ) : addTargetsError ? (
+                        <div className="px-6 py-6 text-sm text-red-400">
+                          오류: {addTargetsError}
+                        </div>
+                      ) : addTargets.length === 0 ? (
+                        <div className="px-6 py-6 text-sm text-[#aaa]">
+                          담을 수 있는 플레이리스트가 없어요.
+                        </div>
+                      ) : (
+                      addTargets.map((p) => (
                         <button
                         key={p.id}
                         type="button"
