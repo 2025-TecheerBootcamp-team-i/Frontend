@@ -212,7 +212,8 @@ export default function AiSongPage() {
 
     if (API_BASE) {
       try {
-        await fetch(`${API_BASE}/alsong/${track.id}`, {
+        // ⚠️ 백엔드 스펙: PATCH /api/v1/{music_id}/
+        await fetch(`${API_BASE}/${track.id}/`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ title: nextTitle }),
@@ -249,7 +250,8 @@ export default function AiSongPage() {
         setLoading(true);
         setError(null);
 
-        const res = await fetch(`${API_BASE}/alsong/${id}`, {
+        // ⚠️ 백엔드 스펙: GET /api/v1/{music_id}/
+        const res = await fetch(`${API_BASE}/${id}/`, {
           method: "GET",
           signal: controller.signal,
           headers: { "Content-Type": "application/json" },
@@ -399,7 +401,8 @@ export default function AiSongPage() {
     // 4) 서버 반영
     if (API_BASE) {
       try {
-        await fetch(`${API_BASE}/alsong/${track.id}`, {
+        // ⚠️ 백엔드 스펙: PATCH /api/v1/{music_id}/
+        await fetch(`${API_BASE}/${track.id}/`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ status: "Upload" }),

@@ -7,8 +7,10 @@ import {
   subscribeAiSongs,
 } from "../../mocks/aiSongMock";
 import type { AiTrack } from "../../mocks/aiSongMock";
-import { generateMusicAsync, getTaskStatus } from "../../api/ai";
+import { generateMusicAsync, getTaskStatus, convertPromptOnly } from "../../api/ai";
 import { getCurrentUserId } from "../../utils/auth";
+import { Typewriter } from "../../components/Typewriter/Typewriter";
+import { CursorStyle } from "../../components/Typewriter/types";
 
 import {
   getPlaylistById,
@@ -58,6 +60,7 @@ function PillButton({
 export default function AiCreatePage() {
   const navigate = useNavigate();
   const { playTracks } = usePlayer();
+  const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
 
   /** =========================
    * ✅ 커버 업로드
@@ -104,7 +107,46 @@ export default function AiCreatePage() {
   const maxPrompt = 1500;
   const [makeInstrumental, setMakeInstrumental] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false); // 생성 완료 상태
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [convertedPrompt, setConvertedPrompt] = useState<string>(""); // 라마에서 변환된 프롬프트
+  const [displayText, setDisplayText] = useState<string>(""); // 카드에 보여줄 텍스트(애니메이션용)
+  const [typewriterTrigger, setTypewriterTrigger] = useState(0); // Typewriter 애니메이션 재생용
+  const [isFlipped, setIsFlipped] = useState(false); // 카드 플립 상태
+
+  // 사용자가 입력을 변경할 때 (변환 결과가 없을 때만 사용자 입력 표시)
+  useEffect(() => {
+    if (isGenerating) return;
+    
+    // 변환 결과가 있으면 유지 (변환 결과를 표시)
+    if (convertedPrompt) {
+      return;
+    }
+    
+    // 생성 완료 상태일 때는 카드를 뒤집지 않음
+    if (isCompleted) {
+      return;
+    }
+    
+    // 변환 결과가 없을 때 카드를 앞면으로
+    setIsFlipped(false);
+    
+    // 변환 결과가 없을 때만 사용자 입력 표시
+    if (prompt) {
+      setDisplayText(prompt);
+    } else {
+      setDisplayText("");
+    }
+  }, [prompt, isGenerating, convertedPrompt, isCompleted]);
+  // Typewriter 설정
+  const typewriterConfig = {
+    speed: 50, // 애니메이션 속도 빠르게 (100 -> 50ms)
+    startDelay: 0,
+    cursorChar: CursorStyle.Pipe,
+    cursorBlinkSpeed: 0.8,
+    smoothness: 0.3, // 빠른 타이핑 효과
+    loop: false,
+  };
 
   /** =========================
    * ✅ 우측 리스트(업로드된 곡만)
@@ -171,7 +213,13 @@ export default function AiCreatePage() {
    ========================= */
   const handleCreateSong = async () => {
     const trimmed = prompt.trim();
-    if (!trimmed || isGenerating) return;
+    if (!trimmed || isGenerating) {
+      console.log("[AICreatePage] 🚫 handleCreateSong 호출 무시", {
+        trimmedLength: trimmed.length,
+        isGenerating,
+      });
+      return;
+    }
 
     const userId = getCurrentUserId();
     if (userId === null) {
@@ -181,17 +229,75 @@ export default function AiCreatePage() {
     }
 
     try {
+      console.log("[AICreatePage] ▶️ AI 노래 생성 시작", {
+        promptPreview: trimmed.slice(0, 80),
+        makeInstrumental,
+      });
       setIsGenerating(true);
+      setIsCompleted(false);
       setErrorMessage(null);
+      setConvertedPrompt(""); // 이전 변환 결과 제거
 
-      // 1. 음악 생성 요청 (비동기)
-      const response = await generateMusicAsync({
+      // ✅ 카드 뒷면으로 플립 + 로딩 텍스트 애니메이션
+      setIsFlipped(true);
+      setDisplayText("프롬프트 변환 중....\n잠시 기다려 주세요");
+      setTypewriterTrigger((prev) => prev + 1);
+
+      // 1. 라마 프롬프트 변환 API 호출
+      console.log("[AICreatePage] 🦙 라마 프롬프트 변환 API 호출 시작", {
         prompt: trimmed,
+        makeInstrumental: makeInstrumental
+      });
+
+      const convertResponse = await convertPromptOnly({
+        prompt: trimmed,
+        make_instrumental: makeInstrumental,
+      });
+
+      console.log("[AICreatePage] ✅ 라마 프롬프트 변환 완료:", convertResponse);
+
+      // 변환된 프롬프트 파싱 (아직 카드에 표시하지 않음)
+      let finalConvertedPrompt = "";
+      try {
+        const parsed = JSON.parse(convertResponse.converted_prompt);
+        console.log("[AICreatePage] 🔍 JSON 파싱 성공:", parsed);
+
+        if (parsed.prompt) {
+          console.log("[AICreatePage] ✅ 추출된 prompt:", parsed.prompt);
+          finalConvertedPrompt = parsed.prompt;
+        } else {
+          console.log("[AICreatePage] ⚠️ parsed.prompt 없음, 전체 객체 사용");
+          finalConvertedPrompt = convertResponse.converted_prompt;
+        }
+      } catch (error) {
+        console.log("[AICreatePage] ⚠️ JSON 파싱 실패 - 일반 문자열로 처리");
+        finalConvertedPrompt = convertResponse.converted_prompt;
+      }
+
+      // ✅ 10초 대기 후 변환된 프롬프트를 카드에 표시
+      console.log("[AICreatePage] ⏳ 10초 대기 시작 (변환 결과 표시 전)");
+      await new Promise((resolve) => setTimeout(resolve, 10000));
+
+      setConvertedPrompt(finalConvertedPrompt);
+      setDisplayText(finalConvertedPrompt);
+      setTypewriterTrigger((prev) => prev + 1);
+      console.log("[AICreatePage] ✍️ 카드에 변환된 프롬프트 표시 완료 (10초 대기 후)");
+
+      // 2. 변환된 프롬프트로 Suno 음악 생성 API 호출
+      console.log("[AICreatePage] 🎵 Suno 음악 생성 API 호출 시작", {
+        convertedPrompt: finalConvertedPrompt,
+        userId: userId,
+        makeInstrumental: makeInstrumental
+      });
+
+      const response = await generateMusicAsync({
+        prompt: finalConvertedPrompt, // 변환된 프롬프트 사용
         user_id: userId,
         make_instrumental: makeInstrumental,
       });
 
-      console.log("[AI 음악 생성] 작업 시작:", response.task_id);
+      console.log("[AICreatePage] 📦 Suno 생성 API 응답:", response);
+      console.log("[AICreatePage] 🆔 작업 ID:", response.task_id);
 
       // 2. 작업 상태 폴링 시작
       const pollTaskStatus = async (taskId: string) => {
@@ -199,50 +305,199 @@ export default function AiCreatePage() {
         let attempts = 0;
 
         const poll = async (): Promise<void> => {
+          console.log("[AICreatePage] 🔁 작업 상태 폴링 시도", {
+            taskId,
+            attempts,
+            maxAttempts,
+          });
           if (attempts >= maxAttempts) {
             setErrorMessage("음악 생성 시간이 초과되었습니다. 나중에 다시 확인해주세요.");
             setIsGenerating(false);
+            console.log("[AICreatePage] ⏱️ 폴링 타임아웃 - 생성 종료");
             return;
           }
 
           try {
             const status = await getTaskStatus(taskId);
-            console.log("[작업 상태]", status.status, status);
+            console.log("[AICreatePage] 📊 작업 상태 조회 결과:", status);
+            console.log("[AICreatePage] 📋 상태 응답 키 목록:", Object.keys(status));
+            
+            // 변환된 프롬프트는 이미 카드에 표시되어 있으므로, 여기서는 상태만 확인
+            if (status.converted_prompt) {
+              console.log("[AICreatePage] ℹ️ 작업 상태에 converted_prompt 포함됨 (이미 표시 완료)");
+            }
 
             if (status.status === "SUCCESS" && status.result) {
-              // 생성 완료!
-              const music = status.result;
-              console.log("[AI 음악 생성 완료]", music);
+              // 1차: 작업 자체는 SUCCESS → 이제 music_id 기준으로 상세 조회를 폴링
+              const result: any = status.result as any;
+              const musicIdFromResult =
+                result?.music?.music_id ?? result?.music_id ?? null;
 
-              // 입력 초기화
-              setPrompt("");
-              setSelected(new Set());
-              setIsGenerating(false);
+              console.log("[AICreatePage] ✅ 작업 SUCCESS, music_id 추출", {
+                musicIdFromResult,
+                resultKeys: Object.keys(result),
+              });
 
-              // 곡 상세 페이지로 이동 (또는 목록으로)
-              if (music.music_id) {
-                navigate(`/aisong/${music.music_id}`);
-              } else {
-                navigate("/my/ai-songs");
+              if (!musicIdFromResult || !API_BASE) {
+                console.log("[AICreatePage] ⚠️ music_id 또는 API_BASE 없음, 기존 로직으로 즉시 완료 처리", {
+                  musicIdFromResult,
+                  API_BASE_PRESENT: !!API_BASE,
+                });
+
+                // 폴백: 기존 SUCCESS 처리 (audio_url 여부는 신뢰하지 않고 바로 완료)
+                setPrompt("");
+                setConvertedPrompt("");
+                setSelected(new Set());
+                setDisplayText("생성이 완료되었습니다.\n생성곡 목록으로 넘어갑니다.");
+                setTypewriterTrigger((prev) => prev + 1);
+                setIsGenerating(false);
+                setIsCompleted(true);
+
+                const delayMs = 5000;
+                setTimeout(() => {
+                  navigate("/my/ai-songs");
+                }, delayMs);
+                return;
               }
+
+              const musicId = musicIdFromResult as number;
+
+              // ✅ 2차 폴링: /alsong/{musicId} 상세 조회에서 audio_url이 생길 때까지 대기
+              const pollDetailMaxAttempts = 120;
+              let detailAttempts = 0;
+
+              const pollMusicDetail = async (): Promise<void> => {
+                console.log("[AICreatePage] 🔁 상세 정보 폴링 시도", {
+                  musicId,
+                  detailAttempts,
+                  pollDetailMaxAttempts,
+                  detailUrl: API_BASE ? `${API_BASE}/${musicId}/` : null,
+                });
+
+                if (detailAttempts >= pollDetailMaxAttempts) {
+                  console.log("[AICreatePage] ⏱️ 상세 정보 폴링 타임아웃, audio_url 없이 종료", {
+                    musicId,
+                  });
+
+                  setIsGenerating(false);
+                  setDisplayText(
+                    "AI 노래 생성은 완료되었지만,\n오디오 파일 준비에 시간이 더 걸리고 있습니다.\n나의 AI 생성곡 페이지에서 잠시 후 다시 확인해 주세요."
+                  );
+                  setTypewriterTrigger((prev) => prev + 1);
+
+                  setTimeout(() => navigate("/my/ai-songs"), 5000);
+                  return;
+                }
+
+                try {
+                  // ⚠️ 백엔드 스펙: GET /api/v1/{music_id}/ 로 조회
+                  const res = await fetch(`${API_BASE}/${musicId}/`);
+                  if (!res.ok) {
+                    console.log("[AICreatePage] ⚠️ 상세 조회 응답 오류", {
+                      musicId,
+                      status: res.status,
+                    });
+                    detailAttempts++;
+                    setTimeout(pollMusicDetail, 5000);
+                    return;
+                  }
+
+                  const data: any = await res.json();
+
+                  // 백엔드 상세 응답 스펙에 맞춰 audio_url 경로 확인
+                  const detailAudioUrl =
+                    data?.audio_url ??
+                    data?.audioUrl ??
+                    data?.music?.audio_url ??
+                    data?.music?.audioUrl ??
+                    null;
+
+                  console.log("[AICreatePage] 🔍 상세 정보 조회 결과", {
+                    musicId,
+                    hasAudioUrl: !!detailAudioUrl,
+                    detailAudioUrl,
+                    dataKeys: Object.keys(data ?? {}),
+                  });
+
+                  if (!detailAudioUrl) {
+                    detailAttempts++;
+                    setTimeout(pollMusicDetail, 5000);
+                    return;
+                  }
+
+                  // ✅ audio_url까지 준비 완료 → 최종 완료 처리
+                  console.log("[AICreatePage] ✅ audio_url 확인, 최종 완료", {
+                    musicId,
+                    detailAudioUrl,
+                  });
+
+                  setPrompt("");
+                  setConvertedPrompt("");
+                  setSelected(new Set());
+
+                  setDisplayText(
+                    "생성이 완료되었습니다.\n생성곡 목록으로 넘어갑니다."
+                  );
+                  setTypewriterTrigger((prev) => prev + 1);
+                  setIsGenerating(false);
+                  setIsCompleted(true);
+
+                  const delayMs = 5000;
+                  console.log("[AICreatePage] ⏳ 5초 후 생성곡 목록으로 이동 예약", {
+                    delayMs,
+                  });
+
+                  setTimeout(() => {
+                    navigate("/my/ai-songs");
+                  }, delayMs);
+                } catch (detailError) {
+                  console.log("[AICreatePage] ⚠️ 상세 정보 조회 실패, 재시도 예정", {
+                    musicId,
+                    error: detailError,
+                  });
+                  detailAttempts++;
+                  setTimeout(pollMusicDetail, 5000);
+                }
+              };
+
+              // task SUCCESS를 받았으니, 이제 상태 폴링은 멈추고 상세 폴링으로 전환
+              pollMusicDetail();
+              return;
             } else if (status.status === "FAILURE") {
               // 생성 실패
+              console.log("[AICreatePage] ❌ 작업 상태 FAILURE", {
+                taskId,
+                status,
+              });
               setErrorMessage(
                 status.error || "음악 생성에 실패했습니다. 다시 시도해주세요."
               );
               setIsGenerating(false);
+              console.log("[AICreatePage] ✅ isGenerating=false (FAILURE)");
             } else {
               // 아직 진행 중 (PENDING, STARTED 등)
               attempts++;
+              console.log("[AICreatePage] ⏳ 작업 진행 중, 재시도 예약", {
+                taskId,
+                attempts,
+                nextPollInMs: 5000,
+                status: status.status,
+              });
               setTimeout(poll, 5000); // 5초 후 다시 확인
             }
           } catch (error) {
             console.error("[작업 상태 조회 실패]", error);
             attempts++;
+            console.log("[AICreatePage] ⚠️ 작업 상태 조회 실패, 재시도 예약", {
+              taskId,
+              attempts,
+              nextPollInMs: 5000,
+            });
             setTimeout(poll, 5000);
           }
         };
 
+        console.log("[AICreatePage] ▶️ 작업 상태 폴링 시작", { taskId });
         poll();
       };
 
@@ -257,6 +512,9 @@ export default function AiCreatePage() {
         "AI 노래 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
       setErrorMessage(errorMsg);
       setIsGenerating(false);
+      console.log("[AICreatePage] ❌ AI 노래 생성 실패, isGenerating=false", {
+        error: errorMsg,
+      });
     }
   };
 
@@ -372,6 +630,19 @@ export default function AiCreatePage() {
 
   return (
     <div className="w-full h-full overflow-x-auto">
+      <style>{`
+        @keyframes aiGradientShift {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .ai-back-gradient {
+            animation: none !important;
+          }
+        }
+      `}</style>
       <div className="grid min-h-screen items-stretch grid-cols-[minmax(360px,0.95fr)_minmax(520px,1.05fr)] gap-6">
         {/* ===================== 좌측: 생성 폼 ===================== */}
         <section>
@@ -437,40 +708,123 @@ export default function AiCreatePage() {
             className="hidden"
           />
 
-          {/* 프롬프트 카드 */}
-          <div className="mt-10 mx-4 rounded-2xl bg-[#3d3d3d]/80 backdrop-blur-xl border border-[#3d3d3d] shadow-[0_4px_12px_rgba(0,0,0,0.25)] p-5">
-            <div className="p-2 text-sm font-semibold text-[#f6f6f6]">
-              AI 노래 프롬프트
-            </div>
+          {/* 프롬프트 카드 - 플립 애니메이션 */}
+          <div className="mt-10 mx-4 [perspective:1000px] h-[350px]">
+            <div 
+              className={`relative w-full h-full transition-transform duration-600 ease-in-out [transform-style:preserve-3d] ${
+                isFlipped ? '[transform:rotateY(180deg)]' : ''
+              }`}
+              style={{ transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}
+            >
+              {/* 앞면: 사용자 입력 */}
+              <div 
+                className="absolute inset-0 [backface-visibility:hidden] rounded-2xl bg-[#3d3d3d]/80 backdrop-blur-xl border border-[#3d3d3d] shadow-[0_4px_12px_rgba(0,0,0,0.25)] p-5"
+                style={{ backfaceVisibility: 'hidden' }}
+              >
+                <div className="relative flex flex-col items-center justify-center min-h-full">
+                  <div className="absolute top-4 left-4 text-xs text-white/40">
+                    {prompt ? "사용자 입력" : ""}
+                  </div>
+                  
+                  {/* Typewriter 애니메이션 표시 영역 */}
+                  <div className="relative w-full flex flex-col items-center justify-center min-h-[300px]">
+                    {prompt ? (
+                      <div className="w-full flex flex-col items-center justify-center">
+                        <Typewriter
+                          text={prompt}
+                          config={typewriterConfig}
+                          triggerReplay={0}
+                        />
+                      </div>
+                    ) : (
+                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-[#777777] text-2xl text-center w-full">
+                        예) 새벽 감성, 로파이 힙합, 잔잔한 피아노와 드럼, 한국어 보컬...
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* 실제 입력을 받는 textarea */}
+                  <textarea
+                    value={prompt}
+                    onChange={(e) => {
+                      const newValue = e.target.value.slice(0, maxPrompt);
+                      console.log('[AICreatePage] ⌨️ Textarea onChange', {
+                        oldValue: prompt,
+                        newValue: newValue,
+                        length: newValue.length
+                      });
+                      setPrompt(newValue);
+                    }}
+                    placeholder="예) 새벽 감성, 로파이 힙합, 잔잔한 피아노와 드럼, 한국어 보컬..."
+                    className="absolute inset-0 w-full h-full resize-none bg-transparent text-4xl text-transparent outline-none placeholder:text-transparent font-bold leading-relaxed text-center"
+                    style={{ 
+                      caretColor: 'transparent',
+                      zIndex: 10,
+                      pointerEvents: 'auto'
+                    } as React.CSSProperties}
+                    disabled={isGenerating}
+                  />
+                  
+                  {/* 글자 수 표시 */}
+                  <div className="absolute bottom-4 right-4 text-right text-sm text-[#888888] z-20">
+                    {prompt.length}/{maxPrompt}
+                  </div>
+                </div>
+              </div>
 
-            <div>
-              <textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value.slice(0, maxPrompt))}
-                placeholder="예) 새벽 감성, 로파이 힙합, 잔잔한 피아노와 드럼, 한국어 보컬..."
-                className="placeholder-[#777777] mt-2 p-2 w-full resize-none bg-transparent text-sm text-[#f6f6f6] outline-none min-h-[180px]"
-                disabled={isGenerating}
-              />
-              <div className="mt-2 text-right text-[11px] text-[#888888]">
-                {prompt.length}/{maxPrompt}
+              {/* 뒷면: 변환 결과 */}
+              <div 
+                className="ai-back-gradient absolute inset-0 [backface-visibility:hidden] rounded-2xl backdrop-blur-xl border border-white/10 shadow-[0_8px_24px_rgba(0,0,0,0.45)] p-5 [transform:rotateY(180deg)]"
+                style={{
+                  backfaceVisibility: "hidden",
+                  backgroundImage:
+                    "radial-gradient(1200px circle at 10% 20%, rgba(107,115,255,0.35), transparent 45%), radial-gradient(900px circle at 85% 25%, rgba(175,222,226,0.30), transparent 50%), radial-gradient(900px circle at 40% 85%, rgba(255,89,169,0.22), transparent 55%), linear-gradient(135deg, rgba(18,18,18,0.90), rgba(28,28,28,0.92))",
+                  backgroundSize: "200% 200%",
+                  animation: "aiGradientShift 12s ease-in-out infinite",
+                }}
+              >
+                <div className="relative flex flex-col items-center justify-center min-h-full">
+                  <div className="absolute top-4 left-4 text-xs text-white">
+                    {isGenerating && !convertedPrompt ? "생성 중..." : convertedPrompt ? "변환 결과" : ""}
+                  </div>
+                  
+                  {/* Typewriter 애니메이션 표시 영역 */}
+                  <div className="relative w-full flex flex-col items-center justify-start pt-20 min-h-[300px]">
+                    {displayText ? (
+                      <div className="w-full flex flex-col items-center justify-center px-4">
+                        <Typewriter
+                          text={displayText}
+                          config={typewriterConfig}
+                          triggerReplay={typewriterTrigger}
+                        />
+                      </div>
+                    ) : (
+                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-[#AFDEE2]/40 text-2xl text-center w-full px-4">
+                        {isGenerating ? "잠시만 기다려 주세요..." : "변환 결과가 여기에 표시됩니다"}
+                      </div>
+                    )}
+                  </div>
+                  
+                </div>
               </div>
             </div>
-
-            {/* make_instrumental 체크박스 */}
-            <label className="mt-4 pt-3 border-t border-white/10 flex items-center gap-2 text-xs text-[#f6f6f6] cursor-pointer">
-              <input
-                type="checkbox"
-                checked={makeInstrumental}
-                onChange={(e) => setMakeInstrumental(e.target.checked)}
-                disabled={isGenerating}
-                className="accent-[#AFDEE2] cursor-pointer disabled:cursor-not-allowed"
-              />
-              <span className="text-[#f6f6f6]/50">보컬 없이 연주곡(Instrumental)으로 만들기</span>
-            </label>
           </div>
 
-          {/* 생성 버튼 */}
-          <div className="mt-6 mb-4 flex flex-col items-center gap-2">
+          {/* make_instrumental 체크박스 */}
+          <label className="mt-4 mx-4 pt-3 border-t border-white/10 flex items-center gap-2 text-xs text-[#f6f6f6] cursor-pointer">
+            <input
+              type="checkbox"
+              checked={makeInstrumental}
+              onChange={(e) => setMakeInstrumental(e.target.checked)}
+              disabled={isGenerating}
+              className="accent-[#AFDEE2] cursor-pointer disabled:cursor-not-allowed"
+            />
+            <span className="text-[#f6f6f6]/50">보컬 없이 연주곡(Instrumental)으로 만들기</span>
+          </label>
+
+          {/* 버튼들 */}
+          <div className="mt-6 mb-4 flex flex-col items-center gap-3">
+            {/* AI 노래 생성 버튼 */}
             <button
               type="button"
               disabled={!prompt.trim() || isGenerating}
@@ -490,8 +844,23 @@ export default function AiCreatePage() {
                 disabled:active:scale-100"
             >
               <div className="flex gap-2 items-center">
-                <MdMusicNote size={18} />
-                {isGenerating ? "AI 노래 생성 중..." : "AI 노래 생성하기"}
+                {isGenerating ? (
+                  <span
+                    className="inline-flex h-4 w-4 items-center justify-center"
+                    aria-hidden="true"
+                  >
+                    <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                  </span>
+                ) : (
+                  <MdMusicNote size={18} />
+                )}
+                <span className="whitespace-nowrap">
+                  {isGenerating
+                    ? "AI 노래 생성 중..."
+                    : isCompleted
+                    ? "생성 완료"
+                    : "AI 노래 생성하기"}
+                </span>
               </div>
             </button>
             {errorMessage && (
