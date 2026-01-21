@@ -250,7 +250,7 @@ export default function SearchAlbum() {
                     w-52 h-52
                     rounded-2xl
                     bg-[#777777]
-                    border border-[#464646]
+                  
                     transition
                     hover:shadow-[0_10px_28px_rgba(0,0,0,0.38)]
                     overflow-hidden

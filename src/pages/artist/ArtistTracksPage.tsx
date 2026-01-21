@@ -454,7 +454,7 @@ export default function ArtistTracksPage() {
                     />
                 </div>
 
-                    <div className="ml-4 w-12 h-12 rounded-xl bg-[#6b6b6b]/50 border border-[#464646]">
+                    <div className="ml-4 w-12 h-12 rounded-xl bg-[#6b6b6b]/50">
                         {t.album_image ? (
                         <img
                         src={t.album_image}

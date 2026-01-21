@@ -140,7 +140,7 @@ export default function ArtistAlbumsPage() {
                     onClick={() => navigate(`/album/${t.id}`)}
                     className="w-[220px] text-left group"
                 >
-                        <div className="aspect-square rounded-2xl bg-[#6b6b6b]/40 border border-[#464646] group-hover:bg-[#6b6b6b]/55 transition">
+                        <div className="aspect-square rounded-2xl bg-[#6b6b6b]/40 group-hover:bg-[#6b6b6b]/55 transition">
                             {t.album_image ? (
                                 <img
                                 src={t.album_image}

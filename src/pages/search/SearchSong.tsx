@@ -715,7 +715,7 @@ export default function SearchSong() {
             />
 
             {/* 앨범 이미지 */}
-            <div className="ml-2 w-12 h-12 rounded-xl bg-[#6b6b6b]/50 border border-[#464646] overflow-hidden relative flex-shrink-0">
+            <div className="ml-2 w-12 h-12 rounded-xl bg-[#6b6b6b]/50 overflow-hidden relative flex-shrink-0">
               {(() => {
                 // API에서 가져온 곡인지 확인하고 앨범 이미지 찾기
                 const apiSong = apiSongs.find((as) => as.id === s.id);

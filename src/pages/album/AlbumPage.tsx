@@ -713,7 +713,7 @@ export default function AlbumDetailPage() {
                     />
                     </div>
 
-                    <div className="w-12 h-12 rounded-xl bg-[#6b6b6b]/50 border border-[#464646] overflow-hidden relative">
+                    <div className="w-12 h-12 rounded-xl bg-[#6b6b6b]/50 overflow-hidden relative">
                         {(trackImages[t.id] || album.albumImage) ? (
                             <img
                                 src={
