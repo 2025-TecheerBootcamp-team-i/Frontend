@@ -17,6 +17,7 @@ export interface GenerateMusicAsyncResponse {
   task_id: string;
   status: string;
   message: string;
+  converted_prompt?: string; // 라마에서 변환된 프롬프트
 }
 
 /**
@@ -25,6 +26,7 @@ export interface GenerateMusicAsyncResponse {
 export interface TaskStatusResponse {
   task_id: string;
   status: "PENDING" | "STARTED" | "SUCCESS" | "FAILURE" | "RETRY" | "REVOKED";
+  converted_prompt?: string; // 라마에서 변환된 프롬프트 (작업 상태에 포함될 수 있음)
   result?: {
     music_id: number;
     music_name: string;
@@ -75,5 +77,33 @@ export async function getTaskStatus(
     `/task/${taskId}/`
   );
   console.log(`[API] 작업 상태 응답:`, res.data);
+  return res.data;
+}
+
+/**
+ * 라마 프롬프트 변환 (Suno API 호출 없음)
+ * POST /api/v1/music/convert-prompt/
+ * 
+ * @param payload - 프롬프트 변환 요청 데이터
+ * @returns 변환된 프롬프트
+ */
+export interface ConvertPromptRequest {
+  prompt: string;
+  make_instrumental: boolean;
+}
+
+export interface ConvertPromptResponse {
+  converted_prompt: string;
+}
+
+export async function convertPromptOnly(
+  payload: ConvertPromptRequest
+): Promise<ConvertPromptResponse> {
+  console.log("[API] 라마 프롬프트 변환 요청:", payload);
+  const res = await axiosInstance.post<ConvertPromptResponse>(
+    "/convert-prompt/",
+    payload
+  );
+  console.log("[API] 라마 프롬프트 변환 응답:", res.data);
   return res.data;
 }
