@@ -68,3 +68,33 @@ export async function refreshToken(data: RefreshRequest): Promise<RefreshRespons
   const res = await axiosInstance.post("/auth/refresh/", data);
   return res.data;
 }
+
+/** 프론트 로그아웃(토큰/유저정보 제거) */
+const PROFILE_KEY = "profile";
+// src/utils/auth.ts
+export const isLoggedIn = () => !!localStorage.getItem("access_token");
+export function requireLogin(
+  message = "로그인 후 이용 가능합니다."
+) {
+  if (!isLoggedIn()) {
+    alert(message);
+    return false;
+  }
+  return true;
+}
+
+export function logoutClient() {
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("refresh_token");
+  localStorage.removeItem("user");
+
+  // ✅ 프로필 로컬 저장도 제거
+  localStorage.removeItem(PROFILE_KEY);
+
+  // (있으면) 다른 사용자 데이터도 같이 제거
+  // localStorage.removeItem("liked_tracks");
+  // localStorage.removeItem("playlists_cache");
+
+  delete axiosInstance.defaults.headers.common.Authorization;
+}
+

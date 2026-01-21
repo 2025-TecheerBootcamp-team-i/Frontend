@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react"; 
+import { logoutClient } from "../../api/auth";
 
 import { TiHome } from 'react-icons/ti';
 import { IoSearch } from 'react-icons/io5';
@@ -9,10 +10,17 @@ import { FaMusic } from "react-icons/fa6";
 
 function Header() {
   const navigate = useNavigate();
+  const onLogout = async () => {
+    if (!confirm("로그아웃 하시겠습니까?")) return;
 
- const [query, setQuery] = useState("");
+    // 서버 로그아웃이 있으면 여기서 await logoutServer(); 호출
+    logoutClient();
+    window.location.href = "/";
+  };
 
- const goSearch = () => {
+  const [query, setQuery] = useState("");
+
+  const goSearch = () => {
     const q = query.trim();
     if (!q) {
       return;
@@ -22,8 +30,7 @@ function Header() {
     setQuery("");
   };
 
-
-
+  const isLoggedIn = !!localStorage.getItem("access_token");
 
   return (
     <header
@@ -122,6 +129,39 @@ function Header() {
           placeholder="노래 또는 아티스트를 검색하세요"
         />
       </form>
+
+      <div className="flex-1" />
+
+      {isLoggedIn ? (
+        <button
+          type="button"
+          onClick={onLogout}
+          className="
+            flex items-center justify-center
+            transition
+            text-[#3d3d3d]
+            hover:text-[#f6f6f6]/50
+            text-sm font-medium
+          "
+        >
+          로그아웃
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => navigate("/login")}
+          className="
+            flex items-center justify-center
+            transition
+            text-[#AFDEE2]
+            hover:text-[#87b2b6]
+            text-sm font-medium
+          "
+        >
+          로그인
+        </button>
+      )}
+
     </header>
   );
 }

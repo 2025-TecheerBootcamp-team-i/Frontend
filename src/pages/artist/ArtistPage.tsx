@@ -6,6 +6,7 @@ import { FaPlay } from "react-icons/fa6";
 
 import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
+import { requireLogin } from "../../api/auth";
 
 
 /* =====================
@@ -540,6 +541,7 @@ export default function ArtistPage() {
                 <div
                     key={t.id}
                     onDoubleClick={(e)=> {
+                        if (!requireLogin("로그인 후 이용 가능합니다.")) return;
                         e.preventDefault();
                         if (playingId) return;
                         void handlePlayById(t.id);

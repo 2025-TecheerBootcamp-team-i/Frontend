@@ -226,7 +226,7 @@ export default function MyPage() {
 
     useEffect(() => {
     const syncAi = () => {
-        setMyAiPreview(getMyAiSongs(CURRENT_USER_ID).slice(0, 12));
+        setMyAiPreview(getMyAiSongs(String(CURRENT_USER_ID)).slice(0, 12));
     };
 
     syncAi();
@@ -670,8 +670,8 @@ export default function MyPage() {
                             text-left
                             "
                         >
-                            <div className="w-full aspect-square rounded-xl bg-[#777777]/40 flex items-center justify-center text-[#F6F6F6]/70 text-sm">
-                            + 만들기
+                            <div className="w-full aspect-square rounded-xl bg-[#777777]/40 flex items-center justify-center text-[#F6F6F6]/70 text-base">
+                            +
                             </div>
 
                             <div className="mt-3">

@@ -62,6 +62,7 @@ export default function LoginPage() {
       
       alert(`환영합니다, ${response.nickname}님!`);
       navigate("/home");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const errorMsg = error?.response?.data?.message || error?.response?.data?.detail || "로그인에 실패했습니다.";
       alert(errorMsg);
