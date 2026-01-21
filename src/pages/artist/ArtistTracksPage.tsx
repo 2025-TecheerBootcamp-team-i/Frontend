@@ -19,6 +19,7 @@ import {
     updatePlaylist,
     LIKED_SYSTEM_ID,
 } from "../../mocks/playlistMock";
+import { requireLogin } from "../../api/auth";
 
 const actions = [
     { key: "play", label: "재생", icon: <IoPlayCircle size={18} /> },
@@ -280,6 +281,7 @@ export default function ArtistTracksPage() {
 
     // ✅ 액션
     const handleAction = async (key: ActionKey) => {
+        if (!requireLogin("로그인 후 이용 가능합니다.")) return;
         if (selectedCount === 0) return;
 
         if (key === "play" || key === "shuffle") {
@@ -433,6 +435,7 @@ export default function ArtistTracksPage() {
                 <div
                 key={t.id}
                  onDoubleClick={(e)=> {
+                        if (!requireLogin("로그인 후 이용 가능합니다.")) return;
                         e.preventDefault();
                         if (playingId) return;
                         void handlePlayById(t.id);

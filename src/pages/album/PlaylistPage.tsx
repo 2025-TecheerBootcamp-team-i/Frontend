@@ -10,6 +10,7 @@ import {
 } from "../../mocks/playlistMock";
 import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
+import { requireLogin } from "../../api/auth";
 
 
 import { IoChevronBack, IoPlayCircle, IoShuffle } from "react-icons/io5";
@@ -66,6 +67,8 @@ export default function PlaylistDetailPage() {
     const [pendingPlay, setPendingPlay] = useState<PendingPlay | null>(null);
 
     const runPendingPlay = (mode: "replace" | "enqueue") => {
+            if (!requireLogin("로그인 후 이용 가능합니다.")) return;
+
             if (!pendingPlay) return;
         
             const isShuffle = pendingPlay.key === "shuffle";
@@ -104,6 +107,8 @@ export default function PlaylistDetailPage() {
     const selectedCount = checkedTracks.length;
 
     const deleteSelected = () => {
+            if (!requireLogin("로그인 후 이용 가능합니다.")) return;
+
             if (!playlist) return;
             if (selectedCount === 0) return;
         
@@ -164,7 +169,10 @@ export default function PlaylistDetailPage() {
     // ✅ 표시 카운트: store에 반영된 값을 그대로 사용 
     const shownLikeCount = playlist.likeCount; 
     // ✅ 플리 좋아요 토글: store로 (emit됨) 
-    const toggleLike = () => togglePlaylistLike(playlist.id);
+    const toggleLike = () => {
+        if (!requireLogin("로그인 후 이용 가능합니다.")) return;
+        togglePlaylistLike(playlist.id);
+    };
 
 
     return (
@@ -185,7 +193,10 @@ export default function PlaylistDetailPage() {
              {/* 편집 버튼 */}
             <button
                 type="button"
-                onClick={() => navigate(`/playlist/${playlist.id}/edit`)}
+                onClick={() => {
+                    if (!requireLogin("로그인 후 이용 가능합니다.")) return;
+                    navigate(`/playlist/${playlist.id}/edit`)}
+                }
                 className="absolute right-4 top-5 z-10 px-4 py-2 rounded-2xl bg-white/10 text-[#F6F6F6] hover:bg-white/15 transition flex items-center gap-2"
                 aria-label="플레이리스트 편집"
                 title="편집"
@@ -227,6 +238,7 @@ export default function PlaylistDetailPage() {
                    <button
                     type="button"
                     onClick={() => {
+                        if (!requireLogin("로그인 후 이용 가능합니다.")) return;
                         if (tracks.length === 0) return;
 
                         // ✅ 체크된 곡이 있으면 그 첫 곡부터, 없으면 앨범 첫 곡부터
@@ -274,6 +286,8 @@ export default function PlaylistDetailPage() {
                     (a.key === "play" || a.key === "shuffle"|| a.key === "delete") && selectedCount === 0;
 
                     const onClick = () => {
+                    if (!requireLogin("로그인 후 이용 가능합니다.")) return;
+
                     // ✅ like는 기존대로 앨범 좋아요 토글
                     if (a.key === "delete") {
                         deleteSelected();

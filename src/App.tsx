@@ -6,6 +6,8 @@ import Nolayout from "./components/layout/Nolayout";
 
 import LoginPage from "./pages/auth/LoginPage";
 import SignUpPage from "./pages/auth/SignupPage";
+import RequireAuth from "./pages/auth/RequireAuth";
+
 
 import HomePage from "./pages/home/HomePage";
 import ChartPage from "./pages/chart/ChartPage";
@@ -63,15 +65,15 @@ export default function App() {
           <Route path="daily" element={<ChartDaily />} />
           <Route path="ai" element={<ChartAI />} />
         </Route>
-        <Route path="/mypage" element={<MyPage />} />
-        <Route path="/my-playlists" element={<MyPlaylistPage />}>
+        <Route path="/mypage" element={<RequireAuth><MyPage /></RequireAuth>} />
+        <Route path="/my-playlists" element={<RequireAuth><MyPlaylistPage /></RequireAuth>}>
           <Route path="personal" element={<MyPlaylistPersonal />} />
           <Route path="liked" element={<MyPlaylistLiked />} />
         </Route>
-        <Route path="/ai/create" element={<AiCreatePage />} />
+        <Route path="/ai/create" element={<RequireAuth><AiCreatePage /></RequireAuth>} />
         <Route path="/ai" element={<Navigate to="/ai/create" replace />} />
-        <Route path="/aisong/:id" element={<AiSongPage />} />
-        <Route path="/my/ai-songs" element={<MyAITracks />} />
+        <Route path="/aisong/:id" element={<RequireAuth><AiSongPage /></RequireAuth>} />
+        <Route path="/my/ai-songs" element={<RequireAuth><MyAITracks /></RequireAuth>} />
         <Route path="/search" element={<SearchPage />}>
           <Route index element={<SearchRedirect />} />
           <Route path="all" element={<SearchAll />} />

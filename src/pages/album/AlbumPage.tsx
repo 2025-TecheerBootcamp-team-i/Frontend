@@ -7,6 +7,8 @@ import axios from "axios";
 
 import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
+import { requireLogin } from "../../api/auth";
+
 
 import { ARTISTS } from "../../mocks/artistsMock";
 
@@ -521,6 +523,7 @@ export default function AlbumDetailPage() {
                     <button
                         type="button"
                         onClick={() => {
+                        if (!requireLogin("로그인 후 이용 가능합니다.")) return;
                         if (!albumId) return;
                         toggleAlbumLike(albumId, INITIAL_LIKE_COUNT);
                         }}
@@ -553,6 +556,7 @@ export default function AlbumDetailPage() {
                     <button
                     type="button"
                     onClick={async () => {
+                        if (!requireLogin("로그인 후 이용 가능합니다.")) return;
                         if (tracks.length === 0) return;
                         const playerTracks = await Promise.all(tracks.map(toPlayerTrack));
                         playTracks(playerTracks);
@@ -613,6 +617,7 @@ export default function AlbumDetailPage() {
                     selectedCount === 0;
 
                     const onClick = async () => {
+                    if (!requireLogin("로그인 후 이용 가능합니다.")) return;
                     if (a.key === "like") {
                         await addSelectedToLiked();
                         return;
@@ -684,6 +689,7 @@ export default function AlbumDetailPage() {
                     "hover:bg-white/5 transition",
                     ].join(" ")}
                     onDoubleClick={async () => {
+                        if (!requireLogin("로그인 후 이용 가능합니다.")) return;
                         try {
                             const track = await toPlayerTrack(t);
                             if (!track.audioUrl) {
@@ -797,7 +803,10 @@ export default function AlbumDetailPage() {
                         <button
                         key={p.id}
                         type="button"
-                        onClick={() => addSelectedToPlaylist(p.id)}
+                        onClick={() => {
+                            if (!requireLogin("로그인 후 이용 가능합니다.")) return;
+                            addSelectedToPlaylist(p.id)}
+                        }
                         className="w-full text-left px-6 py-4 hover:bg-white/5 transition border-b border-[#464646]"
                         >
                         <div className="text-sm font-semibold text-[#F6F6F6] truncate">

@@ -8,6 +8,7 @@ import React, {
   useRef,
 } from "react";
 import { logPlayTrack } from "../api/music";
+import { isLoggedIn } from "../api/auth";
 
 export type PlayerTrack = {
   id: string;
@@ -374,6 +375,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
   const setTrackAndPlay = useCallback(
     (track: PlayerTrack) => {
+      if (!isLoggedIn()) {
+        alert("로그인 후 이용 가능합니다.");
+        return;
+      }
+
       const cur = currentRef.current;
       if (cur) pushHistory(cur);
 

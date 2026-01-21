@@ -6,6 +6,7 @@ import axios from "axios";
 
 import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
+import { requireLogin } from "../../api/auth";
 
 /* =====================
   Horizontal Scroller
@@ -605,6 +606,7 @@ export default function SearchHome() {
                             <button
                               type="button"
                               onClick={async (e) => {
+                                if (!requireLogin("로그인 후 이용 가능합니다.")) return;
                                 e.stopPropagation();
 
                                 if (!API_BASE) return;

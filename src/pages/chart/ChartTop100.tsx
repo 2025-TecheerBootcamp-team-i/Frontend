@@ -7,6 +7,7 @@ import { MdPlaylistAdd, MdFavorite } from "react-icons/md";
 import { fetchChart, type ChartData, type ChartRow as ApiChartRow } from "../../api/chart";
 import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
+import { requireLogin } from "../../api/auth";
 
 import {
     getPlaylistById,
@@ -224,6 +225,7 @@ export default function ChartTop100() {
     };
 
     const handleAction = (key: ActionKey) => {
+        if (!requireLogin("로그인 후 이용 가능합니다.")) return;
         if (selectedCount === 0 && (key === "play" || key === "shuffle" || key === "add" || key === "like")) return;
 
         if (key === "play") playTracks(checkedTracks);

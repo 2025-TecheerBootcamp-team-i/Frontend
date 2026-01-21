@@ -8,6 +8,7 @@ import { FaCheckCircle } from "react-icons/fa";
 
 import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
+import { requireLogin } from "../../api/auth";
 
 import {
   getPlaylistById,
@@ -562,6 +563,7 @@ export default function SearchSong() {
   const [pendingPlay, setPendingPlay] = useState<PendingPlay | null>(null);
   
   const handleAction = async (key: ActionKey) => {
+    if (!requireLogin("로그인 후 이용 가능합니다.")) return;
     if (selectedCount === 0) return;
 
     if (key === "play" || key === "shuffle") {
@@ -585,6 +587,7 @@ export default function SearchSong() {
    * - 체크박스 선택과 상관없이, 더블클릭한 곡 1곡만 재생
    */
   const handleRowDoubleClick = async (song: Song) => {
+    if (!requireLogin("로그인 후 이용 가능합니다.")) return;
     try {
       const track = await toTrack(song);
 
