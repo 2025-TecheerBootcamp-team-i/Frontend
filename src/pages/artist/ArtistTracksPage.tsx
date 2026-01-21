@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { IoChevronBack, IoPlayCircle, IoShuffle } from "react-icons/io5";
 import { MdPlaylistAdd, MdFavorite } from "react-icons/md";
@@ -28,15 +29,83 @@ const actions = [
 
 type ActionKey = (typeof actions)[number]["key"];
 
+type TrackPlayApi = {
+  music_id: number;
+  music_name: string;
+  artist_name: string;
+  album_name: string;
+  album_image: string | null;
+  audio_url: string | null;
+  duration: number | null; // seconds
+  genre: string | null;
+  is_ai: boolean;
+  itunes_id: number;
+};
+
+    function formatSeconds(sec: number | null): string {
+  if (typeof sec !== "number" || Number.isNaN(sec)) return "0:00";
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 export default function ArtistTracksPage() {
     const { artistId } = useParams();
     const navigate = useNavigate();
+
+    const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
 
     const [artist, setArtist] = useState<ArtistDetail | null>(null);
     const [tracks, setTracks] = useState<ArtistTrack[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [playingId, setPlayingId] = useState<string | null>(null);
 
+    const handlePlayById = async (musicId: string) => {
+    // ✅ API_BASE 없으면(더미/로컬 모드) 실제 오디오 URL을 못 가져옴
+    if (!API_BASE) {
+        alert("API_BASE가 없어 곡 재생 정보를 불러올 수 없습니다.");
+        return;
+    }
+
+    try {
+        setPlayingId(musicId);
+
+        const res = await fetch(`${API_BASE}/tracks/${musicId}/play`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        });
+
+        if (!res.ok) {
+        throw new Error(`트랙 재생 정보 조회 실패: ${res.status}`);
+        }
+
+        const data: TrackPlayApi = await res.json();
+
+        if (!data.audio_url) {
+        throw new Error("재생할 오디오 URL이 없습니다.");
+        }
+
+        const track: PlayerTrack = {
+        id: String(data.music_id),
+        musicId: data.music_id,            // PlayerTrack에 optional이면 OK
+        title: data.music_name,
+        artist: data.artist_name ?? artistName,
+        album: data.album_name ?? "",
+        duration: formatSeconds(data.duration),
+        audioUrl: data.audio_url,
+        coverUrl: data.album_image ?? undefined, // PlayerTrack에 optional이면 OK
+        };
+
+    playTracks([track], { shuffle: false });
+  } catch (e) {
+    console.error("[ArtistTracksPage] play error:", e);
+    alert(e instanceof Error ? e.message : "재생 중 오류가 발생했습니다.");
+  } finally {
+    setPlayingId(null);
+  }
+};
+    
     // ✅ PlayerContext
     const { playTracks, enqueueTracks } = usePlayer();
 

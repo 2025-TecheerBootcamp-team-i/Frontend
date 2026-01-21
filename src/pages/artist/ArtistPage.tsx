@@ -6,7 +6,6 @@ import { FaPlay } from "react-icons/fa6";
 
 import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
-import { FiRefreshCcw } from "react-icons/fi";
 
 
 /* =====================
@@ -588,7 +587,12 @@ export default function ArtistPage() {
                         {artist.name}
                     </div>
                     </div>
-                        <div className="hidden min-[1200px]:block text-sm text-[#F6F6F6]/70 text-right">
+                        {/* <div className="
+                        hidden min-[1200px]:block text-sm text-[#F6F6F6]/70 text-right"> */}
+                        <div className="
+                            text-sm text-[#F6F6F6]/70
+                            text-ellipsis line-clamp-2
+                            ">
                             {t.album}
                         </div>
                     <div className="text-sm text-[#F6F6F6]/70 text-right">{t.duration}</div>
