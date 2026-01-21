@@ -62,11 +62,6 @@ export default function ArtistTracksPage() {
     const [playingId, setPlayingId] = useState<string | null>(null);
 
     const handlePlayById = async (musicId: string) => {
-    // ✅ API_BASE 없으면(더미/로컬 모드) 실제 오디오 URL을 못 가져옴
-    if (!API_BASE) {
-        alert("API_BASE가 없어 곡 재생 정보를 불러올 수 없습니다.");
-        return;
-    }
 
     try {
         setPlayingId(musicId);
@@ -306,20 +301,6 @@ export default function ArtistTracksPage() {
         await addSelectedToLiked();
         return;
         }
-    };
-
-    const [playingId, setPlayingId] = useState<string | null>(null);
-
-    const handlePlayById = async (id: string) => {
-    const target = tracks.find((x) => x.id === id);
-    if (!target) return;
-
-    setPlayingId(id);
-    try {
-        playTracks([toPlayerTrack(target)], { shuffle: false });
-    } finally {
-        setPlayingId(null);
-    }
     };
 
     // ✅ early return은 이제 Hook들 아래라서 OK
