@@ -642,6 +642,15 @@ export default function AiCreatePage() {
             animation: none !important;
           }
         }
+
+        /* 텍스트 선택 하이라이트 숨기기 */
+        .ai-prompt-textarea::selection {
+          background: transparent;
+        }
+
+        .ai-prompt-textarea::-moz-selection {
+          background: transparent;
+        }
       `}</style>
       <div className="grid min-h-screen items-stretch grid-cols-[minmax(360px,0.95fr)_minmax(520px,1.05fr)] gap-6">
         {/* ===================== 좌측: 생성 폼 ===================== */}
@@ -756,7 +765,7 @@ export default function AiCreatePage() {
                       setPrompt(newValue);
                     }}
                     placeholder="예) 새벽 감성, 로파이 힙합, 잔잔한 피아노와 드럼, 한국어 보컬..."
-                    className="absolute inset-0 w-full h-full resize-none bg-transparent text-4xl text-transparent outline-none placeholder:text-transparent font-bold leading-relaxed text-center"
+                    className="ai-prompt-textarea absolute inset-0 w-full h-full resize-none bg-transparent text-4xl text-transparent outline-none placeholder:text-transparent font-bold leading-relaxed text-center"
                     style={{ 
                       caretColor: 'transparent',
                       zIndex: 10,
