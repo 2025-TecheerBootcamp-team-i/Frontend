@@ -239,59 +239,76 @@ function HomePage() {
         };
         }, []);
     
-        // ✅ 차트 fetch는 "하나만" 남기고 + diff 계산도 여기서 같이 처리
+        // ✅ 일일/AI 차트는 최초 1회만 로드
         useEffect(() => {
         let alive = true;
-    
+
         (async () => {
             try {
-            setChartLoading(true);
-            setChartError(null);
-
-            // ✅ Promise.allSettled로 변경: 일부 실패해도 성공한 것은 표시
             const results = await Promise.allSettled([
-                fetchChart("realtime"),
                 fetchChart("daily"),
                 fetchChart("ai"),
             ]);
             if (!alive) return;
 
-            const realtime = results[0].status === "fulfilled" ? results[0].value : null;
-            const daily = results[1].status === "fulfilled" ? results[1].value : null;
-            const ai = results[2].status === "fulfilled" ? results[2].value : null;
+            const daily = results[0].status === "fulfilled" ? results[0].value : null;
+            const ai = results[1].status === "fulfilled" ? results[1].value : null;
 
-            // diff 계산 (realtime 기준)
-            if (realtime) {
-                const prev = prevRankByIdRef.current;
-                const nextDiff: Record<string, number> = {};
-                for (const item of realtime.items) {
-                    const prevRank = prev[item.musicId];
-                    nextDiff[item.musicId] = typeof prevRank === "number" ? prevRank - item.rank : 0;
-                }
-                setDiffById(nextDiff);
-
-                // 다음 비교용 스냅샷 저장
-                const nextPrev: Record<string, number> = {};
-                for (const item of realtime.items) nextPrev[item.musicId] = item.rank;
-                prevRankByIdRef.current = nextPrev;
-            }
-
-            setChartByType({ realtime, daily, ai });
-
-            // ✅ 모두 실패한 경우에만 에러 표시
-            if (!realtime && !daily && !ai) {
-                setChartError("차트 데이터를 불러올 수 없습니다.");
-            }
+            setChartByType((prev) => ({ ...prev, daily, ai }));
             } catch (e: unknown) {
-            if (!alive) return;
-            setChartError(getErrorMessage(e, "차트 로딩 실패"));
-            } finally {
-            setChartLoading(false);
+            console.error("일일/AI 차트 로딩 실패:", e);
             }
         })();
+
+        return () => {
+            alive = false;
+        };
+        }, []);
+
+        // ✅ 실시간 차트는 10분마다 갱신
+        useEffect(() => {
+        let alive = true;
+    
+        const loadRealtime = async () => {
+            try {
+            setChartLoading(true);
+            setChartError(null);
+
+            const realtime = await fetchChart("realtime");
+            if (!alive) return;
+
+            // diff 계산 (realtime 기준)
+            const prev = prevRankByIdRef.current;
+            const nextDiff: Record<string, number> = {};
+            for (const item of realtime.items) {
+                const prevRank = prev[item.musicId];
+                nextDiff[item.musicId] = typeof prevRank === "number" ? prevRank - item.rank : 0;
+            }
+            setDiffById(nextDiff);
+
+            // 다음 비교용 스냅샷 저장
+            const nextPrev: Record<string, number> = {};
+            for (const item of realtime.items) nextPrev[item.musicId] = item.rank;
+            prevRankByIdRef.current = nextPrev;
+
+            setChartByType((prev) => ({ ...prev, realtime }));
+            } catch (e: unknown) {
+            if (!alive) return;
+            setChartError(getErrorMessage(e, "실시간 차트 로딩 실패"));
+            } finally {
+            if (alive) setChartLoading(false);
+            }
+        };
+
+        // ✅ 최초 1회 즉시 로드
+        loadRealtime();
+
+        // ✅ 10분마다 갱신
+        const timer = window.setInterval(loadRealtime, 10 * 60 * 1000);
     
         return () => {
             alive = false;
+            window.clearInterval(timer);
         };
         }, []);
 
@@ -482,16 +499,29 @@ function HomePage() {
 
                         <div className="text-center text-xs font-medium">
                         {(() => {
-                            const diff = diffById[row.musicId] ?? 0;
+                            const change = row.rankChange;
 
-                            if (diff > 0) return <span className="text-red-500">▲ {diff}</span>;
-                            if (diff < 0) return <span className="text-blue-500">▼ {Math.abs(diff)}</span>;
+                            if (change === null || change === 0) return <span className="text-[#AAAAAA]">—</span>;
+                            if (change > 0) return <span className="text-red-500">▲ {change}</span>;
+                            if (change < 0) return <span className="text-blue-500">▼ {Math.abs(change)}</span>;
                             return <span className="text-[#AAAAAA]">—</span>;
                         })()}
                         </div>
 
                         <div className="ml-5 flex items-center gap-4 min-w-0 truncate">
-                        <div className="w-12 h-12 rounded-lg bg-[#D9D9D9]" />
+                        {row.albumImage ? (
+                            <img 
+                            src={row.albumImage} 
+                            alt={row.albumName}
+                            className="w-12 h-12 rounded-lg object-cover bg-[#D9D9D9] shrink-0"
+                            onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                                if (fallback) fallback.style.display = 'block';
+                            }}
+                            />
+                        ) : null}
+                        <div className={`w-12 h-12 rounded-lg bg-[#D9D9D9] shrink-0 ${row.albumImage ? 'hidden' : ''}`} />
                         <div className="text-sm text-[#F6F6F6] whitespace-nowrap">
                             {row.musicName}
                             {row.isAi && (

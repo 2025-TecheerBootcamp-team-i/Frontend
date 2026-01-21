@@ -19,14 +19,23 @@ export type ChartResponseDTO = {
 export type ChartItemDTO = {
   rank: number;
   play_count: number;
+  rank_change: number | null;  // 순위 변동 (null이면 NEW)
   music: MusicDTO;
 };
 
 export type MusicDTO = {
   music_id: number;
   music_name: string;
-  artist?: { artist_name: string } | null;
-  album?: { album_name: string } | null;
+  artist?: { 
+    artist_id: number;
+    artist_name: string;
+    artist_image?: string;
+  } | null;
+  album?: { 
+    album_id: number;
+    album_name: string;
+    album_image?: string;
+  } | null;
   genre?: string | null;
   duration: number;
   is_ai: boolean;
@@ -41,11 +50,13 @@ export type MusicDTO = {
 export type ChartRow = {
   rank: number;
   playCount: number;
+  rankChange: number | null;  // 순위 변동 (null이면 NEW)
 
   musicId: string;
   musicName: string;
   artistName: string;
   albumName: string;
+  albumImage?: string;
 
   genre: string;
   durationSec: number;
@@ -71,11 +82,13 @@ function mapChartRow(item: ChartItemDTO): ChartRow {
   return {
     rank: item.rank,
     playCount: item.play_count,
+    rankChange: item.rank_change,
 
     musicId: String(m.music_id),
     musicName: m.music_name ?? "제목 없음",
     artistName: m.artist?.artist_name ?? "알 수 없는 아티스트",
     albumName: m.album?.album_name ?? "—",
+    albumImage: m.album?.album_image,
 
     genre: m.genre ?? "—",
     durationSec: Number.isFinite(m.duration) ? m.duration : 0,

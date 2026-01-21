@@ -359,10 +359,11 @@ export default function ChartTop100() {
 
                         <div className="pl-1 text-xs font-medium w-10">
                         {(() => {
-                            const diff = diffById[row.musicId] ?? 0;
+                            const change = row.rankChange;
 
-                        if (diff > 0) return <span className="text-red-500">▲ {diff}</span>;
-                        if (diff < 0) return <span className="text-blue-500">▼ {Math.abs(diff)}</span>;
+                            if (change === null || change === 0) return <span className="pl-1 text-[#AAAAAA]">—</span>;
+                            if (change > 0) return <span className="text-red-500">▲ {change}</span>;
+                            if (change < 0) return <span className="text-blue-500">▼ {Math.abs(change)}</span>;
                             return <span className="pl-1 text-[#AAAAAA]">—</span>;
                         })()}
                         </div>
@@ -370,7 +371,19 @@ export default function ChartTop100() {
 
                     {/* 곡정보(커버+제목) */}
                     <div className="flex pl-2 items-center gap-4 min-w-0">
-                        <div className="w-12 h-12 rounded-lg bg-[#777777] shrink-0" />
+                        {row.albumImage ? (
+                            <img 
+                            src={row.albumImage} 
+                            alt={row.albumName}
+                            className="w-12 h-12 rounded-lg object-cover bg-[#777777] shrink-0"
+                            onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                                if (fallback) fallback.style.display = 'block';
+                            }}
+                            />
+                        ) : null}
+                        <div className={`w-12 h-12 rounded-lg bg-[#777777] shrink-0 ${row.albumImage ? 'hidden' : ''}`} />
                         <div className="min-w-0">
                         <div className="text-sm text-[#F6F6F6] truncate">
                             {row.musicName}
