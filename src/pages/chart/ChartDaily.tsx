@@ -117,12 +117,14 @@ export default function ChartDaily() {
       // ✅ PlayerTrack 변환 (ApiChartRow 필드 사용)
     const toTrack = (row: ApiChartRow): PlayerTrack => ({
         id: String(row.musicId),
+        musicId: Number(row.musicId),
         title: row.musicName,
         artist: row.artistName,
         album: row.albumName,
         duration: formatDuration(row.durationSec),
         isAi: row.isAi,
         audioUrl: row.audioUrl || "/audio/sample.mp3",
+        coverUrl: row.albumImage,
     });
 
     const [checkedIds, setCheckedIds] = useState<Record<string, boolean>>({});
