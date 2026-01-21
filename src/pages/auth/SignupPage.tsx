@@ -157,7 +157,7 @@ export default function SignUpPage() {
   return (
     // ✅ 배경은 AuthLayout이 깔아주므로 여기서는 "카드만" 렌더
     <div className="min-h-[100dvh] w-full flex items-center justify-center p-6">
-      <div className="relative w-full max-w-[920px] rounded-3xl bg-[#1b1b22]/70 backdrop-blur-xl border border-[#2d2d2d] shadow-[0_70px_200px_rgba(0,0,0,0.85)] overflow-hidden">
+      <div className="relative w-full max-w-[920px] rounded-3xl bg-[#1b1b22]/70 border border-[#2d2d2d] shadow-[0_70px_200px_rgba(0,0,0,0.85)] overflow-hidden">
         {/* ✅ 중앙 경계 그라데이션 (md 이상에서만) */}
         <div
           className="
@@ -232,7 +232,7 @@ export default function SignUpPage() {
                 <button
                   type="button"
                   onClick={() => navigate(-1)}
-                  className="text-[#f6f6f6]/90 rounded-full hover:bg-white/10 transition p-1"
+                  className="text-[#f6f6f6]/90 rounded-full hover:bg-white/10 transition px-1"
                   aria-label="뒤로 가기"
                   title="뒤로 가기"
                 >

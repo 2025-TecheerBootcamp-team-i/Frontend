@@ -90,7 +90,7 @@ export default function LoginPage() {
     // ✅ 배경은 AuthLayout이 처리 → 여기선 카드만
     <div className="min-h-[100dvh] w-full flex items-center justify-center p-6">
       {/* ✅ CHANGED: huge shadow 줄임 + 배경 불투명 쪽으로 (backdrop-blur 없음 유지) */}
-      <div className="relative w-full max-w-[920px] rounded-3xl bg-[#1b1b22] border border-[#2d2d2d] shadow-[0_24px_80px_rgba(0,0,0,0.5)] overflow-hidden">
+      <div className="relative w-full max-w-[920px] rounded-3xl bg-[#1b1b22]/70 border border-[#2d2d2d] shadow-[0_24px_80px_rgba(0,0,0,0.85)] overflow-hidden">
         {/* ✅ 중앙 경계 그라데이션 (md 이상에서만) */}
         <div
           className="
