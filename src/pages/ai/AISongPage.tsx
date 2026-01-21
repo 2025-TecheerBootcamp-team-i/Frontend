@@ -41,6 +41,7 @@ type AiTrack = {
 
   ownerId?: string;
   ownerName?: string;
+  musicId?: number; // 백엔드 music_id
 };
 
 const FADE_STYLE = `
@@ -102,6 +103,7 @@ export default function AiSongPage() {
   const [track, setTrack] = useState<AiTrack | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
@@ -251,33 +253,61 @@ export default function AiSongPage() {
         setError(null);
 
         // ⚠️ 백엔드 스펙: GET /api/v1/{music_id}/
+        const token = localStorage.getItem("access_token");
         const res = await fetch(`${API_BASE}/${id}/`, {
           method: "GET",
           signal: controller.signal,
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
         });
 
         if (!res.ok) throw new Error(`API 오류: ${res.status}`);
         const data = await res.json();
+        
+        // 디버깅: API 응답 확인
+        console.log("[AISongPage] API 응답:", data);
+        console.log("[AISongPage] album_image_square:", data.album_image_square);
+        console.log("[AISongPage] album:", data.album);
 
-        const mapped: AiTrack = {
-          id: data.id ?? id,
-          status: (data.status as AiTrack["status"]) ?? "Draft",
-          title: data.title ?? "제목 없음",
-          desc: data.desc ?? "",
-          duration: data.duration ?? "--:--",
-          createdAt: data.createdAt ?? "",
-          isAi: data.isAi ?? true,
-          coverUrl: data.coverUrl,
-          audioUrl: data.audioUrl,
-          prompt: data.prompt,
-          artist: data.artist ?? "Unknown",
-          plays: typeof data.plays === "number" ? data.plays : 0,
-          lyrics: data.lyrics ?? data.prompt ?? "내용이 없습니다.",
-          ownerId: data.ownerId,
-          ownerName: data.ownerName,
+        // duration을 초 단위에서 "mm:ss" 형식으로 변환
+        const formatDuration = (seconds: number): string => {
+          const mins = Math.floor(seconds / 60);
+          const secs = Math.floor(seconds % 60);
+          return `${mins}:${secs.toString().padStart(2, "0")}`;
         };
 
+        // 날짜를 한국어 형식으로 변환
+        const formatKoreanDate = (dateString: string): string => {
+          try {
+            const date = new Date(dateString);
+            return `${date.getMonth() + 1}월 ${date.getDate()}일`;
+          } catch {
+            return dateString;
+          }
+        };
+
+        const mapped: AiTrack = {
+          id: data.music_id?.toString() ?? id,
+          status: data.audio_url ? "Upload" : "Draft",
+          title: data.music_name ?? "제목 없음",
+          desc: data.ai_info?.input_prompt || data.ai_info?.converted_prompt || "",
+          duration: typeof data.duration === "number" ? formatDuration(data.duration) : "--:--",
+          createdAt: data.created_at ? formatKoreanDate(data.created_at) : "",
+          isAi: data.is_ai ?? true,
+          coverUrl: data.album_image || undefined,
+          audioUrl: data.audio_url || undefined,
+          prompt: data.ai_info?.input_prompt || data.ai_info?.converted_prompt || "",
+          artist: data.user?.nickname ?? data.artist_name ?? data.artist?.artist_name ?? "Unknown",
+          plays: typeof data.plays === "number" ? data.plays : 0,
+          lyrics: data.lyrics || data.ai_info?.input_prompt || "내용이 없습니다.",
+          ownerId: data.user_id?.toString(),
+          ownerName: data.user?.nickname,
+          musicId: typeof data.music_id === "number" ? data.music_id : undefined,
+        };
+
+        console.log("[AISongPage] mapped coverUrl:", mapped.coverUrl);
         setTrack(mapped);
       } catch (e: unknown) {
         if ((e as DOMException)?.name === "AbortError") return;
@@ -290,6 +320,8 @@ export default function AiSongPage() {
 
     return () => controller.abort();
   }, [API_BASE, id, dummyFound]);
+
+  // 커버는 서버 응답의 image_large_square 및 album 관련 필드를 우선 사용
 
   // ✅ 남의 곡 보고 있을 때 편집모드가 켜져있으면 자동 종료
   useEffect(() => {
@@ -311,6 +343,7 @@ export default function AiSongPage() {
         duration: track.duration,
         audioUrl: track.audioUrl ?? "/audio/sample.mp3",
         coverUrl: track.coverUrl,
+        musicId: track.musicId, // 가사 로드에 필요한 music_id
       },
     ];
   }, [track]);
@@ -459,6 +492,13 @@ export default function AiSongPage() {
                       src={track.coverUrl}
                       alt="cover"
                       className="h-full w-full object-cover"
+                      onError={(e) => {
+                        console.error("[AISongPage] 이미지 표시 실패:", track.coverUrl);
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                      onLoad={() => {
+                        console.log("[AISongPage] 이미지 로드 성공:", track.coverUrl);
+                      }}
                     />
                   ) : (
                     <div className="h-full w-full flex items-center justify-center text-[#777777] text-sm">
