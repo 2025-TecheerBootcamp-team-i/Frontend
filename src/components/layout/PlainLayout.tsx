@@ -11,7 +11,7 @@ export default function PlainLayout() {
         <div
             className="
             pointer-events-none absolute inset-0
-            bg-[linear-gradient(180deg,#2D2D2D_30%,#5D5D5D_100%)]
+            bg-[linear-gradient(180deg,#1d1d1d_30%,#5D5D5D_100%)]
             bg-[length:200%_200%]
             animate-bgGradient
             "
