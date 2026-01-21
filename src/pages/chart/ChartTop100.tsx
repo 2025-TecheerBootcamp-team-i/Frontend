@@ -65,12 +65,14 @@ export default function ChartTop100() {
     // ✅ PlayerTrack 변환
     const toTrack = (row: ApiChartRow): PlayerTrack => ({
         id: row.musicId,
+        musicId: Number(row.musicId),
         title: row.musicName,
         artist: row.artistName,
         album: row.albumName,
         duration: formatDuration(row.durationSec),
         isAi: row.isAi,
         audioUrl: row.audioUrl || "/audio/sample.mp3",
+        coverUrl: row.albumImage,
     });
 
     const [checkedIds, setCheckedIds] = useState<Record<string, boolean>>({});

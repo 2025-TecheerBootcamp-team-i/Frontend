@@ -359,9 +359,10 @@ function HomePage() {
 
     return {
         id: row.musicId,
+        musicId: Number(row.musicId),
         title: row.musicName,
         artist: row.artistName,
-        coverUrl: undefined, // 커버 URL이 API에 없으면 undefined
+        coverUrl: row.albumImage,
         audioUrl,
         duration: formatDuration(row.durationSec),
     };
