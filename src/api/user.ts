@@ -185,3 +185,83 @@ export async function fetchTopTracks(
   );
   return Array.isArray(res.data) ? res.data : [];
 }
+
+/** =========================
+ *  4) AI 음악 관련 타입 정의
+ *  ========================= */
+
+/** AI 정보 */
+export type AiInfo = {
+  ai_info_id?: number;
+  input_prompt?: string;
+  converted_prompt?: string;
+  suno_task_id?: string;
+  status?: string;
+  created_at?: string;
+};
+
+/** 사용자 AI 음악 목록 항목 */
+export type UserAiMusic = {
+  music_id: number;
+  music_name: string;
+  artist?: {
+    artist_id: number;
+    artist_name: string;
+    artist_image?: string;
+  } | null;
+  album?: {
+    album_id: number;
+    album_name: string;
+    album_image?: string;
+  } | null;
+  genre?: string | null;
+  duration: number; // 초 단위
+  is_ai: boolean;
+  audio_url?: string | null;
+  lyrics?: string | null;
+  album_image_square?: string | null; // AI 음악 커버 이미지
+  ai_info?: AiInfo | null;
+  created_at: string;
+  updated_at?: string;
+};
+
+/**
+ * 사용자 AI 음악 목록 조회
+ * GET /api/v1/users/{user_id}/ai-music/
+ */
+export async function fetchUserAiMusic(
+  userId: string | number
+): Promise<UserAiMusic[]> {
+  console.log("[API] fetchUserAiMusic 호출 시작", { 
+    userId,
+    url: `/users/${userId}/ai-music/`
+  });
+  
+  try {
+    const res = await axiosInstance.get<UserAiMusic[]>(
+      `/users/${userId}/ai-music/`
+    );
+    
+    console.log("[API] fetchUserAiMusic 응답 받음", {
+      status: res.status,
+      dataLength: res.data?.length ?? 0,
+      data: res.data,
+      isArray: Array.isArray(res.data),
+    });
+    
+    const result = Array.isArray(res.data) ? res.data : [];
+    console.log("[API] fetchUserAiMusic 최종 반환", { 
+      resultLength: result.length,
+      result: result 
+    });
+    
+    return result;
+  } catch (error) {
+    console.error("[API] fetchUserAiMusic 에러", {
+      userId,
+      error,
+      errorMessage: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
+}

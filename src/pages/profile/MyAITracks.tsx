@@ -4,38 +4,84 @@
     import { FaPlus } from "react-icons/fa6";
     import { IoChevronBack } from "react-icons/io5";
 
-    import { getMyAiSongs, subscribeAiSongs } from "../../mocks/aiSongMock";
-    import type { AiTrack } from "../../mocks/aiSongMock";
+    import { fetchUserAiMusic } from "../../api/user";
+    import { getCurrentUserId } from "../../utils/auth";
 
-    type CardItem = Pick<
-    AiTrack,
-    "id" | "title" | "desc" | "status" | "duration" | "createdAt" | "coverUrl"
-    >;
+    type CardItem = {
+        id: string;
+        title: string;
+        desc: string;
+        status: "Upload" | "Draft";
+        duration: string;
+        createdAt: string;
+        coverUrl?: string;
+    };
+
+    // duration을 초 단위에서 "mm:ss" 형식으로 변환
+    const formatDuration = (seconds: number): string => {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, "0")}`;
+    };
+
+// 날짜를 한국어 형식으로 변환 (연도 제외)
+const formatKoreanDate = (dateString: string): string => {
+    try {
+        const date = new Date(dateString);
+        return `${date.getMonth() + 1}월 ${date.getDate()}일`;
+    } catch {
+        return dateString;
+    }
+};
 
     export default function MyAiSongs() {
     const navigate = useNavigate();
-
-    // ✅ 너희 로그인 유저로 교체
-    const CURRENT_USER_ID = "me";
-
     const [items, setItems] = useState<CardItem[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const sync = () => {
-        const list = getMyAiSongs(CURRENT_USER_ID).map((t) => ({
-            id: t.id,
-            title: t.title,
-            desc: t.desc,
-            status: t.status,
-            duration: t.duration,
-            createdAt: t.createdAt,
-            coverUrl: t.coverUrl,
-        }));
-        setItems(list);
+        const loadAiMusic = async () => {
+            const userId = getCurrentUserId();
+            if (!userId) {
+                setError("로그인이 필요합니다.");
+                setLoading(false);
+                return;
+            }
+
+            try {
+                setLoading(true);
+                setError(null);
+                const data = await fetchUserAiMusic(userId);
+                
+                // 최신순으로 정렬 (created_at 기준 내림차순)
+                const sortedData = [...data].sort((a, b) => {
+                    const dateA = new Date(a.created_at).getTime();
+                    const dateB = new Date(b.created_at).getTime();
+                    return dateB - dateA;
+                });
+                
+                // API 응답을 CardItem 형식으로 변환
+                const mapped: CardItem[] = sortedData.map((music) => ({
+                    id: music.music_id.toString(),
+                    title: music.music_name || "제목 없음",
+                    desc: music.ai_info?.input_prompt || music.ai_info?.converted_prompt || "설명 없음",
+                    status: music.audio_url ? "Upload" : "Draft",
+                    duration: formatDuration(music.duration || 0),
+                    createdAt: formatKoreanDate(music.created_at),
+                    coverUrl: music.album_image_square || undefined,
+                }));
+
+                setItems(mapped);
+            } catch (err) {
+                console.error("AI 음악 목록 조회 실패:", err);
+                setError("AI 음악 목록을 불러오는데 실패했습니다.");
+            } finally {
+                setLoading(false);
+            }
         };
 
-        sync();
-        return subscribeAiSongs(sync);
+        loadAiMusic();
     }, []);
 
     const gridClass = useMemo(
@@ -87,51 +133,57 @@
         <div className="mb-4 mx-4 border-b border-[#464646]" />
 
         <div className="px-6 pb-8 overflow-x-auto">
-            <div className={gridClass}>
-            {items.map((it) => (
-                <button
-                key={it.id}
-                type="button"
-                onClick={() => navigate(`/aisong/${it.id}`)} // ✅ 상세로 연결
-                className="w-[220px] text-left group"
-                >
-                <div className="aspect-square rounded-2xl border border-[#464646] overflow-hidden bg-[#6b6b6b]/40 group-hover:bg-[#6b6b6b]/55 transition relative">
-                    {it.coverUrl ? (
-                    <img src={it.coverUrl} alt="" className="h-full w-full object-cover" />
-                    ) : null}
-
-                    <div
-                    className={[
-                        "absolute left-3 top-3 px-2 py-1 rounded-full text-[11px] border backdrop-blur",
-                        it.status === "Upload"
-                        ? "border-[#AFDEE2]/60 bg-[#AFDEE2]/20 text-[#AFDEE2]"
-                        : "border-[#5f5f5f] bg-black/25 text-[#F6F6F6]/90",
-                    ].join(" ")}
-                    >
-                    {it.status}
-                    </div>
-
-                    <div className="absolute left-3 right-3 bottom-3 flex items-center justify-between text-[11px] text-[#F6F6F6]/70">
-                    <span className="truncate">{it.createdAt}</span>
-                    <span className="ml-2 shrink-0">{it.duration}</span>
-                    </div>
+            {loading ? (
+                <div className="col-span-full px-2 py-10 text-sm text-[#F6F6F6]/60 text-center">
+                    로딩 중...
                 </div>
-
-                <div className="mt-3 text-sm font-semibold text-[#F6F6F6] truncate">
-                    {it.title}
+            ) : error ? (
+                <div className="col-span-full px-2 py-10 text-sm text-red-400 text-center">
+                    {error}
                 </div>
-                <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">
-                    {it.desc || "설명 없음"}
-                </div>
-                </button>
-            ))}
+            ) : (
+                <div className={gridClass}>
+                    {items.map((it) => (
+                        <button
+                            key={it.id}
+                            type="button"
+                            onClick={() => navigate(`/aisong/${it.id}`)} // ✅ 상세로 연결
+                            className="w-[220px] text-left group"
+                        >
+                            <div className="aspect-square rounded-2xl border border-[#464646] overflow-hidden bg-[#6b6b6b]/40 group-hover:bg-[#6b6b6b]/55 transition relative">
+                                {it.coverUrl ? (
+                                    <img src={it.coverUrl} alt="" className="h-full w-full object-cover" />
+                                ) : null}
 
-            {items.length === 0 && (
-                <div className="col-span-full px-2 py-10 text-sm text-[#F6F6F6]/60">
-                아직 만든 AI 곡이 없어. 오른쪽 위 + 로 만들어보자.
+                                <div
+                                    className={[
+                                        "absolute left-3 top-3 px-2 py-1 rounded-full text-[11px] border backdrop-blur",
+                                        it.status === "Upload"
+                                            ? "border-[#AFDEE2]/60 bg-[#AFDEE2]/20 text-[#AFDEE2]"
+                                            : "border-[#5f5f5f] bg-black/25 text-[#F6F6F6]/90",
+                                    ].join(" ")}
+                                >
+                                    {it.status}
+                                </div>
+
+                                <div className="absolute left-3 right-3 bottom-3 flex items-center justify-end text-[11px] text-[#F6F6F6]/70">
+                                    <span className="shrink-0">{it.duration}</span>
+                                </div>
+                            </div>
+
+                            <div className="mt-3 text-sm font-semibold text-[#F6F6F6] truncate">
+                                {it.title}
+                            </div>
+                        </button>
+                    ))}
+
+                    {items.length === 0 && (
+                        <div className="col-span-full px-2 py-10 text-sm text-[#F6F6F6]/60 text-center">
+                            아직 만든 AI 곡이 없어. 오른쪽 위 + 로 만들어보자.
+                        </div>
+                    )}
                 </div>
             )}
-            </div>
         </div>
         </section>
     );
