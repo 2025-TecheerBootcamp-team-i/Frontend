@@ -554,7 +554,7 @@ export default function ArtistPage() {
                     ].join(" ")}
                 >
                     {/* 앨범 이미지 */}
-                    <div className="w-12 h-12 rounded-xl bg-[#6b6b6b]/50 border border-[#464646] overflow-hidden relative flex-shrink-0">
+                    <div className="w-12 h-12 rounded-xl bg-[#6b6b6b]/50 overflow-hidden relative flex-shrink-0">
                         {t.albumImage ? (
                             <>
                                 <img
@@ -587,12 +587,9 @@ export default function ArtistPage() {
                         {artist.name}
                     </div>
                     </div>
-                        {/* <div className="
-                        hidden min-[1200px]:block text-sm text-[#F6F6F6]/70 text-right"> */}
+                        { /* 바꾸지 말아주세요! */ }
                         <div className="
-                            text-sm text-[#F6F6F6]/70
-                            text-ellipsis line-clamp-2
-                            ">
+                            hidden min-[1200px]:block text-sm text-[#F6F6F6]/70 text-right">
                             {t.album}
                         </div>
                     <div className="text-sm text-[#F6F6F6]/70 text-right">{t.duration}</div>
@@ -643,7 +640,7 @@ export default function ArtistPage() {
                     className="w-[180px] text-left group shrink-0"
                     >
                     {/* 앨범 이미지 */}
-                    <div className="aspect-square rounded-2xl bg-[#6b6b6b]/30 border border-[#464646] group-hover:bg-[#6b6b6b]/45 transition overflow-hidden relative">
+                    <div className="aspect-square rounded-2xl bg-[#6b6b6b]/30 group-hover:bg-[#6b6b6b]/45 transition overflow-hidden relative">
                         {al.albumImage ? (
                             <>
                                 <img
