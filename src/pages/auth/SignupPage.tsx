@@ -11,6 +11,29 @@ import {
 } from "react-icons/md";
 import { signup } from "../../api/auth";
 
+let __verticalFloatStyleInjected = false;
+function ensureVerticalFloatStyle() {
+  if (__verticalFloatStyleInjected) return;
+  __verticalFloatStyleInjected = true;
+
+  const style = document.createElement("style");
+  style.setAttribute("data-auth-vertical-float", "true");
+  style.innerHTML = `
+    @keyframes verticalFloat {
+      0%   { transform: translate3d(0,0,0); }
+      50%  { transform: translate3d(0,-10px,0); }
+      100% { transform: translate3d(0,0,0); }
+    }
+    .animate-verticalFloat {
+      display: inline-block;
+      animation: verticalFloat 7s ease-in-out infinite;
+      transform: translate3d(0,0,0);
+      will-change: transform;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 export default function SignUpPage() {
   const navigate = useNavigate();
 
@@ -118,6 +141,7 @@ export default function SignUpPage() {
       });
       alert("회원가입을 완료했습니다!");
       navigate("/login");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const errorMsg = error?.response?.data?.message || error?.response?.data?.detail || "회원가입에 실패했습니다.";
       alert(errorMsg);
@@ -126,26 +150,8 @@ export default function SignUpPage() {
     }
   };
 
-  // ✅ floating 텍스트 애니메이션만 유지 (blob 배경은 AuthLayout이 담당)
   useEffect(() => {
-    const style = document.createElement("style");
-    style.innerHTML = `
-      @keyframes verticalFloat {
-        0%   { transform: translate3d(0,0,0); }
-        50%  { transform: translate3d(0,-10px,0); }
-        100% { transform: translate3d(0,0,0); }
-      }
-      .animate-verticalFloat {
-        display: inline-block;
-        animation: verticalFloat 7s ease-in-out infinite;
-        transform: translate3d(0,0,0);
-        will-change: transform;
-      }
-    `;
-    document.head.appendChild(style);
-    return () => {
-      document.head.removeChild(style);
-    };
+    ensureVerticalFloatStyle();
   }, []);
 
   return (
@@ -174,11 +180,15 @@ export default function SignUpPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 min-h-[560px]">
           {/* LEFT */}
           <div className="relative h-full p-8 md:p-10 flex flex-col justify-between">
-            <div className="absolute inset-0">
+            <div
+              className="absolute inset-0"
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              style={{ contentVisibility: "auto" as any }} // ✅ CHANGED
+            >
               <div className="h-full w-full bg-gradient-to-br from-[#5fd8e4] via-[#9fd6db] to-[#eef6f6]" />
               <div className="absolute inset-0 bg-black/15" />
-              <div className="absolute -top-24 -left-24 h-64 w-64 rounded-full bg-white/20 blur-3xl" />
-              <div className="absolute -bottom-24 -right-24 h-64 w-64 rounded-full bg-black/20 blur-3xl" />
+              <div className="absolute -top-24 -left-24 h-48 w-48 rounded-full bg-white/20 blur-xl" />
+              <div className="absolute -bottom-24 -right-24 h-48 w-48 rounded-full bg-black/20 blur-xl" />
             </div>
 
             <div className="relative z-10 flex items-center justify-between">
@@ -343,7 +353,7 @@ export default function SignUpPage() {
                     </div>
 
                     <input
-                      type={showPw ? "password" : "text"}
+                      type={showPw ? "text" : "password"}
                       value={pw}
                       onChange={(e) => setPw(e.target.value)}
                       placeholder="8-16자리, 문자/숫자/특수기호 포함"
@@ -368,12 +378,12 @@ export default function SignUpPage() {
                       type="button"
                       onClick={() => setShowPw((v) => !v)}
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white transition"
-                      aria-label={showPw ? "비밀번호 숨기기" : "비밀번호 보기"}
+                      aria-label={showPw ? "비밀번호 보기" : "비밀번호 숨기기"}
                     >
                       {showPw ? (
-                        <MdVisibilityOff size={18} />
-                      ) : (
                         <MdVisibility size={18} />
+                      ) : (
+                        <MdVisibilityOff size={18} />
                       )}
                     </button>
                   </div>
@@ -397,7 +407,7 @@ export default function SignUpPage() {
                     </div>
 
                     <input
-                      type={showPw2 ? "password" : "text"}
+                      type={showPw2 ? "text" : "password"}
                       value={pw2}
                       onChange={(e) => setPw2(e.target.value)}
                       className={[
@@ -420,12 +430,12 @@ export default function SignUpPage() {
                       type="button"
                       onClick={() => setShowPw2((v) => !v)}
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white transition"
-                      aria-label={showPw2 ? "비밀번호 숨기기" : "비밀번호 보기"}
+                      aria-label={showPw2 ? "비밀번호 보기" : "비밀번호 숨기기"}
                     >
                       {showPw2 ? (
-                        <MdVisibilityOff size={18} />
-                      ) : (
                         <MdVisibility size={18} />
+                      ) : (
+                        <MdVisibilityOff size={18} />
                       )}
                     </button>
                   </div>

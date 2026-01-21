@@ -181,14 +181,8 @@ type ArtistAlbum = {
 /* =====================
   UI Helpers (Skeleton/Empty)
 ===================== */
-function SkeletonBox({
-  className = "",
-}: {
-  className?: string;
-}) {
-  return (
-    <div className={["animate-pulse bg-white/10", className].join(" ")} />
-  );
+function SkeletonBox({ className = "" }: { className?: string }) {
+  return <div className={["animate-pulse bg-white/10", className].join(" ")} />;
 }
 
 function EmptyText({ children }: { children: React.ReactNode }) {
@@ -352,7 +346,7 @@ export default function SearchHome() {
 
         const params = new URLSearchParams({
           q,
-          page_size: "100",
+          page_size: "30",
         });
 
         const res = await fetch(`${API_BASE}/search?${params.toString()}`, {
@@ -397,7 +391,7 @@ export default function SearchHome() {
               .map((r) => r.artist_id)
               .filter((id): id is number => id !== null)
           )
-        );
+        ).slice(0, 8); // ✅ CHANGED: SearchHome에서는 보여주는 아티스트가 최대 8개라서 N+1 폭발 방지
 
         if (uniqueArtistIds.length > 0) {
           await Promise.all([
@@ -505,12 +499,14 @@ export default function SearchHome() {
                     "
                   >
                     {/* Skeleton */}
-                    {loading ? hasQuery && (
-                      <div className="flex flex-col">
-                        <SkeletonBox className="w-[228px] h-[228px] rounded-2xl" />
-                        <SkeletonBox className="mt-5 h-5 w-44 rounded-md" />
-                        <SkeletonBox className="mt-2 h-4 w-28 rounded-md" />
-                      </div>
+                    {loading ? (
+                      hasQuery && (
+                        <div className="flex flex-col">
+                          <SkeletonBox className="w-[228px] h-[228px] rounded-2xl" />
+                          <SkeletonBox className="mt-5 h-5 w-44 rounded-md" />
+                          <SkeletonBox className="mt-2 h-4 w-28 rounded-md" />
+                        </div>
+                      )
                     ) : !featured ? (
                       <div className="flex flex-col">
                         <div className="w-[228px] h-[228px] bg-white/10 rounded-2xl" />
@@ -524,264 +520,289 @@ export default function SearchHome() {
                         </div>
                       </div>
                     ) : (() => {
-                        const isArtist = featured.type === "artist";
-                        const artistData = isArtist ? featured.data : null;
-                        const songData = !isArtist ? featured.data : null;
+                      const isArtist = featured.type === "artist";
+                      const artistData = isArtist ? featured.data : null;
+                      const songData = !isArtist ? featured.data : null;
 
-                        // 곡일 때 앨범 이미지 찾기 (검색 결과 원본에서 album_image 우선)
-                        let songAlbumImage: string | null = null;
-                        if (!isArtist && songData) {
-                          const original = searchResults.find((r) => String(r.itunes_id) === songData.id);
-                          songAlbumImage = original?.album_image || null;
-                          if (!songAlbumImage) {
-                            const apiSong = apiSongs.find((as) => as.id === songData.id);
-                            if (apiSong?.albumId) {
-                              const album = apiAlbums.find((a) => a.id === String(apiSong.albumId));
-                              // ✅ image_large_square 우선 사용 (RDS에 저장된 이미지), 없으면 album_image 사용
-                              songAlbumImage = album?.image_large_square || album?.album_image || null;
-                            }
-                          }
-                          
-                          // 🔍 "SUPER REAL ME" 앨범 이미지 추적
-                          if (songAlbumImage && (songData.albumName?.includes("SUPER REAL ME") || original?.album_name?.includes("SUPER REAL ME"))) {
-                            const isExternal = songAlbumImage.startsWith("http://") || 
-                                              songAlbumImage.startsWith("https://") || 
-                                              songAlbumImage.startsWith("//");
-                            const isRdsPath = songAlbumImage.startsWith("/");
-                            console.warn(`[SearchAll] ⚠️ "SUPER REAL ME" 앨범 이미지 발견 (검색 결과):`, {
-                              song_title: songData.title,
-                              album_name: songData.albumName || original?.album_name,
-                              image_url: songAlbumImage,
-                              source: original?.album_image ? "검색 API 응답" : "아티스트 앨범 API",
-                              source_type: isExternal ? "외부 URL (iTunes/YouTube 등)" : isRdsPath ? "RDS 경로" : "기타",
-                              is_external: isExternal,
-                              is_rds_path: isRdsPath,
-                            });
+                      // 곡일 때 앨범 이미지 찾기 (검색 결과 원본에서 album_image 우선)
+                      let songAlbumImage: string | null = null;
+                      if (!isArtist && songData) {
+                        const original = searchResults.find((r) => String(r.itunes_id) === songData.id);
+                        songAlbumImage = original?.album_image || null;
+                        if (!songAlbumImage) {
+                          const apiSong = apiSongs.find((as) => as.id === songData.id);
+                          if (apiSong?.albumId) {
+                            const album = apiAlbums.find((a) => a.id === String(apiSong.albumId));
+                            // ✅ image_large_square 우선 사용 (RDS에 저장된 이미지), 없으면 album_image 사용
+                            songAlbumImage = album?.image_large_square || album?.album_image || null;
                           }
                         }
 
-                        const resolveImage = (url: string) => {
-                          if (url.startsWith("http") || url.startsWith("//")) return url;
-                          if (API_BASE && url.startsWith("/")) return `${API_BASE.replace("/api/v1", "")}${url}`;
-                          return url;
-                        };
+                        // 🔍 "SUPER REAL ME" 앨범 이미지 추적
+                        if (
+                          songAlbumImage &&
+                          (songData.albumName?.includes("SUPER REAL ME") ||
+                            original?.album_name?.includes("SUPER REAL ME"))
+                        ) {
+                          const isExternal =
+                            songAlbumImage.startsWith("http://") ||
+                            songAlbumImage.startsWith("https://") ||
+                            songAlbumImage.startsWith("//");
+                          const isRdsPath = songAlbumImage.startsWith("/");
+                          console.warn(`[SearchAll] ⚠️ "SUPER REAL ME" 앨범 이미지 발견 (검색 결과):`, {
+                            song_title: songData.title,
+                            album_name: songData.albumName || original?.album_name,
+                            image_url: songAlbumImage,
+                            source: original?.album_image ? "검색 API 응답" : "아티스트 앨범 API",
+                            source_type: isExternal
+                              ? "외부 URL (iTunes/YouTube 등)"
+                              : isRdsPath
+                              ? "RDS 경로"
+                              : "기타",
+                            is_external: isExternal,
+                            is_rds_path: isRdsPath,
+                          });
+                        }
+                      }
 
-                        return (
-                          <div className="flex flex-col">
-                            <div
-                              className={[
-                                "w-[228px] h-[228px] bg-[#3d3d3d]/10 relative overflow-hidden",
-                                isArtist ? "rounded-full" : "rounded-2xl",
-                              ].join(" ")}
-                            >
-                              {isArtist && artistData?.image ? (
-                                <img
-                                  src={resolveImage(artistData.image)}
-                                  alt={artistData.name}
-                                  className="w-full h-full object-cover"
-                                  loading="lazy"
-                                />
-                              ) : !isArtist && songData && songAlbumImage ? (
-                                <img
-                                  src={resolveImage(songAlbumImage)}
-                                  alt={songData.title}
-                                  className="w-full h-full object-cover"
-                                  loading="lazy"
-                                />
-                              ) : (
-                                <div className="w-full h-full bg-white/10" />
-                              )}
-                            </div>
+                      const resolveImage = (url: string) => {
+                        if (url.startsWith("http") || url.startsWith("//")) return url;
+                        if (API_BASE && url.startsWith("/"))
+                          return `${API_BASE.replace("/api/v1", "")}${url}`;
+                        return url;
+                      };
 
-                            <div className="mt-5 min-w-0">
-                              <div className="text-lg font-semibold text-[#F6F6F6] truncate">
-                                {isArtist ? artistData?.name : songData?.title}
-                              </div>
-                              <div className="mt-1 text-sm text-[#F6F6F6]/60 truncate">
-                                {isArtist ? "아티스트" : songData?.artist}
-                              </div>
-                            </div>
-
-                            {/* ▶ 재생 버튼 */}
-                            <button
-                              type="button"
-                              onClick={async (e) => {
-                                if (!requireLogin("로그인 후 이용 가능합니다.")) return;
-                                e.stopPropagation();
-
-                                if (!API_BASE) return;
-
-                                if (isArtist && artistData) {
-                                  // 검색 결과에서 해당 아티스트 곡들 재생
-                                  try {
-                                    const artistIdNum = Number(artistData.id);
-                                    if (Number.isNaN(artistIdNum)) return;
-
-                                    const artistSongs = searchResults.filter(
-                                      (r) => r.artist_id === artistIdNum
-                                    );
-
-                                    if (artistSongs.length === 0) return;
-
-                                    const resolveCover = (maybeUrl: string | null) => {
-                                      if (!maybeUrl) return undefined;
-                                      if (maybeUrl.startsWith("http") || maybeUrl.startsWith("//")) return maybeUrl;
-                                      if (maybeUrl.startsWith("/")) return `${API_BASE.replace("/api/v1", "")}${maybeUrl}`;
-                                      return maybeUrl;
-                                    };
-
-                                    const playerTracks: PlayerTrack[] = await Promise.all(
-                                      artistSongs.map(async (r) => {
-                                        let audioUrl = r.audio_url;
-                                        const musicId = r.music_id;
-
-                                        if (!audioUrl && musicId) {
-                                          try {
-                                            const playRes = await axios.get<{ audio_url: string }>(
-                                              `${API_BASE}/tracks/${musicId}/play`,
-                                              { headers: { "Content-Type": "application/json" } }
-                                            );
-                                            audioUrl = playRes.data.audio_url;
-                                          } catch (err) {
-                                            console.error("[SearchAll] track play url fail:", err);
-                                          }
-                                        }
-
-                                        // ✅ image_large_square 우선 사용 (RDS에 저장된 이미지), 없으면 album_image 사용
-                                        const albumFromApi = r.album_id ? apiAlbums.find((a) => a.id === String(r.album_id)) : null;
-                                        const albumImage = albumFromApi?.image_large_square || albumFromApi?.album_image || null;
-                                        
-                                        const coverUrl =
-                                          resolveCover(r.album_image) ||
-                                          (r.album_id
-                                            ? resolveCover(albumImage)
-                                            : undefined);
-                                        
-                                        // 🔍 "SUPER REAL ME" 앨범 이미지 추적
-                                        if (coverUrl && (r.album_name?.includes("SUPER REAL ME") || r.music_name?.includes("SUPER REAL ME"))) {
-                                          const imageSource = r.album_image ? "검색 API 응답" : "아티스트 앨범 API";
-                                          const isExternal = coverUrl.startsWith("http://") || 
-                                                            coverUrl.startsWith("https://") || 
-                                                            coverUrl.startsWith("//");
-                                          const isRdsPath = coverUrl.startsWith("/");
-                                          console.warn(`[SearchAll] ⚠️ "SUPER REAL ME" 앨범 이미지 발견 (재생 트랙):`, {
-                                            song_title: r.music_name,
-                                            album_name: r.album_name,
-                                            album_id: r.album_id,
-                                            image_url: coverUrl,
-                                            source: imageSource,
-                                            source_type: isExternal ? "외부 URL (iTunes/YouTube 등)" : isRdsPath ? "RDS 경로" : "기타",
-                                            is_external: isExternal,
-                                            is_rds_path: isRdsPath,
-                                          });
-                                        }
-
-                                        return {
-                                          id: String(r.itunes_id),
-                                          title: r.music_name,
-                                          artist: r.artist_name,
-                                          album: r.album_name || "",
-                                          duration: r.duration
-                                            ? `${Math.floor(r.duration / 60)}:${(r.duration % 60)
-                                                .toString()
-                                                .padStart(2, "0")}`
-                                            : "0:00",
-                                          audioUrl: audioUrl || undefined,
-                                          coverUrl,
-                                          musicId: musicId || undefined,
-                                          albumId: r.album_id ?? null,
-                                        };
-                                      })
-                                    );
-
-                                    const validTracks = playerTracks.filter((t) => t.audioUrl);
-                                    if (validTracks.length > 0) playTracks(validTracks);
-                                  } catch (err) {
-                                    console.error("[SearchAll] artist play error:", err);
-                                  }
-                                } else if (!isArtist && songData) {
-                                  // 단일 곡 재생
-                                  try {
-                                    const original = searchResults.find((r) => String(r.itunes_id) === songData.id);
-                                    let audioUrl: string | undefined = original?.audio_url || undefined;
-
-                                    // music_id 있으면 바로 play 호출 가능
-                                    const musicId: number | null = original?.music_id ?? null;
-
-                                    // audio_url 없고 music_id 있으면 /play
-                                    if (!audioUrl && musicId) {
-                                      const playRes = await axios.get<{ audio_url: string }>(
-                                        `${API_BASE}/tracks/${musicId}/play`,
-                                        { headers: { "Content-Type": "application/json" } }
-                                      );
-                                      audioUrl = playRes.data.audio_url;
-                                    }
-
-                                    if (!audioUrl) return;
-
-                                    const coverUrl = original?.album_image
-                                      ? (original.album_image.startsWith("http") || original.album_image.startsWith("//")
-                                          ? original.album_image
-                                          : original.album_image.startsWith("/")
-                                          ? `${API_BASE.replace("/api/v1", "")}${original.album_image}`
-                                          : original.album_image)
-                                      : undefined;
-                                    
-                                    // 🔍 "SUPER REAL ME" 앨범 이미지 추적
-                                    if (coverUrl && (songData.albumName?.includes("SUPER REAL ME") || original?.album_name?.includes("SUPER REAL ME"))) {
-                                      const isExternal = coverUrl.startsWith("http://") || 
-                                                        coverUrl.startsWith("https://") || 
-                                                        coverUrl.startsWith("//");
-                                      const isRdsPath = coverUrl.startsWith("/");
-                                      console.warn(`[SearchAll] ⚠️ "SUPER REAL ME" 앨범 이미지 발견 (단일 곡 재생):`, {
-                                        song_title: songData.title,
-                                        album_name: songData.albumName || original?.album_name,
-                                        image_url: coverUrl,
-                                        source: "검색 API 응답",
-                                        source_type: isExternal ? "외부 URL (iTunes/YouTube 등)" : isRdsPath ? "RDS 경로" : "기타",
-                                        is_external: isExternal,
-                                        is_rds_path: isRdsPath,
-                                      });
-                                    }
-
-                                    const playerTrack: PlayerTrack = {
-                                      id: songData.id,
-                                      title: songData.title,
-                                      artist: songData.artist,
-                                      album: songData.albumName || "",
-                                      duration: songData.duration,
-                                      audioUrl,
-                                      coverUrl,
-                                      musicId: musicId || undefined,
-                                      albumId: original?.album_id ?? null,
-                                    };
-
-                                    playTracks([playerTrack]);
-                                  } catch (err) {
-                                    console.error("[SearchAll] song play error:", err);
-                                  }
-                                }
-                              }}
-                              className="
-                                absolute right-0 bottom-4
-                                -translate-x-4 -translate-y-4
-                                w-12 h-12 rounded-full
-                                bg-[#AFDEE2] text-[#1d1d1d]
-                                grid place-items-center
-                                shadow-lg
-                                hover:bg-[#87B2B6] transition
-
-                                opacity-0 translate-y-1 pointer-events-none
-                                group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto
-                              "
-                              aria-label="재생"
-                              title="재생"
-                            >
-                              <MdPlayArrow size={26} />
-                            </button>
+                      return (
+                        <div className="flex flex-col">
+                          <div
+                            className={[
+                              "w-[228px] h-[228px] bg-[#3d3d3d]/10 relative overflow-hidden",
+                              isArtist ? "rounded-full" : "rounded-2xl",
+                            ].join(" ")}
+                          >
+                            {isArtist && artistData?.image ? (
+                              <img
+                                src={resolveImage(artistData.image)}
+                                alt={artistData.name}
+                                className="w-full h-full object-cover"
+                                loading="eager" // ✅ CHANGED: 대표(LCP 후보) 이미지는 eager
+                                fetchPriority="high" // ✅ CHANGED: 우선 다운로드
+                                decoding="async" // ✅ CHANGED
+                              />
+                            ) : !isArtist && songData && songAlbumImage ? (
+                              <img
+                                src={resolveImage(songAlbumImage)}
+                                alt={songData.title}
+                                className="w-full h-full object-cover"
+                                loading="eager" // ✅ CHANGED: 대표(LCP 후보) 이미지는 eager
+                                fetchPriority="high" // ✅ CHANGED: 우선 다운로드
+                                decoding="async" // ✅ CHANGED
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-white/10" />
+                            )}
                           </div>
-                        );
-                      })()}
+
+                          <div className="mt-5 min-w-0">
+                            <div className="text-lg font-semibold text-[#F6F6F6] truncate">
+                              {isArtist ? artistData?.name : songData?.title}
+                            </div>
+                            <div className="mt-1 text-sm text-[#F6F6F6]/60 truncate">
+                              {isArtist ? "아티스트" : songData?.artist}
+                            </div>
+                          </div>
+
+                          {/* ▶ 재생 버튼 */}
+                          <button
+                            type="button"
+                            onClick={async (e) => {
+                              if (!requireLogin("로그인 후 이용 가능합니다.")) return;
+                              e.stopPropagation();
+
+                              if (!API_BASE) return;
+
+                              if (isArtist && artistData) {
+                                // 검색 결과에서 해당 아티스트 곡들 재생
+                                try {
+                                  const artistIdNum = Number(artistData.id);
+                                  if (Number.isNaN(artistIdNum)) return;
+
+                                  const artistSongs = searchResults.filter(
+                                    (r) => r.artist_id === artistIdNum
+                                  );
+
+                                  if (artistSongs.length === 0) return;
+
+                                  const resolveCover = (maybeUrl: string | null) => {
+                                    if (!maybeUrl) return undefined;
+                                    if (maybeUrl.startsWith("http") || maybeUrl.startsWith("//")) return maybeUrl;
+                                    if (maybeUrl.startsWith("/")) return `${API_BASE.replace("/api/v1", "")}${maybeUrl}`;
+                                    return maybeUrl;
+                                  };
+
+                                  const playerTracks: PlayerTrack[] = await Promise.all(
+                                    artistSongs.map(async (r) => {
+                                      let audioUrl = r.audio_url;
+                                      const musicId = r.music_id;
+
+                                      if (!audioUrl && musicId) {
+                                        try {
+                                          const playRes = await axios.get<{ audio_url: string }>(
+                                            `${API_BASE}/tracks/${musicId}/play`,
+                                            { headers: { "Content-Type": "application/json" } }
+                                          );
+                                          audioUrl = playRes.data.audio_url;
+                                        } catch (err) {
+                                          console.error("[SearchAll] track play url fail:", err);
+                                        }
+                                      }
+
+                                      // ✅ image_large_square 우선 사용 (RDS에 저장된 이미지), 없으면 album_image 사용
+                                      const albumFromApi = r.album_id
+                                        ? apiAlbums.find((a) => a.id === String(r.album_id))
+                                        : null;
+                                      const albumImage =
+                                        albumFromApi?.image_large_square || albumFromApi?.album_image || null;
+
+                                      const coverUrl =
+                                        resolveCover(r.album_image) ||
+                                        (r.album_id ? resolveCover(albumImage) : undefined);
+
+                                      // 🔍 "SUPER REAL ME" 앨범 이미지 추적
+                                      if (coverUrl && (r.album_name?.includes("SUPER REAL ME") || r.music_name?.includes("SUPER REAL ME"))) {
+                                        const imageSource = r.album_image ? "검색 API 응답" : "아티스트 앨범 API";
+                                        const isExternal =
+                                          coverUrl.startsWith("http://") ||
+                                          coverUrl.startsWith("https://") ||
+                                          coverUrl.startsWith("//");
+                                        const isRdsPath = coverUrl.startsWith("/");
+                                        console.warn(`[SearchAll] ⚠️ "SUPER REAL ME" 앨범 이미지 발견 (재생 트랙):`, {
+                                          song_title: r.music_name,
+                                          album_name: r.album_name,
+                                          album_id: r.album_id,
+                                          image_url: coverUrl,
+                                          source: imageSource,
+                                          source_type: isExternal
+                                            ? "외부 URL (iTunes/YouTube 등)"
+                                            : isRdsPath
+                                            ? "RDS 경로"
+                                            : "기타",
+                                          is_external: isExternal,
+                                          is_rds_path: isRdsPath,
+                                        });
+                                      }
+
+                                      return {
+                                        id: String(r.itunes_id),
+                                        title: r.music_name,
+                                        artist: r.artist_name,
+                                        album: r.album_name || "",
+                                        duration: r.duration
+                                          ? `${Math.floor(r.duration / 60)}:${(r.duration % 60)
+                                              .toString()
+                                              .padStart(2, "0")}`
+                                          : "0:00",
+                                        audioUrl: audioUrl || undefined,
+                                        coverUrl,
+                                        musicId: musicId || undefined,
+                                        albumId: r.album_id ?? null,
+                                      };
+                                    })
+                                  );
+
+                                  const validTracks = playerTracks.filter((t) => t.audioUrl);
+                                  if (validTracks.length > 0) playTracks(validTracks);
+                                } catch (err) {
+                                  console.error("[SearchAll] artist play error:", err);
+                                }
+                              } else if (!isArtist && songData) {
+                                // 단일 곡 재생
+                                try {
+                                  const original = searchResults.find((r) => String(r.itunes_id) === songData.id);
+                                  let audioUrl: string | undefined = original?.audio_url || undefined;
+
+                                  // music_id 있으면 바로 play 호출 가능
+                                  const musicId: number | null = original?.music_id ?? null;
+
+                                  // audio_url 없고 music_id 있으면 /play
+                                  if (!audioUrl && musicId) {
+                                    const playRes = await axios.get<{ audio_url: string }>(
+                                      `${API_BASE}/tracks/${musicId}/play`,
+                                      { headers: { "Content-Type": "application/json" } }
+                                    );
+                                    audioUrl = playRes.data.audio_url;
+                                  }
+
+                                  if (!audioUrl) return;
+
+                                  const coverUrl = original?.album_image
+                                    ? (original.album_image.startsWith("http") || original.album_image.startsWith("//")
+                                        ? original.album_image
+                                        : original.album_image.startsWith("/")
+                                        ? `${API_BASE.replace("/api/v1", "")}${original.album_image}`
+                                        : original.album_image)
+                                    : undefined;
+
+                                  // 🔍 "SUPER REAL ME" 앨범 이미지 추적
+                                  if (coverUrl && (songData.albumName?.includes("SUPER REAL ME") || original?.album_name?.includes("SUPER REAL ME"))) {
+                                    const isExternal =
+                                      coverUrl.startsWith("http://") ||
+                                      coverUrl.startsWith("https://") ||
+                                      coverUrl.startsWith("//");
+                                    const isRdsPath = coverUrl.startsWith("/");
+                                    console.warn(`[SearchAll] ⚠️ "SUPER REAL ME" 앨범 이미지 발견 (단일 곡 재생):`, {
+                                      song_title: songData.title,
+                                      album_name: songData.albumName || original?.album_name,
+                                      image_url: coverUrl,
+                                      source: "검색 API 응답",
+                                      source_type: isExternal
+                                        ? "외부 URL (iTunes/YouTube 등)"
+                                        : isRdsPath
+                                        ? "RDS 경로"
+                                        : "기타",
+                                      is_external: isExternal,
+                                      is_rds_path: isRdsPath,
+                                    });
+                                  }
+
+                                  const playerTrack: PlayerTrack = {
+                                    id: songData.id,
+                                    title: songData.title,
+                                    artist: songData.artist,
+                                    album: songData.albumName || "",
+                                    duration: songData.duration,
+                                    audioUrl,
+                                    coverUrl,
+                                    musicId: musicId || undefined,
+                                    albumId: original?.album_id ?? null,
+                                  };
+
+                                  playTracks([playerTrack]);
+                                } catch (err) {
+                                  console.error("[SearchAll] song play error:", err);
+                                }
+                              }
+                            }}
+                            className="
+                              absolute right-0 bottom-4
+                              -translate-x-4 -translate-y-4
+                              w-12 h-12 rounded-full
+                              bg-[#AFDEE2] text-[#1d1d1d]
+                              grid place-items-center
+                              shadow-lg
+                              hover:bg-[#87B2B6] transition
+
+                              opacity-0 translate-y-1 pointer-events-none
+                              group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto
+                            "
+                            aria-label="재생"
+                            title="재생"
+                          >
+                            <MdPlayArrow size={26} />
+                          </button>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               </section>
@@ -840,7 +861,9 @@ export default function SearchHome() {
                     songs.slice(0, 4).map((s) => {
                       const original = searchResults.find((r) => String(r.itunes_id) === s.id);
                       // ✅ image_large_square 우선 사용 (RDS에 저장된 이미지), 없으면 album_image 사용
-                      const albumFromApi = original?.album_id ? apiAlbums.find((a) => a.id === String(original.album_id)) : null;
+                      const albumFromApi = original?.album_id
+                        ? apiAlbums.find((a) => a.id === String(original.album_id))
+                        : null;
                       const albumImage =
                         original?.album_image ||
                         (albumFromApi

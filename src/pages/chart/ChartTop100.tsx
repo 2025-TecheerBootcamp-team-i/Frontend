@@ -95,7 +95,7 @@ export default function ChartTop100() {
     const prevRankByIdRef = useRef<Record<string, number>>({});
 
     // ✅ 화면 표시용 diff 저장
-    const [diffById, setDiffById] = useState<Record<string, number>>({});
+    // const [diffById, setDiffById] = useState<Record<string, number>>({});
 
     useEffect(() => {
     let alive = true;
@@ -121,7 +121,7 @@ export default function ChartTop100() {
             nextDiff[id] = typeof prevRank === "number" ? prevRank - item.rank : 0;
         }
 
-        setDiffById(nextDiff);
+        // setDiffById(nextDiff);
         setChart(data);
 
         // ✅ 3) 이번 순위를 “다음번 비교용(전 스냅샷)”으로 저장

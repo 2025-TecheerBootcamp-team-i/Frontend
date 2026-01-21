@@ -64,7 +64,7 @@ export default function ChartDaily() {
 
     // ✅ diff(순위 변동)
     const prevRankByIdRef = useRef<Record<string, number>>({});
-    const [diffById, setDiffById] = useState<Record<string, number>>({});
+    // const [diffById, setDiffById] = useState<Record<string, number>>({});
 
     useEffect(() => {
         let alive = true;
@@ -87,7 +87,7 @@ export default function ChartDaily() {
           nextDiff[id] = typeof prevRank === "number" ? prevRank - item.rank : 0;
         }
 
-        setDiffById(nextDiff);
+        // setDiffById(nextDiff);
         setChart(data);
     
          // ✅ 이번 순위를 다음 비교용으로 저장
