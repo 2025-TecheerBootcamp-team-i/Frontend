@@ -13,9 +13,9 @@ import { requireLogin } from "../../api/auth";
 import {
   fetchMyPlaylists,
   addPlaylistItems,
-  likeTrack,
   type PlaylistSummary,
 } from "../../api/SearchSongAPI";
+import {likeTrack} from "../../api/LikedSong"
 
 
 /* ===================== 타입 ===================== */
@@ -477,6 +477,7 @@ export default function SearchSong() {
         setAddTargetsError(null);
 
         const list = await fetchMyPlaylists();
+        console.log("playlists:", list);
         if (cancelled) return;
 
         setAddTargets(list);
@@ -511,7 +512,6 @@ const addSelectedToPlaylist = async (playlistId: string) => {
 
     await addPlaylistItems(playlistId, unique);
 
-    // 성공하면
     setAddOpen(false);
     setCheckedIds({});
   } catch (e) {
@@ -524,7 +524,7 @@ const addSelectedToLiked = async () => {
 if (selectedCount === 0) return;
 
 try {
-  // ✅ 좋아요 API는 itunes_id가 아니라 music_id가 필요
+  // 좋아요 API는 itunes_id가 아니라 music_id가 필요
   const musicIds = (await Promise.all(checkedSongs.map(findMusicId)))
     .filter((id): id is number => typeof id === "number");
 
@@ -552,9 +552,11 @@ try {
 
   setCheckedIds({});
 
-  if (fail > 0) {
-    alert(`좋아요 완료: ${ok}곡 / 실패: ${fail}곡`);
-  }
+if (fail === 0) {
+  alert(`좋아요 완료: ${ok}곡`);
+} else {
+  alert(`좋아요 완료: ${ok}곡 / 실패: ${fail}곡`);
+}
 } catch (e) {
   console.error("[SearchSong] 좋아요 실패:", e);
   alert("좋아요 실패했어요. 잠시 후 다시 시도해주세요.");
@@ -841,7 +843,10 @@ try {
                         <button
                         key={p.id}
                         type="button"
-                        onClick={() => addSelectedToPlaylist(p.id)}
+                        onClick={() => {
+                          console.log("[SearchSong] 선택한 플레이리스트:", p);
+                          addSelectedToPlaylist(p.id);
+                        }}
                         className="w-full text-left px-6 py-4 hover:bg-white/5 transition border-b border-[#464646]"
                         >
                         <div className="text-sm font-semibold text-[#F6F6F6] truncate">{p.title}</div>
