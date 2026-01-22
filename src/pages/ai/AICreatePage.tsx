@@ -1,7 +1,7 @@
 // src/pages/ai/AiCreatePage.tsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, CSSProperties, ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
@@ -67,6 +67,14 @@ export default function AiCreatePage() {
   const listScrollRef = useRef<HTMLDivElement | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
+  const [sp, setSp] = useSearchParams();
+  const appliedRef = useRef(false);
+  const backScrollRef = useRef<HTMLDivElement | null>(null);
+  const backContentRef = useRef<HTMLDivElement | null>(null);
+  const frontScrollRef = useRef<HTMLDivElement | null>(null);
+  const frontContentRef = useRef<HTMLDivElement | null>(null);
+
+
   /** =========================
    * ✅ 커버 업로드
    ========================= */
@@ -110,6 +118,7 @@ export default function AiCreatePage() {
    ========================= */
   const [prompt, setPrompt] = useState("");
   const maxPrompt = 1500;
+  const promptCardRef = useRef<HTMLDivElement | null>(null);
 
   const [makeInstrumental, setMakeInstrumental] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -120,6 +129,71 @@ export default function AiCreatePage() {
   const [displayText, setDisplayText] = useState<string>("");
   const [typewriterTrigger, setTypewriterTrigger] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
+
+  useEffect(() => {
+    const incoming = sp.get("prompt");
+    if (!incoming) return;
+
+    // 생성 중/완료 중이면 덮어쓰기 방지
+    if (isGenerating || isCompleted) return;
+
+    // 한번만 적용 (사용자가 수정하는 거 덮어쓰면 안 됨)
+    if (appliedRef.current) return;
+    appliedRef.current = true;
+
+    setPrompt(incoming.slice(0, maxPrompt));
+
+    // ✅ 시점 이동 (스크롤)
+    requestAnimationFrame(() => {
+      promptCardRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      }); });
+
+    // URL 깔끔하게 정리 (선택이지만 강추)
+    sp.delete("prompt");
+    setSp(sp, { replace: true });
+  }, [sp, setSp, isGenerating, isCompleted, maxPrompt]);
+
+  useEffect(() => {
+    const scroller = backScrollRef.current;
+    const content = backContentRef.current;
+    if (!scroller || !content) return;
+  
+    const stickToBottom = () => {
+      scroller.scrollTop = scroller.scrollHeight;
+    };
+  
+    // 시작 시 한번
+    stickToBottom();
+  
+    const ro = new ResizeObserver(() => {
+      requestAnimationFrame(stickToBottom);
+    });
+  
+    ro.observe(content);
+    return () => ro.disconnect();
+  }, [typewriterTrigger, displayText]);
+  
+  useEffect(() => {
+    const scroller = frontScrollRef.current;
+    const content = frontContentRef.current;
+    if (!scroller || !content) return;
+  
+    const stickToBottom = () => {
+      scroller.scrollTop = scroller.scrollHeight;
+    };
+  
+    stickToBottom();
+  
+    const ro = new ResizeObserver(() => {
+      requestAnimationFrame(stickToBottom);
+    });
+  
+    ro.observe(content);
+    return () => ro.disconnect();
+  }, [prompt]);  
+
 
   // 사용자가 입력을 변경할 때 (변환 결과가 없을 때만 사용자 입력 표시)
   useEffect(() => {
@@ -352,8 +426,8 @@ export default function AiCreatePage() {
         finalConvertedPrompt = convertResponse.converted_prompt;
       }
 
-      // 10초 대기 후 변환된 프롬프트를 카드에 표시
-      await new Promise((resolve) => setTimeout(resolve, 10000));
+      // 6초 대기 후 변환된 프롬프트를 카드에 표시
+      await new Promise((resolve) => setTimeout(resolve, 6000));
       setConvertedPrompt(finalConvertedPrompt);
       setDisplayText(finalConvertedPrompt);
       setTypewriterTrigger((prev) => prev + 1);
@@ -663,7 +737,9 @@ export default function AiCreatePage() {
           <input ref={fileRef} type="file" accept="image/*" onChange={onCoverChange} className="hidden" />
 
           {/* 프롬프트 카드 - 플립 애니메이션 */}
-          <div className="mt-10 mx-6 [perspective:1000px] h-[350px]">
+          <div 
+            ref={promptCardRef}
+            className="mt-10 mx-6 [perspective:1000px] h-[350px]">
             <div
               className={`relative w-full h-full transition-transform duration-600 ease-in-out [transform-style:preserve-3d] ${
                 isFlipped ? "[transform:rotateY(180deg)]" : ""
@@ -677,7 +753,13 @@ export default function AiCreatePage() {
                   rounded-2xl bg-[#3d3d3d]/80 backdrop-blur-xl
                   border border-[#3d3d3d]
                   shadow-[0_4px_12px_rgba(0,0,0,0.25)] p-5
-                  overflow-hidden"
+                  overflow-hidden
+                  
+                  transition-all duration-200
+                  border border-[#3d3d3d]
+                  focus-within:ring-2 focus-within:ring-[#4d4d4d] focus-within:ring-offset-0
+                  focus-within:shadow-[0_8px_20px_rgba(0,0,0,0.35)]
+                  "
                 style={{ backfaceVisibility: "hidden" }}
               >
                 <div className="relative flex flex-col items-center justify-center min-h-full">
@@ -686,9 +768,12 @@ export default function AiCreatePage() {
                   </div>
 
                   {/* Typewriter 애니메이션 표시 영역 */}
-                  <div className="relative w-full flex flex-col items-center justify-center min-h-[250px] max-h-[250px] overflow-y-auto">
+                  <div 
+                    ref={frontScrollRef}
+                    className="relative w-full flex flex-col items-center justify-center min-h-[250px] max-h-[250px] overflow-y-auto">
                     {prompt ? (
                       <div
+                        ref={frontContentRef}
                         className="
                           w-full flex flex-col text-lg
                           items-center justify-center
@@ -699,7 +784,7 @@ export default function AiCreatePage() {
                       </div>
                     ) : (
                       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-[#777777] text-base text-center w-full">
-                        예) 새벽 감성, 로파이 힙합, 잔잔한 피아노와 드럼, 한국어 보컬...
+                        예) 새벽 감성, 로파이 힙합, 한국어 보컬...
                       </div>
                     )}
                   </div>
@@ -749,21 +834,36 @@ export default function AiCreatePage() {
                 }}
               >
                 <div className="relative flex flex-col items-center justify-center h-full min-h-0">
-                  <div className="absolute top-4 left-4 text-xs text-white">
+                  <div className="absolute top-2 left-2 text-xs text-white/40">
                     {isGenerating && !convertedPrompt ? "생성 중..." : convertedPrompt ? "변환 결과" : ""}
                   </div>
 
-                  <div className="relative w-full flex flex-col items-center justify-start pt-20 min-h-[300px] max-h-[320px] overflow-y-auto">
+                  <div
+                    ref={backScrollRef}
+                    className={[
+                      "relative w-full flex flex-col min-h-[300px] max-h-[320px] overflow-y-auto px-4",
+                      isGenerating && !convertedPrompt
+                        ? "items-center justify-center text-center"
+                        : "items-center justify-start pt-[40px]",
+                    ].join(" ")}
+                  >
                     {displayText ? (
-                      <div className="w-full flex flex-col items-center justify-center whitespace-pre-wrap break-words leading-snug px-4">
-                        <Typewriter text={displayText} config={typewriterConfig} triggerReplay={typewriterTrigger} />
+                      <div 
+                        ref={backContentRef}
+                        className="whitespace-pre-wrap break-words leading-snug">
+                        <Typewriter
+                          text={displayText}
+                          config={typewriterConfig}
+                          triggerReplay={typewriterTrigger}
+                        />
                       </div>
                     ) : (
-                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-[#AFDEE2]/40 text-2xl text-center w-full px-4">
+                      <div className="text-[#AFDEE2]/40 text-2xl text-center">
                         {isGenerating ? "잠시만 기다려 주세요..." : "변환 결과가 여기에 표시됩니다"}
                       </div>
                     )}
                   </div>
+
                 </div>
               </div>
             </div>

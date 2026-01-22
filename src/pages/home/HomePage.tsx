@@ -320,7 +320,7 @@ function HomePage() {
         type="button"
         onClick={() => setTab(key)}
         className={[
-            "h-8 px-4 rounded-full text-sm transition whitespace-nowrap",
+            "h-9 px-4 rounded-full text-sm transition whitespace-nowrap",
             active
             ? "bg-[#E4524D] text-[#F6F6F6]"
             : "bg-[#4d4d4d] text-[#F6F6F6] hover:bg-[#5d5d5d]",

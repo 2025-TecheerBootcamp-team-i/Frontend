@@ -2,7 +2,6 @@ import { MdOutlineNavigateNext } from "react-icons/md";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Playlist } from "../../components/layout/MainLayout";
-import { createAiSong } from "../../mocks/aiSongMock";
 import { getProfile } from "../../utils/auth";
 
 const PLAYER_H = 85; // ✅ 플레이어 높이(px)
@@ -33,24 +32,12 @@ function Sidebar({
     };
   }, []);
 
-  const CURRENT_USER_ID = "me";
-  const CURRENT_USER_NAME = "나";
-
   const handleGenerate = () => {
     const v = prompt.trim();
     if (!v) return;
 
-    createAiSong({
-      title: "새 AI 곡",
-      desc: "AI로 생성한 곡",
-      prompt: v,
-      ownerId: CURRENT_USER_ID,
-      ownerName: CURRENT_USER_NAME,
-      status: "Draft",
-    });
-
+    navigate(`/ai/create?prompt=${encodeURIComponent(v)}`);
     setPrompt("");
-    navigate("/my/ai-songs");
   };
 
   return (
