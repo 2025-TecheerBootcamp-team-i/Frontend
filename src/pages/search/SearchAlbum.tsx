@@ -44,6 +44,7 @@ export default function SearchAlbum() {
   const q = (sp.get("q") ?? "").trim();
 
   const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
+  const __DEV__ = import.meta.env.DEV;
 
   // API 데이터 상태
   const [apiAlbums, setApiAlbums] = useState<ArtistAlbum[]>([]);
@@ -165,7 +166,7 @@ export default function SearchAlbum() {
               .map((r) => r.artist_id)
               .filter((id): id is number => id !== null)
           )
-        );
+        ).slice(0,12);
 
         console.log(`[SearchAlbum] 검색 결과에서 추출한 artist_ids:`, uniqueArtistIds);
 
@@ -270,25 +271,28 @@ export default function SearchAlbum() {
                         alt={a.title}
                         className="w-full h-full object-cover relative z-10"
                         onError={(e) => {
-                          console.error(`[SearchAlbum] ❌ 앨범 이미지 로드 실패:`, {
-                            title: a.title,
-                            id: a.id,
-                            image_url: a.image,
-                          });
+                          if (__DEV__) {
+                            console.error("[SearchAlbum] ❌ 앨범 이미지 로드 실패:", {
+                              title: a.title,
+                              id: a.id,
+                              image_url: a.image,
+                            });
+                          }
                           (e.target as HTMLImageElement).style.display = "none";
                         }}
                         onLoad={(e) => {
-                          console.log(`[SearchAlbum] ✅ 앨범 이미지 로드 성공:`, {
-                            title: a.title,
-                            id: a.id,
-                            image_url: a.image,
-                          });
+                          if (__DEV__) {
+                            console.log("[SearchAlbum] ✅ 앨범 이미지 로드 성공:", {
+                              title: a.title,
+                              id: a.id,
+                              image_url: a.image,
+                            });
+                          }
                           const img = e.target as HTMLImageElement;
                           const fallback = img.nextElementSibling as HTMLElement;
-                          if (fallback) {
-                            fallback.style.display = "none";
-                          }
+                          if (fallback) fallback.style.display = "none";
                         }}
+                        
                         loading="lazy"
                       />
                       <div className="absolute inset-0 bg-[#777777] animate-pulse z-0" />
@@ -312,13 +316,6 @@ export default function SearchAlbum() {
             ))}
           </div>
           </div>
-
-          {/* 결과 없음 */}
-          {q && albums.length === 0 && !loading && (
-            <div className="mt-12 text-center text-sm text-[#8A8A8A]">
-              <span className="text-[#f6f6f6]/80">{q}</span>에 해당하는 앨범이 없습니다.
-            </div>
-          )}
         </>
       )}
     </section>

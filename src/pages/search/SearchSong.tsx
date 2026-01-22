@@ -84,6 +84,7 @@ export default function SearchSong() {
   const excludeAi = sp.get("noai") === "1";
 
   const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
+  const __DEV__ = import.meta.env.DEV;
 
   // API 데이터 상태
   const [apiSongs, setApiSongs] = useState<Song[]>([]);
@@ -707,7 +708,7 @@ try {
           </div>
         ) : songs.length === 0 ? (
           <div className="px-6 py-12 text-center text-[#999]">
-            {q ? "검색 결과가 없습니다." : "검색어를 입력해주세요."}
+            {q ? "" : "검색어를 입력해주세요."}
           </div>
         ) : (
           songs.map((s) => (
@@ -749,25 +750,29 @@ try {
                       alt={s.title}
                       className="w-full h-full object-cover relative z-10"
                       onError={(e) => {
-                        console.error(`[SearchSong] ❌ 곡 앨범 이미지 로드 실패:`, {
-                          song: s.title,
-                          album_id: apiSong?.albumId,
-                          image_url: albumImage,
-                        });
+                        if (__DEV__) {
+                          console.error("[SearchSong] ❌ 곡 앨범 이미지 로드 실패:", {
+                            song: s.title,
+                            album_id: apiSong?.albumId,
+                            image_url: albumImage,
+                          });
+                        }
                         (e.target as HTMLImageElement).style.display = "none";
                       }}
+                      
                       onLoad={(e) => {
-                        console.log(`[SearchSong] ✅ 곡 앨범 이미지 로드 성공:`, {
-                          song: s.title,
-                          album_id: apiSong?.albumId,
-                          image_url: albumImage,
-                        });
+                        if (__DEV__) {
+                          console.log("[SearchSong] ✅ 곡 앨범 이미지 로드 성공:", {
+                            song: s.title,
+                            album_id: apiSong?.albumId,
+                            image_url: albumImage,
+                          });
+                        }
                         const img = e.target as HTMLImageElement;
                         const fallback = img.nextElementSibling as HTMLElement;
-                        if (fallback) {
-                          fallback.style.display = "none";
-                        }
+                        if (fallback) fallback.style.display = "none";
                       }}
+                      
                       loading="lazy"
                     />
                     <div className="absolute inset-0 bg-[#6b6b6b]/50 animate-pulse z-0" />

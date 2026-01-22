@@ -25,9 +25,13 @@ function Header() {
     // ✅ 결과는 그냥 일반 검색이랑 동일하게 /search?q=...
     // (태그든 일반이든 백엔드에서 알아서 처리한다는 전제)
     navigate(`/search?q=${encodeURIComponent(q)}`);
+  };
+
+  const goHome = () => {
     setQuery("");
     setTagMode(false);
-  };
+    navigate("/home");
+  };  
 
   const isLoggedIn = !!localStorage.getItem("access_token");
 
@@ -51,7 +55,7 @@ function Header() {
 
       <button
         type="button"
-        onClick={() => navigate("/home")}
+        onClick={goHome}
         className="
           w-[50px] h-[50px] rounded-full flex items-center justify-center
           bg-gradient-to-tr from-[#3d3d3d] to-[#2d2d2d]
