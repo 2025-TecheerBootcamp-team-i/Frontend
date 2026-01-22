@@ -3,6 +3,7 @@ import React, { useRef, useMemo, useState, useEffect } from "react";
 import { MdOutlineNavigateNext } from "react-icons/md";
 import { usePlaylists } from "../../contexts/PlaylistContext";
 import { SYSTEM_LIKED_PLAYLIST_TITLE } from "../../api/playlist";
+import { listLikedAlbums, type LikedAlbumSummary } from "../../api/album";
 
 type PlaylistItem = {
     id: string;
@@ -10,7 +11,7 @@ type PlaylistItem = {
     owner: string;
     scope: "personal" | "shared";
     liked?: boolean;
-    kind?: "playlist" | "system";
+    kind?: "playlist" | "system" | "album";
 };
 
 function Tab({ to, label }: { to: string; label: string }) {
@@ -217,29 +218,34 @@ export default function MyPlaylistPage() {
     // Context에서 데이터 가져오기
     const { myPlaylists, likedPlaylists } = usePlaylists();
 
-    // 내 플레이리스트를 PlaylistItem 형식으로 변환
-    const personalAll = useMemo((): PlaylistItem[] => {
-        return myPlaylists.map((p) => ({
-            id: p.id,
-            title: p.title,
-            owner: p.creator_nickname,
-            scope: "personal" as const,
-            kind: p.visibility === "system" ? "system" : "playlist", 
-        }));
-    }, [myPlaylists]);
+    // 좋아요한 앨범 목록
+    const [likedAlbums, setLikedAlbums] = useState<LikedAlbumSummary[]>([]);
 
-    // 좋아요 목록: 시스템 플레이리스트 + 좋아요한 플레이리스트
+    useEffect(() => {
+        const fetchLikedAlbums = async () => {
+            try {
+                const albums = await listLikedAlbums();
+                setLikedAlbums(albums);
+            } catch (error) {
+                console.error("좋아요한 앨범 로딩 실패:", error);
+                setLikedAlbums([]);
+            }
+        };
+
+        fetchLikedAlbums();
+    }, []);
+
+    // 좋아요 목록: 좋아요한 앨범 + 좋아요한 플레이리스트 (시스템 플레이리스트 제외)
     const likedAll = useMemo((): PlaylistItem[] => {
-        // 1. 시스템 플레이리스트 ("나의 좋아요 목록") - myPlaylists의 첫 번째
-        const systemPlaylist = myPlaylists.find((p) => p.title === SYSTEM_LIKED_PLAYLIST_TITLE);
-        const systemItems: PlaylistItem[] = systemPlaylist ? [{
-            id: systemPlaylist.id,
-            title: systemPlaylist.title,
-            owner: systemPlaylist.creator_nickname,
-            scope: "personal" as const,
+        // 1. 좋아요한 앨범 (실제 API에서)
+        const likedAlbumItems: PlaylistItem[] = likedAlbums.map((album) => ({
+            id: String(album.album_id),
+            title: album.title,
+            owner: album.artist_name,
+            scope: "shared" as const,
             liked: true,
-            kind: "system" as const,
-        }] : [];
+            kind: "album" as const,
+        }));
 
         // 2. 좋아요한 다른 사람의 플레이리스트
         const likedPlaylistItems: PlaylistItem[] = likedPlaylists.map((p) => ({
@@ -250,19 +256,30 @@ export default function MyPlaylistPage() {
             liked: true,
             kind: "playlist" as const, 
         }));
-
-        // 3. 좋아요한 앨범은 별도 API가 필요 (TODO: 백엔드 구현 후 추가)
         
-        return [...systemItems, ...likedPlaylistItems];
-    }, [myPlaylists, likedPlaylists]);
+        return [...likedAlbumItems, ...likedPlaylistItems];
+    }, [likedAlbums, likedPlaylists]);
 
-    // 개인 플레이리스트 (시스템 플레이리스트 제외)
-    const personalPlaylistsOnly = useMemo(() => {
-        return personalAll.filter((p) => p.title !== SYSTEM_LIKED_PLAYLIST_TITLE);
-    }, [personalAll]);
+    // 개인 플레이리스트 (시스템 플레이리스트 포함)
+    const personalPlaylistsOnly = useMemo((): PlaylistItem[] => {
+        return myPlaylists.map((p): PlaylistItem => {
+            const kind: "system" | "playlist" = p.title === SYSTEM_LIKED_PLAYLIST_TITLE ? "system" : "playlist";
+            return {
+                id: p.id,
+                title: p.title,
+                owner: p.creator_nickname,
+                scope: "personal",
+                kind: kind,
+            };
+        });
+    }, [myPlaylists]);
 
-    const handleClickPlaylist = (id: string) => {
-        navigate(`/playlist/${id}`);
+    const handleClickPlaylist = (id: string, kind?: string) => {
+        if (kind === "album") {
+            navigate(`/album/${id}`);
+        } else {
+            navigate(`/playlist/${id}`);
+        }
     };
 
 
@@ -285,13 +302,16 @@ export default function MyPlaylistPage() {
                     title="개인 플레이리스트"
                     items={personalPlaylistsOnly}
                     onMore={() => navigate("/my-playlists/personal")}
-                    onClickItem={handleClickPlaylist}
+                    onClickItem={(id) => handleClickPlaylist(id)}
                 />
                 <Section
                     title="좋아요 목록"
                     items={likedAll}
                     onMore={() => navigate("/my-playlists/liked")}
-                    onClickItem={handleClickPlaylist}
+                    onClickItem={(id) => {
+                        const item = likedAll.find(i => i.id === id);
+                        handleClickPlaylist(id, item?.kind);
+                    }}
                 />
                 </div>
             ) : (

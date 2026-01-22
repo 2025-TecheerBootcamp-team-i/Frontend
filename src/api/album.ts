@@ -8,6 +8,25 @@ export type AlbumDetailResponse = {
   image_large_square: string | null;
 };
 
+// 좋아요한 앨범 요약 정보
+export interface LikedAlbumSummary {
+  album_id: number;
+  title: string;
+  artist_name: string;
+  cover_image: string | null;
+  release_date?: string;
+  like_count: number;
+  is_liked: boolean;
+}
+
+// 앨범 좋아요 응답
+export interface AlbumLikeResponse {
+  message: string;
+  album_id: number;
+  is_liked: boolean;
+  like_count: number;
+}
+
 // 간단한 메모리 캐시 (같은 앨범 여러 번 호출 방지)
 const albumCoverCache = new Map<number, string | null>();
 
@@ -47,3 +66,29 @@ export async function getBestAlbumCover(
   }
 }
 
+/**
+ * 앨범 좋아요 등록
+ * POST /api/v1/albums/{album_id}/likes
+ */
+export async function likeAlbum(albumId: number | string): Promise<AlbumLikeResponse> {
+  const response = await axiosInstance.post<AlbumLikeResponse>(`/albums/${albumId}/likes`);
+  return response.data;
+}
+
+/**
+ * 앨범 좋아요 취소
+ * DELETE /api/v1/albums/{album_id}/likes
+ */
+export async function unlikeAlbum(albumId: number | string): Promise<AlbumLikeResponse> {
+  const response = await axiosInstance.delete<AlbumLikeResponse>(`/albums/${albumId}/likes`);
+  return response.data;
+}
+
+/**
+ * 좋아요한 앨범 목록 조회
+ * GET /api/v1/albums/likes
+ */
+export async function listLikedAlbums(): Promise<LikedAlbumSummary[]> {
+  const response = await axiosInstance.get<LikedAlbumSummary[]>("/albums/likes");
+  return response.data;
+}

@@ -79,28 +79,45 @@ export function PlaylistProvider({ children }: { children: ReactNode }) {
       setError(null);
 
       // 내 플레이리스트와 좋아요한 플레이리스트 동시 호출
-      const [myData, likedData] = await Promise.all([
+      // Promise.allSettled 사용: 하나가 실패해도 다른 것은 성공 가능
+      const [myResult, likedResult] = await Promise.allSettled([
         listMyPlaylists(),
         listLikedPlaylists(),
       ]);
 
-      // 내 플레이리스트 처리 - 시스템 플레이리스트를 맨 앞에 배치
-      const myMapped = myData.map(mapToPlaylist);
-      
-      const likedListIdx = myMapped.findIndex((p) => p.visibility === "system");
-      if (likedListIdx !== -1) {
-        const [likedList] = myMapped.splice(likedListIdx, 1);
-        myMapped.unshift(likedList);
+      // 내 플레이리스트 처리
+      if (myResult.status === "fulfilled") {
+        const myMapped = myResult.value.map(mapToPlaylist);
+        
+        // 시스템 플레이리스트를 맨 앞에 배치
+        const likedListIdx = myMapped.findIndex((p) => p.visibility === "system");
+        if (likedListIdx !== -1) {
+          const [likedList] = myMapped.splice(likedListIdx, 1);
+          myMapped.unshift(likedList);
+        }
+
+        setMyPlaylists(myMapped);
+      } else {
+        console.error("[PlaylistContext] 내 플레이리스트 로딩 실패:", myResult.reason);
+        setMyPlaylists([]);
       }
 
-      setMyPlaylists(myMapped);
+      // 좋아요한 플레이리스트 처리
+      if (likedResult.status === "fulfilled") {
+        const likedMapped = likedResult.value
+          .filter((p) => p.visibility !== "system")
+          .map(mapToPlaylist);
 
-      // 좋아요한 플레이리스트 처리 - 시스템 플레이리스트는 제외 (내 플레이리스트에만 포함)
-      const likedMapped = likedData
-        .filter((p) => p.visibility !== "system") // 시스템 플레이리스트 제외
-        .map(mapToPlaylist);
+        setLikedPlaylists(likedMapped);
+      } else {
+        console.error("[PlaylistContext] 좋아요 플레이리스트 로딩 실패:", likedResult.reason);
+        setLikedPlaylists([]);
+      }
 
-      setLikedPlaylists(likedMapped);
+      // 둘 다 실패한 경우에만 에러 표시
+      if (myResult.status === "rejected" && likedResult.status === "rejected") {
+        setError("플레이리스트를 불러오는데 실패했습니다");
+      }
     } catch (err) {
       console.error("[PlaylistContext] 플레이리스트 로딩 실패:", err);
       const errorMessage = err instanceof Error ? err.message : "플레이리스트를 불러오는데 실패했습니다";

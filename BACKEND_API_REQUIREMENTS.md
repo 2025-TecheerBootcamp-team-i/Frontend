@@ -83,18 +83,17 @@ const likedMapped = likedData
 
 ---
 
-## 📌 4. 앨범 좋아요 API (신규 요청)
+## 📌 4. 앨범 좋아요 API (✅ 구현됨)
 
 ### 현재 상태
-- 앨범 좋아요 기능이 프론트엔드에서 mock 데이터로만 구현되어 있음
-- **실제 백엔드 API가 필요합니다**
+- ✅ 백엔드 API 구현 완료
+- ✅ 프론트엔드 연동 완료
 
-### 필요한 엔드포인트
+### 엔드포인트
 
-#### 4-1. 앨범 좋아요 토글
+#### 4-1. 앨범 좋아요 등록
 ```
 POST /api/v1/albums/{album_id}/likes
-DELETE /api/v1/albums/{album_id}/likes
 ```
 
 **요청 파라미터**
@@ -110,7 +109,22 @@ DELETE /api/v1/albums/{album_id}/likes
 }
 ```
 
-#### 4-2. 좋아요한 앨범 목록 조회
+#### 4-2. 앨범 좋아요 취소
+```
+DELETE /api/v1/albums/{album_id}/likes
+```
+
+**응답 예시**
+```json
+{
+  "message": "앨범 좋아요가 취소되었습니다",
+  "album_id": 456,
+  "is_liked": false,
+  "like_count": 1233
+}
+```
+
+#### 4-3. 좋아요한 앨범 목록 조회
 ```
 GET /api/v1/albums/likes
 ```
@@ -128,6 +142,35 @@ GET /api/v1/albums/likes
     "is_liked": true
   }
 ]
+```
+
+### 추가 요청 사항
+
+#### ❓ 앨범 상세 API에 `is_liked` 필드 추가 필요
+현재 `GET /api/v1/albums/{album_id}/` 응답에 `is_liked` 필드가 없습니다.
+
+**필요한 이유**: 앨범 상세 페이지에서 사용자가 해당 앨범을 좋아요했는지 표시하기 위함
+
+**응답 예시 (수정 필요)**:
+```json
+{
+  "album_id": 456,
+  "album_name": "앨범 제목",
+  "album_image": "https://...",
+  "image_large_square": "https://...",
+  "artist": {
+    "artist_id": 1,
+    "artist_name": "아티스트 이름"
+  },
+  "track_count": 12,
+  "total_duration": 3600,
+  "total_duration_formatted": "60:00",
+  "like_count": 1234,
+  "is_liked": true,  // ⬅️ 이 필드 추가 필요
+  "tracks": [...],
+  "created_at": "2024-01-01T00:00:00Z",
+  "updated_at": "2024-01-01T00:00:00Z"
+}
 ```
 
 ---
@@ -206,8 +249,8 @@ const filtered = data.filter((p) =>
 |------|------|------|--------|
 | 1 | 노래 좋아요 API → 시스템 플레이리스트 자동 추가 | 🔄 구현 중 | ⭐⭐⭐ 높음 |
 | 2 | 시스템 플레이리스트 생성 로직 (회원가입 시) | ❓ 확인 필요 | ⭐⭐⭐ 높음 |
-| 3 | 좋아요한 플레이리스트 목록에서 시스템 제외 | ❓ 확인 필요 | ⭐⭐ 중간 |
-| 4 | 앨범 좋아요 API 구현 | ❌ 미구현 | ⭐⭐ 중간 |
+| 3 | 앨범 상세 API에 `is_liked` 필드 추가 | ❌ 미구현 | ⭐⭐ 중간 |
+| 4 | 좋아요한 플레이리스트 목록에서 시스템 제외 | ❓ 확인 필요 | ⭐⭐ 중간 |
 | 5 | 자신의 플레이리스트 좋아요 방지 검증 | ❓ 확인 필요 | ⭐ 낮음 |
 
 ---
@@ -250,5 +293,6 @@ export const SYSTEM_LIKED_PLAYLIST_TITLE = "나의 좋아요 목록";
 1. ✅ 노래 좋아요 시 시스템 플레이리스트 자동 추가 여부
 2. ✅ 회원가입 시 시스템 플레이리스트 자동 생성 여부
 3. ✅ `/playlists/likes` API 응답에 시스템 플레이리스트 포함 여부
+4. ⚠️ 앨범 상세 API (`/albums/{album_id}/`)에 `is_liked` 필드 추가
 
 감사합니다! 🙏

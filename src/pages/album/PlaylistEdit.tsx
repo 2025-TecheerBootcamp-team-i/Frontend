@@ -4,7 +4,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
     getPlaylistDetail,
     updatePlaylist as updatePlaylistAPI,
-    deletePlaylist as deletePlaylistAPI,
     type PlaylistDetail,
 } from "../../api/playlist";
 import { useToast } from "../../components/common/ToastProvider";
@@ -14,7 +13,7 @@ export default function PlaylistEditPage() {
     const navigate = useNavigate();
     const { playlistId } = useParams();
     const { showSuccess, showError } = useToast();
-    const { deletePlaylist } = usePlaylists();
+    const { deletePlaylist, refetch } = usePlaylists();
 
     const [playlist, setPlaylist] = useState<PlaylistDetail | null>(null);
     const [loading, setLoading] = useState(false);
@@ -60,6 +59,9 @@ export default function PlaylistEditPage() {
             });
 
             showSuccess("플레이리스트가 수정되었습니다");
+            
+            // 플레이리스트 목록 새로고침 후 닫기
+            await refetch();
             handleClose();
         } catch (error) {
             console.error("플레이리스트 수정 실패:", error);

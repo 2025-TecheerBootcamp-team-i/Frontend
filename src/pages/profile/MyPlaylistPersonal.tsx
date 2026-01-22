@@ -2,7 +2,6 @@ import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaPlus } from "react-icons/fa6";
 import { usePlaylists } from "../../contexts/PlaylistContext";
-import { SYSTEM_LIKED_PLAYLIST_TITLE } from "../../api/playlist";
 
 type PlaylistItem = {
     id: string;
@@ -14,15 +13,13 @@ export default function MyPlaylistsPersonal() {
     const navigate = useNavigate();
     const { myPlaylists, createPlaylist } = usePlaylists();
 
-    // 시스템 플레이리스트 제외한 개인 플레이리스트만 표시
+    // 개인 플레이리스트 표시 (시스템 플레이리스트 포함)
     const items = useMemo((): PlaylistItem[] => {
-        return myPlaylists
-            .filter((p) => p.visibility !== "system") // 시스템 플레이리스트 제외
-            .map((p) => ({
-                id: p.id,
-                title: p.title,
-                owner: p.creator_nickname,
-            }));
+        return myPlaylists.map((p) => ({
+            id: p.id,
+            title: p.title,
+            owner: p.creator_nickname,
+        }));
     }, [myPlaylists]);
 
     const handleCreate = async () => {
