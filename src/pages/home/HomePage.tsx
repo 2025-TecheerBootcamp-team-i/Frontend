@@ -3,27 +3,12 @@ import { useNavigate } from "react-router-dom";
 
 import { fetchPopularArtists, type PopularArtist } from "../../api/artist";
 import { fetchChart, type ChartData, type ChartType, type ChartRow as ApiChartRow } from "../../api/chart";
+import { listPublicPlaylists, type PlaylistSummary } from "../../api/playlist";
 import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
 
 import { MdOutlineNavigateNext } from "react-icons/md";
 import { FaPlay } from "react-icons/fa6";
-
-type PublicPlaylistPreview = {
-        id: string;
-        title: string;
-        owner: string;
-        trackCount: number;
-};
-
-const PUBLIC_PLAYLIST_PREVIEW: PublicPlaylistPreview[] = Array.from({ length: 10 }).map(
-        (_, i) => ({
-            id: `pub-${i + 1}`,
-            title: `공개 플레이리스트 ${i + 1}`,
-            owner: `사용자 ${i + 1}`,
-            trackCount: 10 + i,
-        })
-);
 
 type HorizontalScrollerProps = {
     children: React.ReactNode;
@@ -73,7 +58,7 @@ function HorizontalScroller({
         <div
             ref={ref}
             onScroll={update}
-            className="overflow-x-auto overflow-y-hidden no-scrollbar"
+            className="overflow-x-auto overflow-y-hidden"
         >
             {children}
         </div>
@@ -171,6 +156,11 @@ function HomePage() {
         });
         const [chartLoading, setChartLoading] = useState(false);
         const [chartError, setChartError] = useState<string | null>(null);
+
+        // 인기 공개 플레이리스트
+        const [publicPlaylists, setPublicPlaylists] = useState<PlaylistSummary[]>([]);
+        const [playlistsLoading, setPlaylistsLoading] = useState(false);
+        const [playlistsError, setPlaylistsError] = useState<string | null>(null);
     
         const TAB_TO_CHARTTYPE: Record<"TOP100" | "DAILY" | "AI", ChartType> = {
         TOP100: "realtime",
@@ -263,6 +253,41 @@ function HomePage() {
         return () => {
             alive = false;
         };
+        }, []);
+
+        // ✅ 인기 공개 플레이리스트 로드
+        useEffect(() => {
+            let alive = true;
+
+            (async () => {
+                try {
+                    setPlaylistsLoading(true);
+                    setPlaylistsError(null);
+
+                    const data = await listPublicPlaylists();
+                    if (!alive) return;
+
+                    // like_count >= 20 필터링 + 시스템 플레이리스트 제외
+                    const filtered = data.filter((p) => 
+                        p.like_count >= 20 && 
+                        p.visibility !== "system"
+                    );
+
+                    // 무작위 셔플
+                    const shuffled = [...filtered].sort(() => Math.random() - 0.5);
+
+                    setPublicPlaylists(shuffled);
+                } catch (e: unknown) {
+                    if (!alive) return;
+                    setPlaylistsError(getErrorMessage(e, "플레이리스트 로딩 실패"));
+                } finally {
+                    if (alive) setPlaylistsLoading(false);
+                }
+            })();
+
+            return () => {
+                alive = false;
+            };
         }, []);
 
         // ✅ 실시간 차트는 10분마다 갱신
@@ -574,14 +599,19 @@ function HomePage() {
 
             <div className="mb-4 border-b border-[#464646]" />
 
-            {/* ✅ 여기부터 HorizontalScroller로 감싸기 */}
+            {/* 로딩/에러 상태 */}
+            {playlistsLoading && <div className="p-4 text-[#F6F6F6]/70">플레이리스트 로딩중...</div>}
+            {playlistsError && <div className="p-4 text-red-300">{playlistsError}</div>}
+
+            {/* 플레이리스트 목록 */}
+            {!playlistsLoading && !playlistsError && publicPlaylists.length > 0 && (
             <HorizontalScroller gradientFromClass="from-[#2d2d2d]">
             <div className="flex gap-2 min-w-max pr-2">
-                {PUBLIC_PLAYLIST_PREVIEW.map((p) => (
+                {publicPlaylists.map((p) => (
                 <button
-                    key={p.id}
+                    key={p.playlist_id}
                     type="button"
-                    onClick={() => navigate(`/playlist/${p.id}`)}
+                    onClick={() => navigate(`/playlist/${p.playlist_id}`)}
                     className="w-[220px] text-left group shrink-0"
                 >
                     {/* 커버 */}
@@ -592,12 +622,18 @@ function HomePage() {
                     {p.title}
                     </div>
                     <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">
-                    {p.owner} · {p.trackCount}곡
+                    {p.creator_nickname} · {p.item_count}곡 · ♥ {p.like_count}
                     </div>
                 </button>
                 ))}
             </div>
             </HorizontalScroller>
+            )}
+
+            {/* 데이터 없음 */}
+            {!playlistsLoading && !playlistsError && publicPlaylists.length === 0 && (
+                <div className="p-4 text-[#F6F6F6]/50">인기 플레이리스트가 없습니다</div>
+            )}
         </div>
         </section>
 

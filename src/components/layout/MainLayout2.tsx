@@ -1,55 +1,31 @@
-    import { Outlet, useNavigate } from "react-router-dom";
-    import { useEffect, useState } from "react";
-    import Header from "./Header";
-    import Sidebar from "./Sidebar";
-    import Player from "./Player";
+import { Outlet } from "react-router-dom";
+import Header from "./Header";
+import Sidebar from "./Sidebar";
+import Player from "./Player";
+import { usePlaylists } from "../../contexts/PlaylistContext";
 
-    import {
-    getAllPlaylists,
-    subscribePlaylists,
-    createPlaylist,
-    } from "../../mocks/playlistMock";
-
-    export type Playlist = {
+export type Playlist = {
     id: string;
     title: string;
     coverUrl?: string;
-    createdAt?: number; // UI용이라 optional
-    };
+    createdAt?: number;
+};
 
-    function MainLayout() {
+function MainLayout() {
     const PLAYER_H = 85;
-    const navigate = useNavigate();
+    const { myPlaylists, createPlaylist } = usePlaylists();
 
-    // ✅ playlistMock(store)에서 가져온 걸로만 Sidebar에 내려줌
-    const [playlists, setPlaylists] = useState<Playlist[]>([]);
+    // Context의 플레이리스트를 Sidebar 형식으로 변환
+    const playlists: Playlist[] = myPlaylists.map((p) => ({
+        id: p.id,
+        title: p.title,
+        coverUrl: p.coverUrl,
+        createdAt: p.createdAt,
+    }));
 
-    useEffect(() => {
-        const sync = () => {
-        const list = getAllPlaylists().sort((a, b) => b.createdAt - a.createdAt).map((p) => ({
-            id: p.id,
-            title: p.title,
-            coverUrl: p.coverUrl ?? "",
-            createdAt: Date.now(), // UI용 (정렬 등에 쓰면 mock에 createdAt 저장하는 게 더 좋음)
-        }));
-        setPlaylists(list);
-        };
-
-        sync();
-        return subscribePlaylists(sync);
-    }, []);
-
-    // ✅ + 누르면 store에 "진짜로" 생성 + 생성 직후 상세로 이동
-    const handleCreatePlaylist = () => {
-        const p = createPlaylist({
-        title: `새 플레이리스트`,
-        owner: "사용자",
-        isPublic: false,
-        coverUrl: "",
-        });
-
-        // ✅ 생성하면 상세로 이동 (원하면 이동 빼도 됨)
-        navigate(`/playlist/${p.id}`);
+    // + 버튼 클릭 시 플레이리스트 생성
+    const handleCreatePlaylist = async () => {
+        await createPlaylist();
     };
 
     return (

@@ -28,7 +28,7 @@ export type LikedTrack = {
 
 // 좋아요 누르기 | POST /api/v1/tracks/{music_id}/likes
 export async function likeTrack(music_id: number | string): Promise<LikeToggleResponse> {
-  const res = await axiosInstance.post<LikeToggleResponse>(`/tracks/${music_id}/like`);
+  const res = await axiosInstance.post<LikeToggleResponse>(`/tracks/${music_id}/likes`);
   return res.data;
 }
 

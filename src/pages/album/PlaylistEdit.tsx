@@ -1,82 +1,103 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { IoChevronBack } from "react-icons/io5";
 
 import {
-    getPlaylistById,
-    updatePlaylist,
-    deletePlaylist,
-    subscribePlaylists,
-    LIKED_SYSTEM_ID,
-} from "../../mocks/playlistMock";
+    getPlaylistDetail,
+    updatePlaylist as updatePlaylistAPI,
+    type PlaylistDetail,
+} from "../../api/playlist";
+import { useToast } from "../../components/common/ToastProvider";
+import { usePlaylists } from "../../contexts/PlaylistContext";
 
 export default function PlaylistEditPage() {
     const navigate = useNavigate();
-    const { playlistId } = useParams(); // ✅ 여기 바뀜
+    const { playlistId } = useParams();
+    const { showSuccess, showError } = useToast();
+    const { deletePlaylist, refetch } = usePlaylists();
 
-    const playlist = useMemo(() => getPlaylistById(playlistId), [playlistId]); // ✅
-
+    const [playlist, setPlaylist] = useState<PlaylistDetail | null>(null);
+    const [loading, setLoading] = useState(false);
     const [title, setTitle] = useState("");
     const [isPublic, setIsPublic] = useState(false);
 
+    // 플레이리스트 데이터 로드
     useEffect(() => {
-        const sync = () => {
-        const p = getPlaylistById(playlistId); // ✅
-        if (!p) return;
-        setTitle(p.title ?? "");
-        setIsPublic(!!p.isPublic);
+        const fetchData = async () => {
+            if (!playlistId) return;
+
+            try {
+                setLoading(true);
+                const data = await getPlaylistDetail(playlistId);
+                setPlaylist(data);
+                setTitle(data.title);
+                setIsPublic(data.visibility === "public");
+            } catch (error) {
+                console.error("플레이리스트 로딩 실패:", error);
+                showError("플레이리스트를 불러올 수 없습니다");
+            } finally {
+                setLoading(false);
+            }
         };
 
-        sync();
-        return subscribePlaylists(sync);
-    }, [playlistId]); // ✅
+        fetchData();
+    }, [playlistId]);
 
-    const isSystemLiked = playlist?.id === LIKED_SYSTEM_ID;
-    const canSave = title.trim().length > 0 && !!playlist && !isSystemLiked;
+    const isSystemPlaylist = playlist?.title === "나의 좋아요 목록";
+    const canSave = title.trim().length > 0 && !!playlist && !isSystemPlaylist;
 
     const handleClose = () => navigate(-1);
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!playlist) return;
-        if (isSystemLiked) return;
+        if (isSystemPlaylist) return;
+        if (!canSave) return;
 
-        updatePlaylist(playlist.id, {
-        title: title.trim(),
-        isPublic,
-        });
+        try {
+            await updatePlaylistAPI(playlist.playlist_id, {
+                title: title.trim(),
+                visibility: isPublic ? "public" : "private",
+            });
 
-        handleClose();
+            showSuccess("플레이리스트가 수정되었습니다");
+            
+            // 플레이리스트 목록 새로고침 후 닫기
+            await refetch();
+            handleClose();
+        } catch (error) {
+            console.error("플레이리스트 수정 실패:", error);
+            showError("플레이리스트 수정에 실패했습니다");
+        }
     };
 
-    const handleDelete = () => {
+    const handleDelete = async () => {
         if (!playlist) return;
-        if (isSystemLiked) return;
+        if (isSystemPlaylist) return;
 
-        const ok = window.confirm(`"${playlist.title}" 플레이리스트를 삭제할까요?`);
+        const ok = window.confirm("정말 삭제하시겠습니까?");
         if (!ok) return;
 
-        deletePlaylist(playlist.id);
-        navigate("/my-playlists");
+        try {
+            await deletePlaylist(playlist.playlist_id.toString());
+            showSuccess("플레이리스트가 삭제되었습니다");
+            navigate("/my-playlists");
+        } catch (error) {
+            console.error("플레이리스트 삭제 실패:", error);
+            showError("플레이리스트 삭제에 실패했습니다");
+        }
     };
 
-    if (!playlist) {
+    if (loading || !playlist) {
         return (
-        <div className="w-full min-w-0 px-6 py-6 text-white">
-            <button
-            type="button"
-            onClick={handleClose}
-            className="mb-6 text-[#aaa] hover:text-white transition"
-            aria-label="뒤로가기"
-            >
-            <IoChevronBack size={24} />
-            </button>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-            플레이리스트를 찾을 수 없어요.
-            <div className="mt-2 text-sm text-[#aaa]">
-                요청한 ID: <span className="text-white">{playlistId ?? "(없음)"}</span>
+            <div className="fixed inset-0 z-[999]">
+                <div className="absolute inset-0 bg-black/50" />
+                <div className="absolute inset-0 grid place-items-center p-6">
+                    <div className="w-full max-w-[420px] rounded-3xl bg-[#2d2d2d] border border-[#464646] shadow-2xl p-6">
+                        <div className="text-[#F6F6F6]">
+                            {loading ? "로딩중..." : "플레이리스트를 찾을 수 없습니다"}
+                        </div>
+                    </div>
+                </div>
             </div>
-            </div>
-        </div>
         );
     }
 
@@ -93,7 +114,7 @@ export default function PlaylistEditPage() {
             <div className="w-full max-w-[420px] rounded-3xl bg-[#2d2d2d] border border-[#464646] shadow-2xl overflow-hidden">
             <div className="px-6 py-4 flex items-center justify-between border-b border-[#464646]">
                 <div className="text-base font-semibold text-[#F6F6F6]">
-                {isSystemLiked ? "시스템 플레이리스트" : "플레이리스트 편집"}
+                {isSystemPlaylist ? "시스템 플레이리스트" : "플레이리스트 편집"}
                 </div>
                 <button
                 type="button"
@@ -111,17 +132,17 @@ export default function PlaylistEditPage() {
                 <input
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    disabled={isSystemLiked}
+                    disabled={isSystemPlaylist}
                     className={[
                     "w-full h-11 px-4 rounded-2xl",
                     "bg-[#3a3a3a] border border-[#464646]",
                     "text-[#F6F6F6] placeholder:text-[#999]",
                     "outline-none focus:border-[#AFDEE2] transition",
-                    isSystemLiked ? "opacity-50 cursor-not-allowed" : "",
+                    isSystemPlaylist ? "opacity-50 cursor-not-allowed" : "",
                     ].join(" ")}
                     placeholder="플레이리스트명"
                 />
-                {title.trim().length === 0 && !isSystemLiked && (
+                {title.trim().length === 0 && !isSystemPlaylist && (
                     <div className="px-2 mt-2 text-xs text-[#ffb4b4]">플리명은 비울 수 없어요.</div>
                 )}
                 </div>
@@ -131,7 +152,7 @@ export default function PlaylistEditPage() {
                 <div className="flex gap-2">
                     <button
                     type="button"
-                    disabled={isSystemLiked}
+                    disabled={isSystemPlaylist}
                     onClick={() => setIsPublic(true)}
                     className={[
                         "flex-1 h-10 rounded-2xl border border-[#464646]",
@@ -139,14 +160,14 @@ export default function PlaylistEditPage() {
                         isPublic
                         ? "bg-[#AFDEE2] text-[#1d1d1d]"
                         : "bg-[#3a3a3a] text-[#F6F6F6]/80 hover:bg-[#444]",
-                        isSystemLiked ? "opacity-50 cursor-not-allowed" : "",
+                        isSystemPlaylist ? "opacity-50 cursor-not-allowed" : "",
                     ].join(" ")}
                     >
                     공개
                     </button>
                     <button
                     type="button"
-                    disabled={isSystemLiked}
+                    disabled={isSystemPlaylist}
                     onClick={() => setIsPublic(false)}
                     className={[
                         "flex-1 h-10 rounded-2xl border border-[#464646]",
@@ -154,7 +175,7 @@ export default function PlaylistEditPage() {
                         !isPublic
                         ? "bg-[#AFDEE2] text-[#1d1d1d]"
                         : "bg-[#3a3a3a] text-[#F6F6F6]/80 hover:bg-[#444]",
-                        isSystemLiked ? "opacity-50 cursor-not-allowed" : "",
+                        isSystemPlaylist ? "opacity-50 cursor-not-allowed" : "",
                     ].join(" ")}
                     >
                     비공개
@@ -163,7 +184,7 @@ export default function PlaylistEditPage() {
                 </div>
 
                 <div className="pt-2">
-                {isSystemLiked && (
+                {isSystemPlaylist && (
                     <div className="mt-2 text-xs text-[#F6F6F6]/50">
                     “나의 좋아요 목록”은 삭제/편집할 수 없어요.
                     </div>
@@ -176,12 +197,12 @@ export default function PlaylistEditPage() {
             <button
                 type="button"
                 onClick={handleDelete}
-                disabled={isSystemLiked}
+                disabled={isSystemPlaylist}
                 className={[
                 "px-4 h-10 rounded-2xl border",
                 "text-sm font-semibold transition",
                 "border-[#E4524D] text-[#E4524D] hover:bg-[#E4524D]/10",
-                isSystemLiked ? "opacity-50 cursor-not-allowed" : "",
+                isSystemPlaylist ? "opacity-50 cursor-not-allowed" : "",
                 ].join(" ")}
             >
                 삭제

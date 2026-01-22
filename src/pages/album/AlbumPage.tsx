@@ -18,10 +18,9 @@ import {
     subscribePlaylists,
     LIKED_SYSTEM_ID,
     getUserPlaylists,
-    isAlbumLiked,
-    getAlbumLikeCount,
-    toggleAlbumLike,
 } from "../../mocks/playlistMock";
+
+import { likeAlbum, unlikeAlbum, listLikedAlbums } from "../../api/album";
 
 type Track = { id: string; title: string; album: string; duration: string; albumImage?: string | null };
 type Album = { id: string; title: string; year: string; albumImage?: string | null };
@@ -42,6 +41,7 @@ type ApiAlbumDetail = {
     total_duration: number;
     total_duration_formatted: string;
     like_count: number;
+    is_liked?: boolean; // ✅ 백엔드에서 제공하면 사용, 없으면 프론트엔드에서 확인
     tracks: {
         music_id: number;
         music_name: string;
@@ -101,6 +101,7 @@ export default function AlbumDetailPage() {
 
     // API로 가져온 앨범 데이터 (있으면 우선 사용)
     const [apiFound, setApiFound] = useState<Found>(null);
+    const [apiAlbum, setApiAlbum] = useState<ApiAlbumDetail | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -134,6 +135,9 @@ export default function AlbumDetailPage() {
                 }
 
                 const data: ApiAlbumDetail = await res.json();
+
+                // API 응답 원본 저장
+                setApiAlbum(data);
 
                 // API 응답을 기존 Found 구조로 변환
                 const artist: ArtistData = {
@@ -217,29 +221,44 @@ export default function AlbumDetailPage() {
     // ✅ found가 null이어도 hooks는 항상 같은 순서
     const [checkedIds, setCheckedIds] = useState<Record<string, boolean>>({});
 
-    // ✅ 앨범 좋아요 초기 카운트(없으면 fallback으로 사용)
-    const INITIAL_LIKE_COUNT = 0;
+    // ✅ 앨범 좋아요 상태 (백엔드 API 응답에서 가져옴)
+    const [albumLiked, setAlbumLiked] = useState(false);
+    const [albumLikeCount, setAlbumLikeCount] = useState(0);
 
-    // ✅ 앨범 좋아요/카운트 store (playlistMock)
-    const [albumLiked, setAlbumLiked] = useState(() =>
-        albumId ? isAlbumLiked(albumId) : false
-    );
-
-    const [albumLikeCount, setAlbumLikeCount] = useState(() =>
-        albumId ? getAlbumLikeCount(albumId, INITIAL_LIKE_COUNT) : INITIAL_LIKE_COUNT
-    );
-
+    // 앨범 데이터 로드 시 좋아요 상태 업데이트
     useEffect(() => {
-        if (!albumId) return;
-
-        const sync = () => {
-        setAlbumLiked(isAlbumLiked(albumId));
-        setAlbumLikeCount(getAlbumLikeCount(albumId, INITIAL_LIKE_COUNT));
-        };
-
-        sync();
-        return subscribePlaylists(sync); // ✅ albumLike도 emit()이므로 playlist 구독으로 충분
-    }, [albumId]);
+        if (!apiAlbum) return;
+        
+        console.log("[AlbumPage] 앨범 데이터 로드:", {
+            album_id: apiAlbum.album_id,
+            album_name: apiAlbum.album_name,
+            like_count: apiAlbum.like_count,
+            is_liked: apiAlbum.is_liked
+        });
+        
+        // 항상 좋아요한 앨범 목록에서 정확한 like_count 가져오기
+        (async () => {
+            try {
+                const likedAlbums = await listLikedAlbums();
+                const likedAlbum = likedAlbums.find(album => album.album_id === apiAlbum.album_id);
+                
+                if (likedAlbum) {
+                    // 좋아요한 앨범이면 목록의 like_count 사용 (정확)
+                    setAlbumLiked(true);
+                    setAlbumLikeCount(likedAlbum.like_count);
+                } else {
+                    // 좋아요하지 않았으면 백엔드 응답 사용
+                    setAlbumLiked(apiAlbum.is_liked ?? false);
+                    setAlbumLikeCount(apiAlbum.like_count);
+                }
+            } catch (error) {
+                console.error("[AlbumPage] 좋아요 상태 확인 실패:", error);
+                // 에러 시 백엔드 응답 사용
+                setAlbumLiked(apiAlbum.is_liked ?? false);
+                setAlbumLikeCount(apiAlbum.like_count);
+            }
+        })();
+    }, [apiAlbum]);
 
     const tracks = effective?.tracks ?? [];
     const totalSeconds = tracks.reduce((acc, t) => acc + toSeconds(t.duration), 0);
@@ -519,13 +538,32 @@ export default function AlbumDetailPage() {
 
                 <div className="flex items-end gap-5">
                     <div className="min-w-0">
-                    {/* ✅ 헤더 좋아요 = "앨범 좋아요" 토글 (카드 생성 X) */}
+                    {/* ✅ 헤더 좋아요 = "앨범 좋아요" 토글 */}
                     <button
                         type="button"
-                        onClick={() => {
+                        onClick={async () => {
                         if (!requireLogin("로그인 후 이용 가능합니다.")) return;
-                        if (!albumId) return;
-                        toggleAlbumLike(albumId, INITIAL_LIKE_COUNT);
+                        if (!apiAlbum) return;
+
+                        // 낙관적 UI 업데이트
+                        const wasLiked = albumLiked;
+                        setAlbumLiked(!wasLiked);
+                        setAlbumLikeCount((prev) => wasLiked ? prev - 1 : prev + 1);
+
+                        try {
+                            if (wasLiked) {
+                                const response = await unlikeAlbum(apiAlbum.album_id);
+                                setAlbumLikeCount(response.like_count);
+                            } else {
+                                const response = await likeAlbum(apiAlbum.album_id);
+                                setAlbumLikeCount(response.like_count);
+                            }
+                        } catch (error) {
+                            console.error("앨범 좋아요 토글 실패:", error);
+                            // 실패 시 원래 상태로 복구
+                            setAlbumLiked(wasLiked);
+                            setAlbumLikeCount(apiAlbum.like_count);
+                        }
                         }}
                         className={[
                         "h-11 rounded-2xl",

@@ -115,7 +115,7 @@ function Sidebar({
 
             <div className="p-1 overflow-x-auto overflow-y-hidden">
               <div className="flex gap-3 overflow-visible">
-                {playlists.slice(0, 2).map((p) => (
+                {playlists.map((p) => (
                   <button
                     onClick={() => navigate(`/playlist/${p.id}`)}
                     key={p.id}
@@ -142,9 +142,10 @@ function Sidebar({
                   onClick={onCreatePlaylist}
                   type="button"
                   className="
-                    w-10
+                    shrink-0
+                    w-[clamp(80px,11vh,100px)]
                     h-[clamp(80px,11vh,100px)]
-                    bg-[#777777] rounded-xl hover:bg-zinc-400 transition text-[#3D3D3D]"
+                    bg-[#777777] rounded-xl hover:bg-zinc-400 transition text-[#3D3D3D] flex items-center justify-center text-3xl"
                   aria-label="플레이리스트 추가"
                   title="플레이리스트 추가"
                 >

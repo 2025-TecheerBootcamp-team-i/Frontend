@@ -1,11 +1,7 @@
-
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-import { fetchLikedTracks, type LikedTrack } from "../../api/LikedSong";
-import { getCurrentUserId } from "../../utils/auth";
-
-const LIKED_SYSTEM_ID = "liked";
+import { usePlaylists } from "../../contexts/PlaylistContext";
+import { listLikedAlbums, type LikedAlbumSummary } from "../../api/album";
 
 type PlaylistItem = {
     id: string;
@@ -16,123 +12,51 @@ type PlaylistItem = {
     coverUrl?: string | null;
 };
 
-/** 좋아요 및 공개여부 앨범 API 응답 타입(백엔드 스펙에 맞춰 수정) */
-type LikedAlbumApi = {
-  album_id: string | number;
-  album_name: string;
-  artist_name: string;
-  album_image?: string | null;
-};
-
-/** 좋아요 및 공개여부 플레이리스트 API 응답 타입(백엔드 스펙에 맞춰 수정 필요) */
-type LikedPlaylistApi = {
-  playlist_id: string | number;
-  playlist_name: string;
-  owner_name: string;
-  cover_url?: string | null;
-};
-
-/** TODO: 실제 “좋아요 앨범 목록” API로 교체 */
-async function fetchLikedAlbumsApi(_userId: string): Promise<LikedAlbumApi[]> {
-  // 예시)
-  // return await fetchLikedAlbums(userId);
-  return [];
-}
-
-/** TODO: 실제 “좋아요 플레이리스트 목록” API로 교체 */
-async function fetchLikedPlaylistsApi(_userId: string): Promise<LikedPlaylistApi[]> {
-  // 예시)
-  // return await fetchLikedPlaylists(userId);
-  return [];
-}
-
-/** API 응답 -> 화면 카드 모델로 변환(어댑터) */
-function mapLikedAlbumsToItems(albums: LikedAlbumApi[]): PlaylistItem[] {
-  return albums.map((a) => ({
-    id: String(a.album_id),
-    title: a.album_name,
-    owner: a.artist_name,
-    liked: true,
-    kind: "album",
-    coverUrl: a.album_image ?? null,
-  }));
-}
-
-function mapLikedPlaylistsToItems(playlists: LikedPlaylistApi[]): PlaylistItem[] {
-  return playlists.map((p) => ({
-    id: String(p.playlist_id),
-    title: p.playlist_name,
-    owner: p.owner_name,
-    liked: true,
-    kind: "playlist",
-    coverUrl: p.cover_url ?? null,
-  }));
-}
-
 export default function MyPlaylistsLiked() {
     const navigate = useNavigate();
-    
-    // 좋아요 누른 곡 플리
-    const [likedTracks, setLikedTracks] = useState<LikedTrack[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const { likedPlaylists } = usePlaylists();
 
-    // 좋아요 누른 앨범 및 플리(실제 API 필요)
-    const [collectionItems, setCollectionItems] = useState<PlaylistItem[]>([]);
-    const [collectionsLoading, setCollectionsLoading] = useState(false);
-    const [collectionsError, setCollectionsError] = useState<string | null>(null);
+    // 좋아요한 앨범 목록
+    const [likedAlbums, setLikedAlbums] = useState<LikedAlbumSummary[]>([]);
 
-    const refresh = useCallback(async () => {
-      setLoading(true);
+    // 좋아요한 앨범 가져오기
+    useEffect(() => {
+        const fetchAlbums = async () => {
+            try {
+                const albums = await listLikedAlbums();
+                setLikedAlbums(albums);
+            } catch (error) {
+                console.error("좋아요한 앨범 로딩 실패:", error);
+                setLikedAlbums([]);
+            }
+        };
 
-      const userId = getCurrentUserId();
-      if (!userId) {
-        setLoading(false);
-        setError("user_id를 찾을 수 없어요. 로그인 후 user_id 저장을 확인해주세요.");
-        setLikedTracks([]);
-        return;
-      }
-
-      try {
-        setError(null);
-
-        const list = await fetchLikedTracks(userId);
-        setLikedTracks(Array.isArray(list) ? list : []);
-      } catch (e) {
-        console.error("[MyPlaylistsLiked] 좋아요 목록 불러오기 실패:", e);
-      
-        setError("좋아요 목록을 불러오지 못했어요.");
-        setLikedTracks([]);
-      } finally {
-        setLoading(false);
-      }
+        fetchAlbums();
     }, []);
 
-   // 페이지로 돌아왔을 때 최신화
-  useEffect(() => {
-    refresh();
+    // Context에서 받은 좋아요 플레이리스트 + API 앨범 데이터
+    const items = useMemo((): PlaylistItem[] => {
+        // 1. 좋아요한 앨범 (실제 API에서)
+        const likedAlbumItems: PlaylistItem[] = likedAlbums.map((album) => ({
+            id: String(album.album_id),
+            title: album.title,
+            owner: album.artist_name,
+            liked: true,
+            kind: "album" as const,
+        }));
 
-    const onFocus = () => refresh();
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
-  }, [refresh]);
+        // 2. 좋아요한 다른 사람의 플레이리스트
+        const playlistItems: PlaylistItem[] = likedPlaylists.map((p) => ({
+            id: p.id,
+            title: p.title,
+            owner: p.creator_nickname,
+            liked: true,
+            kind: "playlist" as const,
+        }));
 
-  // 화면에 보여줄 카드 목록
-  const items: PlaylistItem[] = useMemo(() => {
-    const count = likedTracks.length;
-    const coverUrl = likedTracks[0]?.album_image ?? null;
+        return [...likedAlbumItems, ...playlistItems];
+    }, [likedAlbums, likedPlaylists]);
 
-    return [
-      {
-        id: LIKED_SYSTEM_ID,
-        title: "나의 좋아요 목록",
-        owner: loading ? "불러오는 중..." : error ? "불러오기 실패" : `총 ${count}곡`,
-        liked: true,
-        kind: "system",
-        coverUrl,
-      },
-    ];
-  }, [likedTracks, loading, error]);
 
     const gridClass = useMemo(
         () => `
@@ -178,10 +102,12 @@ export default function MyPlaylistsLiked() {
                     )}
 
                     {it.liked && (
-                  <div className="absolute top-2 right-3 text-xl drop-shadow text-[#E4524D]">
-                    ♥
-                  </div>
-                )}
+                      <div className={[
+                          "absolute top-2 right-3 text-xl drop-shadow",
+                          it.kind === "system" ? "text-[#E4524D]" : "text-[#AFDEE2]"].join(" ")}
+                      >♥
+                      </div>
+                    )}
               </div>
 
               <div className="mt-3 text-sm font-semibold text-[#F6F6F6] truncate">

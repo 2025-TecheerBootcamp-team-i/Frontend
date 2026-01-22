@@ -1,0 +1,248 @@
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import type { ReactNode } from "react";
+import { listMyPlaylists, listLikedPlaylists, createPlaylist as createPlaylistAPI, deletePlaylist as deletePlaylistAPI, SYSTEM_LIKED_PLAYLIST_TITLE } from "../api/playlist";
+import type { PlaylistSummary } from "../api/playlist";
+
+// ==========================================
+// 타입 정의
+// ==========================================
+
+export interface Playlist {
+  id: string;
+  title: string;
+  coverUrl?: string;
+  createdAt: number;
+  visibility: "public" | "private" | "system";
+  creator_nickname: string;
+  item_count: number;
+  like_count: number;
+  is_liked: boolean;
+}
+
+interface PlaylistContextValue {
+  // 내 플레이리스트 (개인 + 시스템)
+  myPlaylists: Playlist[];
+
+  // 좋아요한 플레이리스트
+  likedPlaylists: Playlist[];
+
+  // 로딩 상태
+  isLoading: boolean;
+
+  // 에러 상태
+  error: string | null;
+
+  // 플레이리스트 다시 불러오기
+  refetch: () => Promise<void>;
+
+  // 플레이리스트 생성
+  createPlaylist: (title?: string, visibility?: "public" | "private") => Promise<Playlist>;
+
+  // 플레이리스트 삭제
+  deletePlaylist: (playlistId: string) => Promise<void>;
+}
+
+// ==========================================
+// Context 생성
+// ==========================================
+
+const PlaylistContext = createContext<PlaylistContextValue | null>(null);
+
+// ==========================================
+// Provider 컴포넌트
+// ==========================================
+
+export function PlaylistProvider({ children }: { children: ReactNode }) {
+  const [myPlaylists, setMyPlaylists] = useState<Playlist[]>([]);
+  const [likedPlaylists, setLikedPlaylists] = useState<Playlist[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // API 응답을 내부 타입으로 변환
+  const mapToPlaylist = (p: PlaylistSummary): Playlist => ({
+    id: String(p.playlist_id),
+    title: p.title,
+    coverUrl: "",
+    createdAt: new Date(p.created_at).getTime(),
+    visibility: p.visibility,
+    creator_nickname: p.creator_nickname,
+    item_count: p.item_count,
+    like_count: p.like_count,
+    is_liked: p.is_liked,
+  });
+
+  // 플레이리스트 데이터 가져오기
+  const fetchPlaylists = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // 내 플레이리스트와 좋아요한 플레이리스트 동시 호출
+      // Promise.allSettled 사용: 하나가 실패해도 다른 것은 성공 가능
+      const [myResult, likedResult] = await Promise.allSettled([
+        listMyPlaylists(),
+        listLikedPlaylists(),
+      ]);
+
+      // 내 플레이리스트 처리
+      if (myResult.status === "fulfilled") {
+        const myMapped = myResult.value.map(mapToPlaylist);
+        
+        // 시스템 플레이리스트를 맨 앞에 배치 (visibility 또는 title로 확인)
+        const likedListIdx = myMapped.findIndex((p) => 
+          p.visibility === "system" || p.title === SYSTEM_LIKED_PLAYLIST_TITLE
+        );
+        if (likedListIdx !== -1) {
+          const [likedList] = myMapped.splice(likedListIdx, 1);
+          myMapped.unshift(likedList);
+        }
+
+        setMyPlaylists(myMapped);
+      } else {
+        console.error("[PlaylistContext] 내 플레이리스트 로딩 실패:", myResult.reason);
+        setMyPlaylists([]);
+      }
+
+      // 좋아요한 플레이리스트 처리
+      if (likedResult.status === "fulfilled") {
+        const likedMapped = likedResult.value
+          .filter((p) => p.visibility !== "system")
+          .map(mapToPlaylist);
+
+        setLikedPlaylists(likedMapped);
+      } else {
+        console.error("[PlaylistContext] 좋아요 플레이리스트 로딩 실패:", likedResult.reason);
+        setLikedPlaylists([]);
+      }
+
+      // 둘 다 실패한 경우에만 에러 표시
+      if (myResult.status === "rejected" && likedResult.status === "rejected") {
+        setError("플레이리스트를 불러오는데 실패했습니다");
+      }
+    } catch (err) {
+      console.error("[PlaylistContext] 플레이리스트 로딩 실패:", err);
+      const errorMessage = err instanceof Error ? err.message : "플레이리스트를 불러오는데 실패했습니다";
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // 플레이리스트 생성
+  const createPlaylist = useCallback(async (
+    title = "새 플레이리스트",
+    visibility: "public" | "private" = "private"
+  ): Promise<Playlist> => {
+    try {
+      const newPlaylist = await createPlaylistAPI({ title, visibility });
+      
+      const mapped = mapToPlaylist(newPlaylist);
+      
+      // 시스템 플레이리스트 다음에 삽입 (시스템 플레이리스트는 항상 맨 앞)
+      setMyPlaylists((prev) => {
+        // visibility 또는 title로 시스템 플레이리스트 찾기
+        const systemIdx = prev.findIndex((p) => 
+          p.visibility === "system" || p.title === SYSTEM_LIKED_PLAYLIST_TITLE
+        );
+        
+        console.log("[PlaylistContext] 플레이리스트 생성:", {
+          새플레이리스트: mapped.title,
+          기존목록: prev.map(p => ({ title: p.title, visibility: p.visibility })),
+          시스템플레이리스트위치: systemIdx
+        });
+        
+        if (systemIdx !== -1) {
+          // 시스템 플레이리스트가 있으면 그 다음에 삽입
+          const result = [
+            ...prev.slice(0, systemIdx + 1),
+            mapped,
+            ...prev.slice(systemIdx + 1)
+          ];
+          
+          console.log("[PlaylistContext] 삽입 후 목록:", 
+            result.map(p => ({ title: p.title, visibility: p.visibility }))
+          );
+          
+          return result;
+        }
+        
+        // 시스템 플레이리스트가 없으면 맨 뒤에 추가
+        console.warn("[PlaylistContext] ⚠️ 시스템 플레이리스트가 없습니다!");
+        return [...prev, mapped];
+      });
+      
+      return mapped;
+    } catch (err) {
+      console.error("[PlaylistContext] 플레이리스트 생성 실패:", err);
+      throw err;
+    }
+  }, []);
+
+  // 플레이리스트 삭제
+  const deletePlaylist = useCallback(async (playlistId: string): Promise<void> => {
+    try {
+      await deletePlaylistAPI(playlistId);
+
+      // 삭제된 플레이리스트를 상태에서 제거
+      setMyPlaylists((prev) => prev.filter((p) => p.id !== playlistId));
+    } catch (err) {
+      console.error("[PlaylistContext] 플레이리스트 삭제 실패:", err);
+      throw err;
+    }
+  }, []);
+
+  // 초기 로드 - 토큰이 있을 때만 실행
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (!token) return;
+    
+    fetchPlaylists();
+  }, [fetchPlaylists]);
+
+  // 로그인/로그아웃 이벤트 감지
+  useEffect(() => {
+    const handleLogin = () => fetchPlaylists();
+    
+    const handleLogout = () => {
+      setMyPlaylists([]);
+      setLikedPlaylists([]);
+      setError(null);
+    };
+
+    window.addEventListener("login", handleLogin as EventListener);
+    window.addEventListener("logout", handleLogout as EventListener);
+    
+    return () => {
+      window.removeEventListener("login", handleLogin as EventListener);
+      window.removeEventListener("logout", handleLogout as EventListener);
+    };
+  }, [fetchPlaylists]);
+
+  const value: PlaylistContextValue = {
+    myPlaylists,
+    likedPlaylists,
+    isLoading,
+    error,
+    refetch: fetchPlaylists,
+    createPlaylist,
+    deletePlaylist,
+  };
+
+  return (
+    <PlaylistContext.Provider value={value}>
+      {children}
+    </PlaylistContext.Provider>
+  );
+}
+
+// ==========================================
+// Custom Hook
+// ==========================================
+
+export function usePlaylists() {
+  const context = useContext(PlaylistContext);
+  if (!context) {
+    throw new Error("usePlaylists must be used within a PlaylistProvider");
+  }
+  return context;
+}
