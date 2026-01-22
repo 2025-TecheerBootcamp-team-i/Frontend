@@ -2,14 +2,18 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { MdOutlineNavigateNext } from "react-icons/md";
 import {
-    getAllPlaylists,
-    subscribePlaylists,
-    getLikedPlaylistIds,
-    LIKED_SYSTEM_ID,
-    getLikedAlbumIds,
+  getAllPlaylists,
+  subscribePlaylists,
+  getLikedPlaylistIds,
+  getLikedAlbumIds,
 } from "../../mocks/playlistMock";
 import { ARTISTS } from "../../mocks/artistsMock";
 
+import { fetchLikedTracks, type LikedTrack } from "../../api/LikedSong";
+
+const LIKED_SYSTEM_ID = "liked"; // 나중에 "liked -system으로 수정해야 함. 그렇지 않으면 개인 목록 맨 앞에 좋아요 누른 곡 리스트 생성됨"
+
+/* ===================== 타입 ===================== */
 type PlaylistItem = {
     id: string;
     title: string;
@@ -17,8 +21,38 @@ type PlaylistItem = {
     scope: "personal" | "shared";
     liked?: boolean;
     kind?: "playlist" | "album" | "system";
+
+    // ✅ 확장 대비
+    isPublic?: boolean;        // 공개/비공개
+    coverUrl?: string | null;  // 단일 대표커버
+    coverUrls?: string[];      // 2x2 모자이크용(좋아요 카드에서 사용)
+    };
+
+// 좋아요 누른 곡 이미지 추가
+function buildCoverUrlsFromLikedTracks(tracks: LikedTrack[], limit = 4): string[] {
+  const urls = tracks
+    .map((t) => t.album_image)
+    .filter((v): v is string => typeof v === "string" && v.length > 0);
+
+  // ✅ 같은 앨범 이미지 중복 제거
+  return Array.from(new Set(urls)).slice(0, limit);
+}
+
+// ✅ utils/auth 의존 없이 user_id 가져오기 (프로젝트 저장 키에 맞게 조정)
+const getStoredUserId = (): number | null => {
+  const userRaw = localStorage.getItem("user");
+  if (!userRaw) return null;
+
+  try {
+    const user = JSON.parse(userRaw) as { id?: number | string };
+    const n = Number(user.id);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  } catch {
+    return null;
+  }
 };
 
+/* ===================== UI 컴포넌트 ===================== */
 function Tab({ to, label }: { to: string; label: string }) {
     return (
         <NavLink
@@ -145,6 +179,7 @@ function Tab({ to, label }: { to: string; label: string }) {
         </div>
     );
     }
+/* ===================== UI 컴포넌트 ===================== */
 
     function Section({
     title,
@@ -186,14 +221,48 @@ function Tab({ to, label }: { to: string; label: string }) {
             <div className="flex gap-5 min-w-max pr-2">
                 {items.map((it) => (
                 <button
-                    key={it.id}
+                    key={`${it.kind ?? "playlist"}:${it.id}`}
                     type="button"
                     onClick={() => onClickItem?.(it.id)}
                     className="w-[220px] text-left group shrink-0"
                 >
-                    <div className="relative aspect-square rounded-2xl bg-[#6b6b6b]/40 border border-[#464646] group-hover:bg-[#6b6b6b]/55 transition">
+                    <div className="relative aspect-square rounded-2xl overflow-hidden bg-[#6b6b6b]/40 border border-[#464646] group-hover:bg-[#6b6b6b]/55 transition">
+                      {/* ✅ 커버(2x2 모자이크 우선) */}
+                        {it.coverUrls?.length ? (
+                            <div className="absolute inset-0 grid grid-cols-2 grid-rows-2">
+                            {Array.from({ length: 4 }).map((_, idx) => {
+                                const src = it.coverUrls?.[idx];
+                                return src ? (
+                                <img
+                                    key={idx}
+                                    src={src}
+                                    alt={`${it.title} cover ${idx + 1}`}
+                                    className="w-full h-full object-cover"
+                                    loading="lazy"
+                                    decoding="async"
+                                    onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                                    }}
+                                />
+                                ) : (
+                                <div key={idx} className="w-full h-full bg-[#3a3a3a]/40" />
+                                );
+                            })}
+                            </div>
+                        ) : it.coverUrl ? (
+                            <img
+                            src={it.coverUrl}
+                            alt={`${it.title} cover`}
+                            className="absolute inset-0 w-full h-full object-cover"
+                            loading="lazy"
+                            decoding="async"
+                            onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).style.display = "none";
+                            }}
+                            />
+                        ) : null}
                     {/* ❤️ 좋아요 하트 */}
-                    {it.id === "liked" || it.liked ? (
+                    {it.id === LIKED_SYSTEM_ID || it.liked ? (
                     <div className={[
                         "absolute top-2 right-3 text-xl drop-shadow",
                         it.id === LIKED_SYSTEM_ID ? "text-[#E4524D]" : "text-[#AFDEE2]"].join(" ")}
@@ -217,6 +286,7 @@ function Tab({ to, label }: { to: string; label: string }) {
     );
 }
 
+/* ===================== 페이지 화면 및 API ===================== */
 export default function MyPlaylistPage() {
     const navigate = useNavigate();
     const { pathname } = useLocation();
@@ -225,16 +295,43 @@ export default function MyPlaylistPage() {
     const [personalAll, setPersonalAll] = useState<PlaylistItem[]>([]);
     const [likedAll, setLikedAll] = useState<PlaylistItem[]>([]);
 
-    const albumIndex = useMemo(() => {
-        const map = new Map<string, { title: string; owner: string }>();
-        Object.values(ARTISTS).forEach((artist) => {
-            artist.albums.forEach((alb) => {
-                map.set(alb.id, { title: alb.title, owner: artist.name });
-            });
-            });
-        return map;
+    // 좋아요 누른 곡 리스트
+    const [likedTracks, setLikedTracks] = useState<LikedTrack[]>([]);
+    const likedCoverUrls = useMemo(
+    () => buildCoverUrlsFromLikedTracks(likedTracks, 4),
+    [likedTracks]
+    );
+
+    // fetchLikedTracks(user_id) 호출
+    const getUserId = () => {
+    const raw =
+        localStorage.getItem("user")
+    return raw ? Number(raw) : null;
+    };
+
+    useEffect(() => {
+    (async () => {
+        try {
+        const uid = getUserId();
+        if (!uid) return; // 필요하면 navigate("/login") 가능
+
+        const tracks = await fetchLikedTracks(uid); // ✅ 여기서 import한 fetchLikedTracks 사용
+        setLikedTracks(tracks); // ✅ 상태에 저장
+        } catch (e) {
+        console.error("[MyPlaylistPage] fetchLikedTracks 실패:", e);
+        }
+    })();
     }, []);
 
+        const albumIndex = useMemo(() => {
+            const map = new Map<string, { title: string; owner: string }>();
+            Object.values(ARTISTS).forEach((artist) => {
+                artist.albums.forEach((alb) => {
+                    map.set(alb.id, { title: alb.title, owner: artist.name });
+                });
+                });
+            return map;
+        }, []);
 
     useEffect(() => {
         const sync = () => {
@@ -282,7 +379,7 @@ export default function MyPlaylistPage() {
 
         // ✅ 좋아요 섹션은 항상 첫 카드: "나의 좋아요 목록" + 그 뒤에 좋아요한 플리들
         const likedList: PlaylistItem[] = [
-            { id: LIKED_SYSTEM_ID, title: "나의 좋아요 목록", owner: "—", scope: "personal", kind: "system" },
+            { id: LIKED_SYSTEM_ID, title: "나의 좋아요 목록", owner: "—", scope: "personal", kind: "system", coverUrls: likedCoverUrls, },
             ...likedAlbums,
             ...likedPlaylists,
         ];
@@ -300,6 +397,11 @@ export default function MyPlaylistPage() {
 
     const handleClickPlaylist = (id: string) => {
         const it = likedAll.find((x) => x.id === id) || personalAll.find((x) => x.id === id);
+
+        if (id === LIKED_SYSTEM_ID || it?.kind === "system") {
+                navigate("/my-playlists/liked");
+                return;
+        }
 
         if (it?.kind === "album") {
             navigate(`/album/${id}`);
