@@ -8,11 +8,13 @@ import {
     type PlaylistDetail,
 } from "../../api/playlist";
 import { useToast } from "../../components/common/ToastProvider";
+import { usePlaylists } from "../../contexts/PlaylistContext";
 
 export default function PlaylistEditPage() {
     const navigate = useNavigate();
     const { playlistId } = useParams();
     const { showSuccess, showError } = useToast();
+    const { deletePlaylist } = usePlaylists();
 
     const [playlist, setPlaylist] = useState<PlaylistDetail | null>(null);
     const [loading, setLoading] = useState(false);
@@ -73,7 +75,7 @@ export default function PlaylistEditPage() {
         if (!ok) return;
 
         try {
-            await deletePlaylistAPI(playlist.playlist_id);
+            await deletePlaylist(playlist.playlist_id.toString());
             showSuccess("플레이리스트가 삭제되었습니다");
             navigate("/my-playlists");
         } catch (error) {

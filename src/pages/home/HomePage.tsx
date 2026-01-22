@@ -267,8 +267,11 @@ function HomePage() {
                     const data = await listPublicPlaylists();
                     if (!alive) return;
 
-                    // like_count >= 20 필터링
-                    const filtered = data.filter((p) => p.like_count >= 20);
+                    // like_count >= 20 필터링 + 시스템 플레이리스트 제외
+                    const filtered = data.filter((p) => 
+                        p.like_count >= 20 && 
+                        p.visibility !== "system"
+                    );
 
                     // 무작위 셔플
                     const shuffled = [...filtered].sort(() => Math.random() - 0.5);

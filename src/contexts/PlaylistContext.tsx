@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import type { ReactNode } from "react";
-import { listMyPlaylists, listLikedPlaylists, createPlaylist as createPlaylistAPI } from "../api/playlist";
+import { listMyPlaylists, listLikedPlaylists, createPlaylist as createPlaylistAPI, deletePlaylist as deletePlaylistAPI } from "../api/playlist";
 import type { PlaylistSummary } from "../api/playlist";
 import { SYSTEM_LIKED_PLAYLIST_TITLE } from "../api/playlist";
 
@@ -13,7 +13,7 @@ export interface Playlist {
   title: string;
   coverUrl?: string;
   createdAt: number;
-  visibility: "public" | "private";
+  visibility: "public" | "private" | "system";
   creator_nickname: string;
   item_count: number;
   like_count: number;
@@ -23,21 +23,24 @@ export interface Playlist {
 interface PlaylistContextValue {
   // 내 플레이리스트 (개인 + 시스템)
   myPlaylists: Playlist[];
-  
+
   // 좋아요한 플레이리스트
   likedPlaylists: Playlist[];
-  
+
   // 로딩 상태
   isLoading: boolean;
-  
+
   // 에러 상태
   error: string | null;
-  
+
   // 플레이리스트 다시 불러오기
   refetch: () => Promise<void>;
-  
+
   // 플레이리스트 생성
   createPlaylist: (title?: string, visibility?: "public" | "private") => Promise<Playlist>;
+
+  // 플레이리스트 삭제
+  deletePlaylist: (playlistId: string) => Promise<void>;
 }
 
 // ==========================================
@@ -84,7 +87,7 @@ export function PlaylistProvider({ children }: { children: ReactNode }) {
       // 내 플레이리스트 처리 - 시스템 플레이리스트를 맨 앞에 배치
       const myMapped = myData.map(mapToPlaylist);
       
-      const likedListIdx = myMapped.findIndex((p) => p.title === SYSTEM_LIKED_PLAYLIST_TITLE);
+      const likedListIdx = myMapped.findIndex((p) => p.visibility === "system");
       if (likedListIdx !== -1) {
         const [likedList] = myMapped.splice(likedListIdx, 1);
         myMapped.unshift(likedList);
@@ -92,14 +95,10 @@ export function PlaylistProvider({ children }: { children: ReactNode }) {
 
       setMyPlaylists(myMapped);
 
-      // 좋아요한 플레이리스트 처리 - 시스템 플레이리스트를 맨 앞에 배치
-      const likedMapped = likedData.map(mapToPlaylist);
-      
-      const systemIdx = likedMapped.findIndex((p) => p.title === SYSTEM_LIKED_PLAYLIST_TITLE);
-      if (systemIdx !== -1) {
-        const [system] = likedMapped.splice(systemIdx, 1);
-        likedMapped.unshift(system);
-      }
+      // 좋아요한 플레이리스트 처리 - 시스템 플레이리스트는 제외 (내 플레이리스트에만 포함)
+      const likedMapped = likedData
+        .filter((p) => p.visibility !== "system") // 시스템 플레이리스트 제외
+        .map(mapToPlaylist);
 
       setLikedPlaylists(likedMapped);
     } catch (err) {
@@ -132,6 +131,19 @@ export function PlaylistProvider({ children }: { children: ReactNode }) {
       return mapped;
     } catch (err) {
       console.error("[PlaylistContext] 플레이리스트 생성 실패:", err);
+      throw err;
+    }
+  }, []);
+
+  // 플레이리스트 삭제
+  const deletePlaylist = useCallback(async (playlistId: string): Promise<void> => {
+    try {
+      await deletePlaylistAPI(playlistId);
+
+      // 삭제된 플레이리스트를 상태에서 제거
+      setMyPlaylists((prev) => prev.filter((p) => p.id !== playlistId));
+    } catch (err) {
+      console.error("[PlaylistContext] 플레이리스트 삭제 실패:", err);
       throw err;
     }
   }, []);
@@ -170,6 +182,7 @@ export function PlaylistProvider({ children }: { children: ReactNode }) {
     error,
     refetch: fetchPlaylists,
     createPlaylist,
+    deletePlaylist,
   };
 
   return (

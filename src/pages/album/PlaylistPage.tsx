@@ -287,8 +287,8 @@ export default function PlaylistDetailPage() {
 
                 <div className="flex items-end gap-5">
                     <div className="min-w-0">
-                        {/* 좋아요 (플리 좋아요 토글) */} 
-                        {playlist.visibility === "public" && (
+                        {/* 좋아요 (플리 좋아요 토글) - 공개이면서 내가 만들지 않은 플레이리스트에만 표시 */} 
+                        {playlist.visibility === "public" && currentUserId !== playlist.user_id && (
                             <button 
                                 type="button" 
                                 onClick={toggleLike} 

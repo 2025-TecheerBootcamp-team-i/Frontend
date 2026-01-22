@@ -23,7 +23,7 @@ export interface PlaylistItem {
 export interface PlaylistSummary {
   playlist_id: number;
   title: string;
-  visibility: "public" | "private";
+  visibility: "public" | "private" | "system";
   user_id: number; // 플레이리스트 소유자 ID
   creator_nickname: string;
   item_count: number;
@@ -85,6 +85,11 @@ export interface LikePlaylistResponse {
   message: string;
   playlist_id: number;
   is_liked: boolean;
+}
+
+export interface DeletePlaylistResponse {
+  message: string;
+  playlist_id: number;
 }
 
 export interface DeletePlaylistItemsResponse {
@@ -159,9 +164,9 @@ export async function createPlaylist(data: CreatePlaylistRequest): Promise<Playl
  * 4. 플레이리스트 삭제 (Delete Playlist)
  * DELETE /api/v1/playlists/{playlist_id}
  */
-export async function deletePlaylist(playlistId: number | string): Promise<{ message: string }> {
-  // 백엔드에서 삭제 성공 시 보통 { message: "삭제되었습니다" } 같은 응답을 줍니다.
-  const response = await axiosInstance.delete<{ message: string }>(`/playlists/${playlistId}`);
+export async function deletePlaylist(playlistId: number | string): Promise<DeletePlaylistResponse> {
+  // 백엔드에서 삭제 성공 시 { message: "삭제되었습니다", playlist_id: 123 } 같은 응답을 줍니다.
+  const response = await axiosInstance.delete<DeletePlaylistResponse>(`/playlists/${playlistId}`);
   return response.data;
 }
 

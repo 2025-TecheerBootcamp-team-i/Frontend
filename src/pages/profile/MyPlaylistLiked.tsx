@@ -15,7 +15,7 @@ type PlaylistItem = {
 
 export default function MyPlaylistsLiked() {
     const navigate = useNavigate();
-    const { likedPlaylists } = usePlaylists();
+    const { myPlaylists, likedPlaylists } = usePlaylists();
 
     // 앨범 메타데이터 해석
     const resolveAlbumMeta = useMemo(() => {
@@ -42,7 +42,17 @@ export default function MyPlaylistsLiked() {
 
     // Context에서 받은 좋아요 플레이리스트 + 로컬 앨범 데이터 결합
     const items = useMemo((): PlaylistItem[] => {
-        // 1. 좋아요한 앨범 (로컬 mock에서)
+        // 1. 시스템 플레이리스트 ("나의 좋아요 목록") - myPlaylists에서 가져오기
+        const systemPlaylist = myPlaylists.find((p) => p.title === SYSTEM_LIKED_PLAYLIST_TITLE);
+        const systemItems: PlaylistItem[] = systemPlaylist ? [{
+            id: systemPlaylist.id,
+            title: systemPlaylist.title,
+            owner: systemPlaylist.creator_nickname,
+            liked: true,
+            kind: "system" as const,
+        }] : [];
+
+        // 2. 좋아요한 앨범 (로컬 mock에서)
         const albumLikedMap = getLikedAlbumIds();
         const albumKeys = Object.keys(albumLikedMap).filter((k) => albumLikedMap[k]);
 
@@ -57,21 +67,18 @@ export default function MyPlaylistsLiked() {
             };
         });
 
-        // 2. Context의 좋아요한 플레이리스트
+        // 3. 좋아요한 다른 사람의 플레이리스트 (likedPlaylists에는 이미 시스템 제외됨)
         const playlistItems: PlaylistItem[] = likedPlaylists.map((p) => ({
             id: p.id,
             title: p.title,
             owner: p.creator_nickname,
             liked: true,
-            kind: p.title === SYSTEM_LIKED_PLAYLIST_TITLE ? "system" : "playlist",
+            kind: "playlist" as const,
         }));
 
-        // 3. 시스템 플레이리스트를 맨 앞에, 앨범, 그 다음 나머지 플레이리스트 순서
-        const system = playlistItems.filter((p) => p.kind === "system");
-        const others = playlistItems.filter((p) => p.kind !== "system");
-
-        return [...system, ...likedAlbums, ...others];
-    }, [likedPlaylists, resolveAlbumMeta]);
+        // 4. 시스템 플레이리스트를 맨 앞에, 앨범, 그 다음 나머지 플레이리스트 순서
+        return [...systemItems, ...likedAlbums, ...playlistItems];
+    }, [myPlaylists, likedPlaylists, resolveAlbumMeta]);
 
     const gridClass = useMemo(
         () => `

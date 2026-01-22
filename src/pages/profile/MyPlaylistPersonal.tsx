@@ -17,7 +17,7 @@ export default function MyPlaylistsPersonal() {
     // 시스템 플레이리스트 제외한 개인 플레이리스트만 표시
     const items = useMemo((): PlaylistItem[] => {
         return myPlaylists
-            .filter((p) => p.title !== SYSTEM_LIKED_PLAYLIST_TITLE)
+            .filter((p) => p.visibility !== "system") // 시스템 플레이리스트 제외
             .map((p) => ({
                 id: p.id,
                 title: p.title,

@@ -224,21 +224,37 @@ export default function MyPlaylistPage() {
             title: p.title,
             owner: p.creator_nickname,
             scope: "personal" as const,
-            kind: p.title === SYSTEM_LIKED_PLAYLIST_TITLE ? "system" : "playlist",
+            kind: p.visibility === "system" ? "system" : "playlist", 
         }));
     }, [myPlaylists]);
 
-    // 좋아요한 플레이리스트를 PlaylistItem 형식으로 변환
+    // 좋아요 목록: 시스템 플레이리스트 + 좋아요한 플레이리스트
     const likedAll = useMemo((): PlaylistItem[] => {
-        return likedPlaylists.map((p) => ({
+        // 1. 시스템 플레이리스트 ("나의 좋아요 목록") - myPlaylists의 첫 번째
+        const systemPlaylist = myPlaylists.find((p) => p.title === SYSTEM_LIKED_PLAYLIST_TITLE);
+        const systemItems: PlaylistItem[] = systemPlaylist ? [{
+            id: systemPlaylist.id,
+            title: systemPlaylist.title,
+            owner: systemPlaylist.creator_nickname,
+            scope: "personal" as const,
+            liked: true,
+            kind: "system" as const,
+        }] : [];
+
+        // 2. 좋아요한 다른 사람의 플레이리스트
+        const likedPlaylistItems: PlaylistItem[] = likedPlaylists.map((p) => ({
             id: p.id,
             title: p.title,
             owner: p.creator_nickname,
-            scope: p.title === SYSTEM_LIKED_PLAYLIST_TITLE ? "personal" : "shared",
+            scope: "shared" as const,
             liked: true,
-            kind: p.title === SYSTEM_LIKED_PLAYLIST_TITLE ? "system" : "playlist",
+            kind: "playlist" as const, 
         }));
-    }, [likedPlaylists]);
+
+        // 3. 좋아요한 앨범은 별도 API가 필요 (TODO: 백엔드 구현 후 추가)
+        
+        return [...systemItems, ...likedPlaylistItems];
+    }, [myPlaylists, likedPlaylists]);
 
     // 개인 플레이리스트 (시스템 플레이리스트 제외)
     const personalPlaylistsOnly = useMemo(() => {
