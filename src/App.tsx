@@ -34,6 +34,7 @@ import SearchAll from "./pages/search/SearchAll";
 import SearchArtist from "./pages/search/SearchArtist";
 import SearchAlbum from "./pages/search/SearchAlbum";
 import SearchSong from "./pages/search/SearchSong";
+import SearchPlaylist from "./pages/search/SearchPlaylist.tsx";
 
 import ChartTop100 from "./pages/chart/ChartTop100";
 import ChartDaily from "./pages/chart/ChartDaily";
@@ -92,6 +93,7 @@ export default function App() {
           <Route path="artist" element={<SearchArtist />} />
           <Route path="album" element={<SearchAlbum />} />
           <Route path="song" element={<SearchSong />} />
+          <Route path="playlist" element={<SearchPlaylist />} />
         </Route>
       </Route>
 

@@ -19,7 +19,6 @@ import { MdDelete, MdFavorite } from "react-icons/md";
 import { FaPlay } from "react-icons/fa6";
 import { FiEdit3 } from "react-icons/fi";
 
-
 const actions = [
     { key: "play", label: "재생", icon: <IoPlayCircle size={18} /> },
     { key: "shuffle", label: "셔플", icon: <IoShuffle size={18} /> },
@@ -44,6 +43,7 @@ type PendingPlay = {
     tracks: PlayerTrack[];
 };
 
+
 export default function PlaylistDetailPage() {
     const { playlistId } = useParams();
     const { playTracks, enqueueTracks } = usePlayer();
@@ -58,6 +58,7 @@ export default function PlaylistDetailPage() {
     const [localLiked, setLocalLiked] = useState(false);
     const [localLikeCount, setLocalLikeCount] = useState(0);
     const [checkedIds, setCheckedIds] = useState<Record<number, boolean>>({});
+
     const [playConfirmOpen, setPlayConfirmOpen] = useState(false);
     const [pendingPlay, setPendingPlay] = useState<PendingPlay | null>(null);
 
@@ -114,6 +115,11 @@ export default function PlaylistDetailPage() {
 
 
     const tracks = playlist?.items ?? [];
+    const coverUrls = tracks
+        .map((t) => t.music.album.cover_image)
+        .filter((v): v is string => typeof v === "string" && v.length > 0)
+        .slice(0, 4);
+
 
     const toPlayerTrack = (t: PlaylistItem): PlayerTrack => ({
         id: String(t.item_id),
@@ -124,7 +130,6 @@ export default function PlaylistDetailPage() {
         audioUrl: "/audio/sample.mp3",
         duration: t.music.duration ? `${Math.floor(t.music.duration / 60)}:${String(t.music.duration % 60).padStart(2, "0")}` : "0:00",
     });
-
 
     // 체크된 곡만
     const checkedTracks = tracks
@@ -238,7 +243,6 @@ export default function PlaylistDetailPage() {
         }
     };
 
-
     return (
         <div className="w-full min-w-0 overflow-x-auto">
         {/* 상단 */}
@@ -342,7 +346,6 @@ export default function PlaylistDetailPage() {
                 </div>
             </div>
             </div>
-
             <div
             className="
                 absolute left-12 top-28
@@ -350,9 +353,43 @@ export default function PlaylistDetailPage() {
                 rounded-3xl bg-[#777777]
                 z-20
                 shadow-xl
-            "
-            />
+            ">
+            <div className="grid grid-cols-2 grid-rows-2 w-full h-full">
+                {Array.from({ length: 4 }).map((_, i) => {
+                const url = coverUrls[i];
+                return (
+                    <div key={i} className="w-full h-full bg-[#6b6b6b]/40">
+                    {url ? (
+                        <img
+                        src={url}
+                        alt={`cover-${i + 1}`}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        draggable={false}
+                        onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style.display = "none";
+                        }}
+                        />
+                    ) : (
+                        <div className="w-full h-full bg-[#6b6b6b]/40" />
+                    )}
+                    </div>
+                );
+                })}
+            </div>
+            </div>
         </section>
+
+
+
+
+
+
+
+
+
+
+
 
 
         {/* 본문 */}
@@ -421,9 +458,18 @@ export default function PlaylistDetailPage() {
                     );
                 })}
                 </div>
-
             </div>
+                {loading && (
+                <div className="px-8 py-3 text-sm text-[#F6F6F6]/60 border-b border-[#464646]">
+                    불러오는 중...
+                </div>
+                )}
 
+                {error && (
+                <div className="px-8 py-3 text-sm text-red-400 border-b border-[#464646]">
+                    {error}
+                </div>
+                )}
             <div className="px-6 pt-4">
                 <div className="grid items-center grid-cols-[28px_56px_1fr_90px] gap-x-4 pb-3 text-xs text-[#F6F6F6]/60">
                 <label className="flex items-center justify-center">
@@ -466,9 +512,14 @@ export default function PlaylistDetailPage() {
                                 src={t.music.album.cover_image} 
                                 alt={t.music.album.title}
                                 className="w-full h-full object-cover"
+                                loading="lazy"
+                                onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                                }}
                             />
                         )}
                     </div>
+
 
                     <div className="min-w-0">
                         <div className="text-sm font-semibold text-[#F6F6F6] truncate">{t.music.title}</div>

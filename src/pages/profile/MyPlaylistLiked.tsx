@@ -9,6 +9,7 @@ type PlaylistItem = {
     owner: string;
     liked?: boolean;
     kind?: "playlist" | "album" | "system";
+    coverUrl?: string | null;
 };
 
 export default function MyPlaylistsLiked() {
@@ -18,8 +19,9 @@ export default function MyPlaylistsLiked() {
     // 좋아요한 앨범 목록
     const [likedAlbums, setLikedAlbums] = useState<LikedAlbumSummary[]>([]);
 
+    // 좋아요한 앨범 가져오기
     useEffect(() => {
-        const fetchLikedAlbums = async () => {
+        const fetchAlbums = async () => {
             try {
                 const albums = await listLikedAlbums();
                 setLikedAlbums(albums);
@@ -29,10 +31,10 @@ export default function MyPlaylistsLiked() {
             }
         };
 
-        fetchLikedAlbums();
+        fetchAlbums();
     }, []);
 
-    // Context에서 받은 좋아요 플레이리스트 + API 앨범 데이터 결합
+    // Context에서 받은 좋아요 플레이리스트 + API 앨범 데이터
     const items = useMemo((): PlaylistItem[] => {
         // 1. 좋아요한 앨범 (실제 API에서)
         const likedAlbumItems: PlaylistItem[] = likedAlbums.map((album) => ({
@@ -52,9 +54,9 @@ export default function MyPlaylistsLiked() {
             kind: "playlist" as const,
         }));
 
-        // 앨범, 그 다음 나머지 플레이리스트 순서
         return [...likedAlbumItems, ...playlistItems];
     }, [likedAlbums, likedPlaylists]);
+
 
     const gridClass = useMemo(
         () => `
@@ -78,40 +80,47 @@ export default function MyPlaylistsLiked() {
         </div>
 
         <div className="mb-4 mx-4 border-b border-[#464646]" />
-
         <div className="px-6 pb-8 overflow-x-auto">
             <div className={gridClass}>
             {items.map((it) => (
                 <button
                 key={`${it.kind}:${it.id}`}
                 type="button"
-                onClick={() => {
-                    if (it.kind === "album") navigate(`/album/${it.id}`);
-                    else navigate(`/playlist/${it.id}`);
-                }}
+                onClick={() => navigate(`/playlist/${it.id}`)}
                 className="w-[220px] text-left group"
                 >
                 <div className="relative aspect-square rounded-2xl bg-[#6b6b6b]/40 border border-[#464646] group-hover:bg-[#6b6b6b]/55 transition">
-                    {it.liked && (
-                    <div className={[
-                        "absolute top-2 right-3 text-xl drop-shadow",
-                        it.kind === "system" ? "text-[#E4524D]" : "text-[#AFDEE2]"].join(" ")}
-                    >♥
-                    </div>
+                    {it.coverUrl ? (
+                        <img
+                        src={it.coverUrl}
+                        alt={it.title}
+                        className="absolute inset-0 w-full h-full rounded-2xl object-cover opacity-90"
+                        loading="lazy"
+                        />
+                    ) : (
+                        <div className="absolute inset-0 bg-[#6b6b6b]/20" />
                     )}
-                </div>
 
-                <div className="mt-3 text-sm font-semibold text-[#F6F6F6] truncate">
-                    {it.title}
-                </div>
+                    {it.liked && (
+                      <div className={[
+                          "absolute top-2 right-3 text-xl drop-shadow",
+                          it.kind === "system" ? "text-[#E4524D]" : "text-[#AFDEE2]"].join(" ")}
+                      >♥
+                      </div>
+                    )}
+              </div>
 
-                <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">
-                    {it.owner}
-                </div>
-                </button>
-            ))}
-            </div>
+              <div className="mt-3 text-sm font-semibold text-[#F6F6F6] truncate">
+                {it.title}
+              </div>
+
+              <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">
+                {it.owner}
+              </div>
+            </button>
+          ))}
         </div>
-        </section>
+      </div>
+    </section>
     );
 }

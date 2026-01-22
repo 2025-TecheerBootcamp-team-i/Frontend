@@ -20,7 +20,7 @@ import {
     getUserPlaylists,
 } from "../../mocks/playlistMock";
 
-import { likeAlbum, unlikeAlbum } from "../../api/album";
+import { likeAlbum, unlikeAlbum, listLikedAlbums } from "../../api/album";
 
 type Track = { id: string; title: string; album: string; duration: string; albumImage?: string | null };
 type Album = { id: string; title: string; year: string; albumImage?: string | null };
@@ -41,6 +41,7 @@ type ApiAlbumDetail = {
     total_duration: number;
     total_duration_formatted: string;
     like_count: number;
+    is_liked?: boolean; // ✅ 백엔드에서 제공하면 사용, 없으면 프론트엔드에서 확인
     tracks: {
         music_id: number;
         music_name: string;
@@ -226,12 +227,37 @@ export default function AlbumDetailPage() {
 
     // 앨범 데이터 로드 시 좋아요 상태 업데이트
     useEffect(() => {
-        if (apiAlbum) {
-            setAlbumLikeCount(apiAlbum.like_count);
-            // is_liked 필드가 있으면 사용, 없으면 false
-            // TODO: 백엔드에서 is_liked 필드 추가 필요
-            setAlbumLiked(false); // 임시로 false, 백엔드 API 업데이트 필요
-        }
+        if (!apiAlbum) return;
+        
+        console.log("[AlbumPage] 앨범 데이터 로드:", {
+            album_id: apiAlbum.album_id,
+            album_name: apiAlbum.album_name,
+            like_count: apiAlbum.like_count,
+            is_liked: apiAlbum.is_liked
+        });
+        
+        // 항상 좋아요한 앨범 목록에서 정확한 like_count 가져오기
+        (async () => {
+            try {
+                const likedAlbums = await listLikedAlbums();
+                const likedAlbum = likedAlbums.find(album => album.album_id === apiAlbum.album_id);
+                
+                if (likedAlbum) {
+                    // 좋아요한 앨범이면 목록의 like_count 사용 (정확)
+                    setAlbumLiked(true);
+                    setAlbumLikeCount(likedAlbum.like_count);
+                } else {
+                    // 좋아요하지 않았으면 백엔드 응답 사용
+                    setAlbumLiked(apiAlbum.is_liked ?? false);
+                    setAlbumLikeCount(apiAlbum.like_count);
+                }
+            } catch (error) {
+                console.error("[AlbumPage] 좋아요 상태 확인 실패:", error);
+                // 에러 시 백엔드 응답 사용
+                setAlbumLiked(apiAlbum.is_liked ?? false);
+                setAlbumLikeCount(apiAlbum.like_count);
+            }
+        })();
     }, [apiAlbum]);
 
     const tracks = effective?.tracks ?? [];
@@ -495,7 +521,7 @@ export default function AlbumDetailPage() {
         <div className="w-full min-w-0 overflow-x-auto">
         {/* 상단 */}
         <section className="relative overflow-visible">
-            <div className="relative h-72 bg-[#1D1D1D]/70 border-b border-[#3D3D3D] overflow-hidden">
+            <div className="relative h-72 bg-[#1D1D1D]/70 border-b border-[#3D3D3D]/80 overflow-hidden">
             <button
                 type="button"
                 onClick={() => navigate(-1)}

@@ -1,8 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import type { ReactNode } from "react";
-import { listMyPlaylists, listLikedPlaylists, createPlaylist as createPlaylistAPI, deletePlaylist as deletePlaylistAPI } from "../api/playlist";
+import { listMyPlaylists, listLikedPlaylists, createPlaylist as createPlaylistAPI, deletePlaylist as deletePlaylistAPI, SYSTEM_LIKED_PLAYLIST_TITLE } from "../api/playlist";
 import type { PlaylistSummary } from "../api/playlist";
-import { SYSTEM_LIKED_PLAYLIST_TITLE } from "../api/playlist";
 
 // ==========================================
 // 타입 정의
@@ -89,8 +88,10 @@ export function PlaylistProvider({ children }: { children: ReactNode }) {
       if (myResult.status === "fulfilled") {
         const myMapped = myResult.value.map(mapToPlaylist);
         
-        // 시스템 플레이리스트를 맨 앞에 배치
-        const likedListIdx = myMapped.findIndex((p) => p.visibility === "system");
+        // 시스템 플레이리스트를 맨 앞에 배치 (visibility 또는 title로 확인)
+        const likedListIdx = myMapped.findIndex((p) => 
+          p.visibility === "system" || p.title === SYSTEM_LIKED_PLAYLIST_TITLE
+        );
         if (likedListIdx !== -1) {
           const [likedList] = myMapped.splice(likedListIdx, 1);
           myMapped.unshift(likedList);
@@ -137,12 +138,37 @@ export function PlaylistProvider({ children }: { children: ReactNode }) {
       
       const mapped = mapToPlaylist(newPlaylist);
       
-      // 시스템 플레이리스트 다음에 삽입
+      // 시스템 플레이리스트 다음에 삽입 (시스템 플레이리스트는 항상 맨 앞)
       setMyPlaylists((prev) => {
-        if (prev.length > 0 && prev[0].title === SYSTEM_LIKED_PLAYLIST_TITLE) {
-          return [prev[0], mapped, ...prev.slice(1)];
+        // visibility 또는 title로 시스템 플레이리스트 찾기
+        const systemIdx = prev.findIndex((p) => 
+          p.visibility === "system" || p.title === SYSTEM_LIKED_PLAYLIST_TITLE
+        );
+        
+        console.log("[PlaylistContext] 플레이리스트 생성:", {
+          새플레이리스트: mapped.title,
+          기존목록: prev.map(p => ({ title: p.title, visibility: p.visibility })),
+          시스템플레이리스트위치: systemIdx
+        });
+        
+        if (systemIdx !== -1) {
+          // 시스템 플레이리스트가 있으면 그 다음에 삽입
+          const result = [
+            ...prev.slice(0, systemIdx + 1),
+            mapped,
+            ...prev.slice(systemIdx + 1)
+          ];
+          
+          console.log("[PlaylistContext] 삽입 후 목록:", 
+            result.map(p => ({ title: p.title, visibility: p.visibility }))
+          );
+          
+          return result;
         }
-        return [mapped, ...prev];
+        
+        // 시스템 플레이리스트가 없으면 맨 뒤에 추가
+        console.warn("[PlaylistContext] ⚠️ 시스템 플레이리스트가 없습니다!");
+        return [...prev, mapped];
       });
       
       return mapped;

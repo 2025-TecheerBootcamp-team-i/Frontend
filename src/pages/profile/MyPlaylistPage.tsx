@@ -2,9 +2,9 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import React, { useRef, useMemo, useState, useEffect } from "react";
 import { MdOutlineNavigateNext } from "react-icons/md";
 import { usePlaylists } from "../../contexts/PlaylistContext";
-import { SYSTEM_LIKED_PLAYLIST_TITLE } from "../../api/playlist";
 import { listLikedAlbums, type LikedAlbumSummary } from "../../api/album";
 
+/* ===================== 타입 ===================== */
 type PlaylistItem = {
     id: string;
     title: string;
@@ -12,8 +12,12 @@ type PlaylistItem = {
     scope: "personal" | "shared";
     liked?: boolean;
     kind?: "playlist" | "system" | "album";
+    isPublic?: boolean;        // 공개/비공개
+    coverUrl?: string | null;  // 단일 대표커버
+    coverUrls?: string[];      // 2x2 모자이크용(좋아요 카드에서 사용)
 };
 
+/* ===================== UI 컴포넌트 ===================== */
 function Tab({ to, label }: { to: string; label: string }) {
     return (
         <NavLink
@@ -140,6 +144,7 @@ function Tab({ to, label }: { to: string; label: string }) {
         </div>
     );
     }
+/* ===================== UI 컴포넌트 ===================== */
 
     function Section({
     title,
@@ -179,14 +184,48 @@ function Tab({ to, label }: { to: string; label: string }) {
             <div className="flex gap-5 min-w-max pr-2">
                 {items.map((it) => (
                 <button
-                    key={it.id}
+                    key={`${it.kind ?? "playlist"}:${it.id}`}
                     type="button"
                     onClick={() => onClickItem?.(it.id)}
                     className="w-[220px] text-left group shrink-0"
                 >
-                    <div className="relative aspect-square rounded-2xl bg-[#6b6b6b]/40 border border-[#464646] group-hover:bg-[#6b6b6b]/55 transition">
+                    <div className="relative aspect-square rounded-2xl overflow-hidden bg-[#6b6b6b]/40 border border-[#464646] group-hover:bg-[#6b6b6b]/55 transition">
+                      {/* ✅ 커버(2x2 모자이크 우선) */}
+                        {it.coverUrls?.length ? (
+                            <div className="absolute inset-0 grid grid-cols-2 grid-rows-2">
+                            {Array.from({ length: 4 }).map((_, idx) => {
+                                const src = it.coverUrls?.[idx];
+                                return src ? (
+                                <img
+                                    key={idx}
+                                    src={src}
+                                    alt={`${it.title} cover ${idx + 1}`}
+                                    className="w-full h-full object-cover"
+                                    loading="lazy"
+                                    decoding="async"
+                                    onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                                    }}
+                                />
+                                ) : (
+                                <div key={idx} className="w-full h-full bg-[#3a3a3a]/40" />
+                                );
+                            })}
+                            </div>
+                        ) : it.coverUrl ? (
+                            <img
+                            src={it.coverUrl}
+                            alt={`${it.title} cover`}
+                            className="absolute inset-0 w-full h-full object-cover"
+                            loading="lazy"
+                            decoding="async"
+                            onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).style.display = "none";
+                            }}
+                            />
+                        ) : null}
                     {/* ❤️ 좋아요 하트 */}
-                    {it.liked ? (
+                    {it.liked || it.kind === "system" ? (
                     <div className={[
                         "absolute top-2 right-3 text-xl drop-shadow",
                         it.kind === "system" ? "text-[#E4524D]" : "text-[#AFDEE2]"].join(" ")}
@@ -210,6 +249,7 @@ function Tab({ to, label }: { to: string; label: string }) {
     );
 }
 
+/* ===================== 페이지 화면 및 API ===================== */
 export default function MyPlaylistPage() {
     const navigate = useNavigate();
     const { pathname } = useLocation();
@@ -222,8 +262,9 @@ export default function MyPlaylistPage() {
     const [likedAlbums, setLikedAlbums] = useState<LikedAlbumSummary[]>([]);
 
     useEffect(() => {
-        const fetchLikedAlbums = async () => {
+        const fetchData = async () => {
             try {
+                // 좋아요한 앨범 가져오기
                 const albums = await listLikedAlbums();
                 setLikedAlbums(albums);
             } catch (error) {
@@ -232,10 +273,10 @@ export default function MyPlaylistPage() {
             }
         };
 
-        fetchLikedAlbums();
+        fetchData();
     }, []);
 
-    // 좋아요 목록: 좋아요한 앨범 + 좋아요한 플레이리스트 (시스템 플레이리스트 제외)
+    // 좋아요 목록: 좋아요한 앨범 + 다른 사람의 플레이리스트
     const likedAll = useMemo((): PlaylistItem[] => {
         // 1. 좋아요한 앨범 (실제 API에서)
         const likedAlbumItems: PlaylistItem[] = likedAlbums.map((album) => ({
@@ -260,10 +301,10 @@ export default function MyPlaylistPage() {
         return [...likedAlbumItems, ...likedPlaylistItems];
     }, [likedAlbums, likedPlaylists]);
 
-    // 개인 플레이리스트 (시스템 플레이리스트 포함)
+    // 개인 플레이리스트 (시스템 플레이리스트 포함, 맨 앞에 고정)
     const personalPlaylistsOnly = useMemo((): PlaylistItem[] => {
         return myPlaylists.map((p): PlaylistItem => {
-            const kind: "system" | "playlist" = p.title === SYSTEM_LIKED_PLAYLIST_TITLE ? "system" : "playlist";
+            const kind: "system" | "playlist" = p.visibility === "system" ? "system" : "playlist";
             return {
                 id: p.id,
                 title: p.title,

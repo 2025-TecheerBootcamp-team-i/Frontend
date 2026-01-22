@@ -9,13 +9,13 @@ import { FaCheckCircle } from "react-icons/fa";
 import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
 import { requireLogin } from "../../api/auth";
-import { likeTrack } from "../../api/music";
 
 import {
-  listPlaylists,
+  listMyPlaylists,
   addPlaylistItems,
   type PlaylistSummary,
 } from "../../api/playlist";
+import { likeTrack } from "../../api/LikedSong";
 
 
 /* ===================== 타입 ===================== */
@@ -84,6 +84,7 @@ export default function SearchSong() {
   const excludeAi = sp.get("noai") === "1";
 
   const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
+  const __DEV__ = import.meta.env.DEV;
 
   // API 데이터 상태
   const [apiSongs, setApiSongs] = useState<Song[]>([]);
@@ -476,10 +477,13 @@ export default function SearchSong() {
         setAddTargetsLoading(true);
         setAddTargetsError(null);
 
-        const data = await listPlaylists();
+        // 내 플레이리스트만 가져오기 (시스템 플레이리스트 제외)
+        const data = await listMyPlaylists();
         if (cancelled) return;
 
-        setAddTargets(data);
+        // 시스템 플레이리스트 제외
+        const filtered = data.filter((p) => p.visibility !== "system");
+        setAddTargets(filtered);
       } catch (e) {
         console.error("[SearchSong] 플레이리스트 목록 불러오기 실패:", e);
         if (cancelled) return;
@@ -511,7 +515,6 @@ const addSelectedToPlaylist = async (playlistId: string) => {
 
     await addPlaylistItems(playlistId, unique);
 
-    // 성공하면
     setAddOpen(false);
     setCheckedIds({});
   } catch (e) {
@@ -524,7 +527,7 @@ const addSelectedToLiked = async () => {
 if (selectedCount === 0) return;
 
 try {
-  // ✅ 좋아요 API는 itunes_id가 아니라 music_id가 필요
+  // 좋아요 API는 itunes_id가 아니라 music_id가 필요
   const musicIds = (await Promise.all(checkedSongs.map(findMusicId)))
     .filter((id): id is number => typeof id === "number");
 
@@ -552,9 +555,11 @@ try {
 
   setCheckedIds({});
 
-  if (fail > 0) {
-    alert(`좋아요 완료: ${ok}곡 / 실패: ${fail}곡`);
-  }
+if (fail === 0) {
+  alert(`좋아요 완료: ${ok}곡`);
+} else {
+  alert(`좋아요 완료: ${ok}곡 / 실패: ${fail}곡`);
+}
 } catch (e) {
   console.error("[SearchSong] 좋아요 실패:", e);
   alert("좋아요 실패했어요. 잠시 후 다시 시도해주세요.");
@@ -707,7 +712,7 @@ try {
           </div>
         ) : songs.length === 0 ? (
           <div className="px-6 py-12 text-center text-[#999]">
-            {q ? "검색 결과가 없습니다." : "검색어를 입력해주세요."}
+            {q ? "" : "검색어를 입력해주세요."}
           </div>
         ) : (
           songs.map((s) => (
@@ -749,25 +754,29 @@ try {
                       alt={s.title}
                       className="w-full h-full object-cover relative z-10"
                       onError={(e) => {
-                        console.error(`[SearchSong] ❌ 곡 앨범 이미지 로드 실패:`, {
-                          song: s.title,
-                          album_id: apiSong?.albumId,
-                          image_url: albumImage,
-                        });
+                        if (__DEV__) {
+                          console.error("[SearchSong] ❌ 곡 앨범 이미지 로드 실패:", {
+                            song: s.title,
+                            album_id: apiSong?.albumId,
+                            image_url: albumImage,
+                          });
+                        }
                         (e.target as HTMLImageElement).style.display = "none";
                       }}
+                      
                       onLoad={(e) => {
-                        console.log(`[SearchSong] ✅ 곡 앨범 이미지 로드 성공:`, {
-                          song: s.title,
-                          album_id: apiSong?.albumId,
-                          image_url: albumImage,
-                        });
+                        if (__DEV__) {
+                          console.log("[SearchSong] ✅ 곡 앨범 이미지 로드 성공:", {
+                            song: s.title,
+                            album_id: apiSong?.albumId,
+                            image_url: albumImage,
+                          });
+                        }
                         const img = e.target as HTMLImageElement;
                         const fallback = img.nextElementSibling as HTMLElement;
-                        if (fallback) {
-                          fallback.style.display = "none";
-                        }
+                        if (fallback) fallback.style.display = "none";
                       }}
+                      
                       loading="lazy"
                     />
                     <div className="absolute inset-0 bg-[#6b6b6b]/50 animate-pulse z-0" />
@@ -846,7 +855,7 @@ try {
                         >
                         <div className="text-sm font-semibold text-[#F6F6F6] truncate">{p.title}</div>
                         <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">
-                            {p.creator_nickname} · {p.visibility ? "공개" : "비공개"}
+                            {p.creator_nickname} · {p.visibility === "public" ? "공개" : "비공개"}
                         </div>
                         </button>
                     ))

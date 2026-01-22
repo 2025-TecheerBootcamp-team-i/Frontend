@@ -2,7 +2,6 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { MdOutlineNavigateNext, MdPlayArrow } from "react-icons/md";
-import axios from "axios";
 
 import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
@@ -177,6 +176,21 @@ type ArtistAlbum = {
   album_image: string | null;
   image_large_square: string | null; // ✅ RDS에 저장된 이미지 (우선 사용)
 };
+
+type Playlist = { id: string; title: string; owner: string; image?: string | null; trackCount?: number };
+
+const DUMMY_PLAYLISTS: Playlist[] = Array.from({ length: 12 }).map((_, i) => ({
+  id: String(i + 1),
+  title:
+    i % 3 === 0
+      ? `#christmas playlist ${i + 1}`
+      : i % 3 === 1
+      ? `감성 플리 ${i + 1}`
+      : `공부할 때 듣는 플리 ${i + 1}`,
+  owner: `user_${(i % 5) + 1}`,
+  image: null,
+  trackCount: 10 + i * 2,
+}));
 
 /* =====================
   UI Helpers (Skeleton/Empty)
@@ -439,6 +453,19 @@ export default function SearchHome() {
     }));
   }, [API_BASE, q, apiAlbums]);
 
+  const playlists = useMemo<Playlist[]>(() => {
+    // ✅ API 붙이기 전: 더미만 사용
+    if (!q.trim()) return [];
+    const lower = q.toLowerCase();
+  
+    return DUMMY_PLAYLISTS.filter(
+      (p) =>
+        p.title.toLowerCase().includes(lower) ||
+        p.owner.toLowerCase().includes(lower)
+    );
+  }, [q]);
+  
+
   // 상위 결과: 아티스트 정확일치 > 아티스트 > 곡
   const featured = useMemo(() => {
     if (!API_BASE || !q.trim()) return null;
@@ -647,6 +674,7 @@ export default function SearchHome() {
 
                                       if (!audioUrl && musicId) {
                                         try {
+                                          const { default: axios } = await import("axios");
                                           const playRes = await axios.get<{ audio_url: string }>(
                                             `${API_BASE}/tracks/${musicId}/play`,
                                             { headers: { "Content-Type": "application/json" } }
@@ -726,7 +754,9 @@ export default function SearchHome() {
 
                                   // audio_url 없고 music_id 있으면 /play
                                   if (!audioUrl && musicId) {
-                                    const playRes = await axios.get<{ audio_url: string }>(
+                                    const { default: axios } = await import("axios");
+                                    const playRes = await axios.get<{ 
+                                      audio_url: string }>(
                                       `${API_BASE}/tracks/${musicId}/play`,
                                       { headers: { "Content-Type": "application/json" } }
                                     );
@@ -1054,6 +1084,62 @@ export default function SearchHome() {
               </HorizontalScroller>
             )}
           </SectionShell>
+          {/* ✅ 플레이리스트 */}
+          <SectionShell title="플레이리스트" onMore={() => navigate(`/search/playlist${search}`)}>
+            {loading && hasQuery ? (
+              <HorizontalScroller gradientFromClass="from-[#2d2d2d]/80">
+                <div className="flex gap-2 min-w-max px-2">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="w-[220px] text-left shrink-0">
+                      <SkeletonBox className="w-48 h-48 rounded-2xl" />
+                      <SkeletonBox className="mt-3 ml-1 h-4 w-36 rounded-md" />
+                      <SkeletonBox className="mt-2 ml-1 h-3 w-24 rounded-md" />
+                    </div>
+                  ))}
+                </div>
+              </HorizontalScroller>
+            ) : playlists.length === 0 ? (
+              <div className="px-2">
+                <EmptyText>
+                  {hasQuery ? "해당 검색어의 플레이리스트가 없습니다." : "검색어를 입력하면 플레이리스트가 표시됩니다."}
+                </EmptyText>
+              </div>
+            ) : (
+              <HorizontalScroller gradientFromClass="from-[#2d2d2d]/80">
+                <div className="flex gap-2 min-w-max px-2">
+                  {playlists.slice(0, 10).map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => navigate(`/playlist/${p.id}`)}
+                      className="w-[220px] text-left group shrink-0"
+                    >
+                      <div className="w-48 h-48 rounded-2xl bg-white/10 transition overflow-hidden relative">
+                        {p.image ? (
+                          <img
+                            src={p.image}
+                            alt={p.title}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-white/10" />
+                        )}
+                      </div>
+
+                      <div className="mt-3 ml-1 text-sm font-semibold text-[#F6F6F6] truncate">
+                        {p.title}
+                      </div>
+                      <div className="mt-1 ml-1 text-xs text-[#F6F6F6]/60 truncate">
+                        {p.owner} · {p.trackCount ?? 0}곡
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </HorizontalScroller>
+            )}
+          </SectionShell>
+
         </div>
       </div>
     </div>

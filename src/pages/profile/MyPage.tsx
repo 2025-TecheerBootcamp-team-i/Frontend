@@ -10,8 +10,7 @@ import { MdEdit } from "react-icons/md";
 import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
 import type { Playlist } from "../../components/layout/MainLayout";
-import { getMyAiSongs, subscribeAiSongs } from "../../mocks/aiSongMock";
-import type { AiTrack } from "../../mocks/aiSongMock";
+import { fetchUserAiMusic } from "../../api/user";
 import { fetchUserStatistics, fetchTopTracks, type UserStatistics, type TopTrack } from "../../api/user";
 import { getCurrentUserNickname, updateCurrentUserNickname, getCurrentUserId } from "../../utils/auth";
 
@@ -39,6 +38,12 @@ type HorizontalScrollerProps = {
     children: React.ReactNode;
     scrollStep?: number;
     gradientFromClass?: string; // 배경색 맞추기
+};
+
+type MyAiPreviewItem = {
+    id: string;
+    title: string;
+    coverUrl?: string;
 };
 
 function HorizontalScroller({
@@ -221,17 +226,52 @@ export default function MyPage() {
     // ✅ 로그인한 사용자 ID 가져오기
     const CURRENT_USER_ID = getCurrentUserId() || "me";
 
-    // ✅ 마이페이지 프리뷰용 AI곡
-    const [myAiPreview, setMyAiPreview] = useState<AiTrack[]>([]);
+    // ✅ 마이페이지 프리뷰용 AI곡 (API 기반)
+    const [myAiPreview, setMyAiPreview] = useState<MyAiPreviewItem[]>([]);
+    const [aiLoading, setAiLoading] = useState(true);
+    const [aiError, setAiError] = useState<string | null>(null);
 
     useEffect(() => {
-    const syncAi = () => {
-        setMyAiPreview(getMyAiSongs(String(CURRENT_USER_ID)).slice(0, 12));
+    const loadAiPreview = async () => {
+        const userId = getCurrentUserId();
+        if (!userId) {
+        setAiError("로그인이 필요합니다.");
+        setAiLoading(false);
+        setMyAiPreview([]);
+        return;
+        }
+
+        try {
+        setAiLoading(true);
+        setAiError(null);
+
+        const data = await fetchUserAiMusic(userId);
+
+        // 최신순 정렬
+        const sorted = [...data].sort((a, b) => {
+            const dateA = new Date(a.created_at).getTime();
+            const dateB = new Date(b.created_at).getTime();
+            return dateB - dateA;
+        });
+
+        // 프리뷰용으로 매핑 (12개만)
+        const mapped: MyAiPreviewItem[] = sorted.slice(0, 12).map((music) => ({
+            id: music.music_id.toString(),
+            title: music.music_name || "제목 없음",
+            coverUrl: music.album_image_square || undefined,
+        }));
+
+        setMyAiPreview(mapped);
+        } catch (err) {
+        console.error("AI 프리뷰 로드 실패:", err);
+        setAiError("AI 생성곡을 불러오는데 실패했습니다.");
+        setMyAiPreview([]);
+        } finally {
+        setAiLoading(false);
+        }
     };
 
-    syncAi();
-    const off = subscribeAiSongs(syncAi);
-    return () => { off(); }; // ✅ boolean cleanup 방지
+    loadAiPreview();
     }, [CURRENT_USER_ID]);
 
 
@@ -532,7 +572,7 @@ export default function MyPage() {
                 </div>
 
                 {/* 나의 플레이리스트 */}
-                <div className="rounded-3xl border border-[#2d2d2d] bg-[#2d2d2d]/80 p-6">
+                <div className="rounded-3xl border border-[#2d2d2d] bg-[#2d2d2d]/80 px-6 pt-6 pb-4">
                     <div className="flex items-center justify-between">
                     <button
                         type="button"
@@ -580,7 +620,7 @@ export default function MyPage() {
                             </div>
 
                             <div className="mt-3">
-                                <div className="text-sm font-medium text-[#F6F6F6] truncate">{p.title}</div>
+                                <div className="text-sm mb-2 font-medium text-[#F6F6F6] truncate">{p.title}</div>
                             </div>
                         </button>
                         ))}
@@ -590,7 +630,7 @@ export default function MyPage() {
                 </div>
 
                 {/* 나의 AI 생성곡 */}
-                <div className="rounded-3xl border border-[#2d2d2d] bg-[#2d2d2d]/80 p-6">
+                <div className="rounded-3xl border border-[#2d2d2d] bg-[#2d2d2d]/80 px-6 pt-6 pb-4">
                     <div className="flex items-center justify-between">
                     <button
                         type="button"
@@ -615,77 +655,83 @@ export default function MyPage() {
 
                     <HorizontalScroller gradientFromClass="from-[#2d2d2d]">
                     <div className="flex gap-1 w-max">
-                        {myAiPreview.map((t) => (
-                        <button
-                            key={t.id}
-                            type="button"
-                            onClick={() => navigate(`/aisong/${t.id}`)} // ✅ 상세로 이동
-                            className="
-                            w-[145px]
-                            shrink-0
-                            flex flex-col
-                            rounded-xl
-                            hover:bg-white/5
-                            transition
-                            p-2
-                            text-left
-                            "
-                        >
-                            <div className="w-full aspect-square rounded-xl bg-[#777777] overflow-hidden">
-                            {t.coverUrl ? (
-                                <img
-                                src={t.coverUrl}
-                                alt={t.title}
-                                className="w-full h-full object-cover"
-                                />
-                            ) : null}
-                            </div>
+                        {aiLoading ? (
+                        <div className="px-3 py-6 text-sm text-[#F6F6F6]/60">로딩 중...</div>
+                        ) : aiError ? (
+                        <div className="px-3 py-6 text-sm text-red-400">{aiError}</div>
+                        ) : (
+                        <>
+                            {myAiPreview.map((t) => (
+                            <button
+                                key={t.id}
+                                type="button"
+                                onClick={() => navigate(`/aisong/${t.id}`)} // ✅ 상세로 이동
+                                className="
+                                w-[145px]
+                                shrink-0
+                                flex flex-col
+                                rounded-xl
+                                hover:bg-white/5
+                                transition
+                                p-2
+                                text-left
+                                "
+                            >
+                                <div className="w-full aspect-square rounded-xl bg-[#777777] overflow-hidden">
+                                {t.coverUrl ? (
+                                    <img
+                                    src={t.coverUrl}
+                                    alt={t.title}
+                                    className="w-full h-full object-cover"
+                                    />
+                                ) : null}
+                                </div>
 
-                            <div className="mt-3">
-                            <div className="text-sm font-medium text-[#F6F6F6] truncate">
-                                {t.title}
-                            </div>
-                            <div className="mt-1 text-xs text-[#999999] truncate">
-                                {t.createdAt || "생성일 없음"}
-                            </div>
-                            </div>
-                        </button>
-                        ))}
+                                <div className="mt-3">
+                                <div className="text-sm mb-2 font-medium text-[#F6F6F6] truncate">
+                                    {t.title}
+                                </div>
+                                </div>
+                            </button>
+                            ))}
 
-                        {/* ✅ 없을 때: 만들기 카드 */}
-                        {myAiPreview.length === 0 && (
-                        <button
-                            type="button"
-                            onClick={() => navigate("/ai/create")}
-                            className="
-                            w-[145px]
-                            shrink-0
-                            flex flex-col
-                            rounded-xl
-                            border border-[#464646]
-                            bg-white/5
-                            hover:bg-white/10
-                            transition
-                            p-2
-                            text-left
-                            "
-                        >
-                            <div className="w-full aspect-square rounded-xl bg-[#777777]/40 flex items-center justify-center text-[#F6F6F6]/70 text-base">
-                            +
-                            </div>
+                            {/* ✅ 없을 때: 만들기 카드 */}
+                            {myAiPreview.length === 0 && (
+                            <button
+                                type="button"
+                                onClick={() => navigate("/ai/create")}
+                                className="
+                                w-[145px]
+                                shrink-0
+                                flex flex-col
+                                rounded-xl
+                                border border-[#464646]
+                                bg-white/5
+                                hover:bg-white/10
+                                transition
+                                p-2
+                                text-left
+                                "
+                            >
+                                <div className="w-full aspect-square rounded-xl bg-[#777777]/40 flex items-center justify-center text-[#F6F6F6]/70 text-base">
+                                +
+                                </div>
 
-                            <div className="mt-3">
-                            <div className="text-sm font-medium text-[#F6F6F6] truncate">
-                                AI 곡 생성
-                            </div>
-                            <div className="mt-1 text-xs text-[#999999] truncate">
-                                아직 만든 곡이 없어요
-                            </div>
-                            </div>
-                        </button>
+                                <div className="mt-3">
+                                <div className="text-sm font-medium text-[#F6F6F6] truncate">
+                                    AI 곡 생성
+                                </div>
+                                <div className="mt-1 text-xs text-[#999999] truncate">
+                                    아직 만든 곡이 없어요
+                                </div>
+                                </div>
+                            </button>
+                            )}
+                        </>
                         )}
                     </div>
                     </HorizontalScroller>
+
 
                 </div>
                 </section>

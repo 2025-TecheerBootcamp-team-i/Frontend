@@ -2,7 +2,6 @@ import { MdOutlineNavigateNext } from "react-icons/md";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Playlist } from "../../components/layout/MainLayout";
-import { createAiSong } from "../../mocks/aiSongMock";
 import { getProfile } from "../../utils/auth";
 
 const PLAYER_H = 85; // ✅ 플레이어 높이(px)
@@ -33,24 +32,12 @@ function Sidebar({
     };
   }, []);
 
-  const CURRENT_USER_ID = "me";
-  const CURRENT_USER_NAME = "나";
-
   const handleGenerate = () => {
     const v = prompt.trim();
     if (!v) return;
 
-    createAiSong({
-      title: "새 AI 곡",
-      desc: "AI로 생성한 곡",
-      prompt: v,
-      ownerId: CURRENT_USER_ID,
-      ownerName: CURRENT_USER_NAME,
-      status: "Draft",
-    });
-
+    navigate(`/ai/create?prompt=${encodeURIComponent(v)}`);
     setPrompt("");
-    navigate("/my/ai-songs");
   };
 
   return (
@@ -69,7 +56,6 @@ function Sidebar({
     >
       {/* ✅ 스크롤 없음: overflow-y-auto 절대 넣지 말기 */}
       <div className="flex flex-col gap-4 flex-1 min-h-0">
-        {/* 마이페이지: 조금 늘어도 OK, 하지만 넘치면 안 되니까 clamp로 안전하게 */}
         <div
           className="
             w-full
@@ -125,16 +111,21 @@ function Sidebar({
               나의 플레이리스트
             </button>
 
-            <div className="mb-3 border-b border-[#464646]" />
+            <div className="mb-2 border-b border-[#464646]" />
 
-            <div className="p-1 overflow-x-auto overflow-y-hidden no-scrollbar">
-              <div className="flex gap-3">
+            <div className="p-1 overflow-x-auto overflow-y-hidden">
+              <div className="flex gap-3 overflow-visible">
                 {playlists.map((p) => (
                   <button
                     onClick={() => navigate(`/playlist/${p.id}`)}
                     key={p.id}
                     type="button"
-                    className="shrink-0 w-20 h-20 rounded-xl overflow-hidden bg-[#777777] hover:scale-[1.03] hover:shadow transition"
+                    className="
+                      shrink-0
+                      w-[clamp(80px,11vh,100px)]
+                      h-[clamp(80px,11vh,100px)]
+                      rounded-xl overflow-hidden bg-[#777777] hover:scale-[1.03] hover:shadow transition
+                      z-10 relative hover:z-30 origin-center"
                     title={p.title}
                   >
                     {p.coverUrl ? (
@@ -150,7 +141,11 @@ function Sidebar({
                 <button
                   onClick={onCreatePlaylist}
                   type="button"
-                  className="shrink-0 w-10 h-20 bg-[#777777] rounded-xl hover:bg-zinc-400 transition text-[#3D3D3D]"
+                  className="
+                    shrink-0
+                    w-[clamp(80px,11vh,100px)]
+                    h-[clamp(80px,11vh,100px)]
+                    bg-[#777777] rounded-xl hover:bg-zinc-400 transition text-[#3D3D3D] flex items-center justify-center text-3xl"
                   aria-label="플레이리스트 추가"
                   title="플레이리스트 추가"
                 >

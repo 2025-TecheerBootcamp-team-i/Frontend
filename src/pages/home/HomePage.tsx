@@ -345,7 +345,7 @@ function HomePage() {
         type="button"
         onClick={() => setTab(key)}
         className={[
-            "h-8 px-4 rounded-full text-sm transition whitespace-nowrap",
+            "h-9 px-4 rounded-full text-sm transition whitespace-nowrap",
             active
             ? "bg-[#E4524D] text-[#F6F6F6]"
             : "bg-[#4d4d4d] text-[#F6F6F6] hover:bg-[#5d5d5d]",
@@ -416,7 +416,7 @@ function HomePage() {
                     type="button"
                     onClick={() => navigate(`/artists/${a.artist_id}`)}
                     className="
-                        w-[140px] h-[140px] rounded-full bg-[#3d3d3d]
+                        w-[170px] h-[170px] rounded-full bg-[#3d3d3d]
                         transition-all duration-300
                         hover:-translate-y-1 hover:scale-105
                         drop-shadow-md
