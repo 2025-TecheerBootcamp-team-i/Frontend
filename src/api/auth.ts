@@ -96,5 +96,8 @@ export function logoutClient() {
   // localStorage.removeItem("playlists_cache");
 
   delete axiosInstance.defaults.headers.common.Authorization;
+
+  // ✅ 로그아웃 이벤트 발생 (PlaylistContext가 상태를 초기화하도록)
+  window.dispatchEvent(new Event("logout"));
 }
 

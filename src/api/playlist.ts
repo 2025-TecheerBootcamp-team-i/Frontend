@@ -24,6 +24,7 @@ export interface PlaylistSummary {
   playlist_id: number;
   title: string;
   visibility: "public" | "private";
+  user_id: number; // 플레이리스트 소유자 ID
   creator_nickname: string;
   item_count: number;
   like_count: number;
@@ -96,6 +97,37 @@ export async function listPlaylists(params?: ListPlaylistsParams): Promise<Playl
 }
 
 /**
+ * 1-1. 내 플레이리스트 조회 (개인 탭용)
+ * GET /playlists?visibility=private
+ */
+export async function listMyPlaylists(): Promise<PlaylistSummary[]> {
+  const response = await axiosInstance.get<PlaylistSummary[]>("/playlists", {
+    params: { visibility: "private" }
+  });
+  return response.data;
+}
+
+/**
+ * 1-2. 공개 플레이리스트 조회 (홈 화면용)
+ * GET /playlists?visibility=public
+ */
+export async function listPublicPlaylists(): Promise<PlaylistSummary[]> {
+  const response = await axiosInstance.get<PlaylistSummary[]>("/playlists", {
+    params: { visibility: "public" }
+  });
+  return response.data;
+}
+
+/**
+ * 1-3. 좋아요한 플레이리스트 조회 (좋아요 탭용)
+ * GET /api/v1/playlists/likes
+ */
+export async function listLikedPlaylists(): Promise<PlaylistSummary[]> {
+  const response = await axiosInstance.get<PlaylistSummary[]>("/playlists/likes");
+  return response.data;
+}
+
+/**
  * 2. 플레이리스트 상세 조회 (Get Playlist Detail)
  * GET /api/v1/playlists/{playlist_id}
  */
@@ -112,9 +144,18 @@ export async function createPlaylist(data: CreatePlaylistRequest): Promise<Playl
   const response = await axiosInstance.post<PlaylistDetail>("/playlists", data);
   return response.data;
 }
+/**
+ * 4. 플레이리스트 삭제 (Delete Playlist)
+ * DELETE /api/v1/playlists/{playlist_id}
+ */
+export async function deletePlaylist(playlistId: number | string): Promise<{ message: string }> {
+  // 백엔드에서 삭제 성공 시 보통 { message: "삭제되었습니다" } 같은 응답을 줍니다.
+  const response = await axiosInstance.delete<{ message: string }>(`/playlists/${playlistId}`);
+  return response.data;
+}
 
 /**
- * 4. 플레이리스트 수정 (Update Playlist)
+ * 5. 플레이리스트 수정 (Update Playlist)
  * PATCH /api/v1/playlists/{playlist_id}
  */
 export async function updatePlaylist(
@@ -126,7 +167,7 @@ export async function updatePlaylist(
 }
 
 /**
- * 5. 플레이리스트에 곡 추가 (Add Items)
+ * 6. 플레이리스트에 곡 추가 (Add Items)
  * POST /api/v1/playlists/{playlist_id}/items
  */
 export async function addPlaylistItems(
@@ -139,8 +180,9 @@ export async function addPlaylistItems(
   return response.data;
 }
 
+
 /**
- * 6. 플레이리스트 내 곡 삭제 (Delete Items)
+ * 7. 플레이리스트 내 곡 삭제 (Delete Items)
  * DELETE /api/v1/playlists/{playlist_id}/items
  */
 export async function deletePlaylistItems(
@@ -148,7 +190,7 @@ export async function deletePlaylistItems(
   itemIds: number[]
 ): Promise<DeletePlaylistItemsResponse> {
   const response = await axiosInstance.delete<DeletePlaylistItemsResponse>(
-    `/playlists/${playlistId}/items`,
+    `/playlists/items/${playlistId}`,
     { data: { item_ids: itemIds } as DeletePlaylistItemsRequest }
   );
   return response.data;
@@ -176,12 +218,3 @@ export async function unlikePlaylist(playlistId: number | string): Promise<LikeP
   return response.data;
 }
 
-/**
- * (참고) 개별 곡 좋아요
- * POST /api/v1/tracks/{music_id}/likes
- * NOTE: 추후 music.ts 또는 track.ts로 이동을 고려하세요.
- */
-export async function likeTrack(musicId: number): Promise<unknown> {
-  const response = await axiosInstance.post(`/tracks/${musicId}/likes`);
-  return response.data;
-}

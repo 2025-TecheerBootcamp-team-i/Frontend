@@ -41,6 +41,8 @@ import ChartAI from "./pages/chart/ChartAI";
 
 import NowPlayingPage from "./pages/song/NowPlayingPage";
 import { PlayerProvider } from "./player/PlayerContext";
+import { ToastProvider } from "./components/common/ToastProvider";
+import { PlaylistProvider } from "./contexts/PlaylistContext";
 
 const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
 
@@ -62,7 +64,9 @@ function SearchRedirect() {
 export default function App() {
   return (
     <PlayerProvider>
-      <Routes>
+      <ToastProvider>
+        <PlaylistProvider>
+          <Routes>
 
       {/* ✅ 사이드바가 필요한 모든 페이지 */}
       <Route element={<MainLayout />}>
@@ -144,7 +148,9 @@ export default function App() {
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+          </Routes>
+        </PlaylistProvider>
+      </ToastProvider>
     </PlayerProvider>
   );
 }

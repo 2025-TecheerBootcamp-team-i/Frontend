@@ -30,3 +30,12 @@ export async function fetchAudioUrl(musicId: number): Promise<string> {
   );
   return res.data.audio_url;
 }
+
+/**
+ * (참고) 개별 곡 좋아요
+ * POST /api/v1/tracks/{music_id}/likes
+ */
+export async function likeTrack(musicId: number): Promise<unknown> {
+  const response = await axiosInstance.post(`/tracks/${musicId}/likes`);
+  return response.data;
+}

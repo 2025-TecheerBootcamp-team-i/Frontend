@@ -1,13 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-    getAllPlaylists,
-    subscribePlaylists,
-    getLikedPlaylistIds,
-    getLikedAlbumIds,
-    LIKED_SYSTEM_ID,
-} from "../../mocks/playlistMock";
-
+import { usePlaylists } from "../../contexts/PlaylistContext";
+import { getLikedAlbumIds } from "../../mocks/playlistMock";
 import { ARTISTS } from "../../mocks/artistsMock";
 
 type PlaylistItem = {
@@ -20,91 +14,63 @@ type PlaylistItem = {
 
 export default function MyPlaylistsLiked() {
     const navigate = useNavigate();
-    const [items, setItems] = useState<PlaylistItem[]>([]);
+    const { likedPlaylists } = usePlaylists();
 
-    // ✅ albumKey(id 또는 title) -> { id, title, artist } 로 해석
+    // 앨범 메타데이터 해석
     const resolveAlbumMeta = useMemo(() => {
         const byId = new Map<string, { title: string; artist: string }>();
         const byTitle = new Map<string, { id: string; title: string; artist: string }>();
 
         Object.values(ARTISTS).forEach((artist) => {
-        artist.albums.forEach((alb) => {
-            byId.set(alb.id, { title: alb.title, artist: artist.name });
-            byTitle.set(alb.title, { id: alb.id, title: alb.title, artist: artist.name });
-        });
+            artist.albums.forEach((alb) => {
+                byId.set(alb.id, { title: alb.title, artist: artist.name });
+                byTitle.set(alb.title, { id: alb.id, title: alb.title, artist: artist.name });
+            });
         });
 
         return (key: string) => {
-        // 1) key가 album.id인 경우
-        const m1 = byId.get(key);
-        if (m1) return { id: key, title: m1.title, artist: m1.artist };
+            const m1 = byId.get(key);
+            if (m1) return { id: key, title: m1.title, artist: m1.artist };
 
-        // 2) key가 album.title로 들어오는 경우
-        const m2 = byTitle.get(key);
-        if (m2) return { id: m2.id, title: m2.title, artist: m2.artist };
+            const m2 = byTitle.get(key);
+            if (m2) return { id: m2.id, title: m2.title, artist: m2.artist };
 
-        // 3) 못 찾으면 fallback
-        return { id: key, title: `앨범 (${key})`, artist: "알 수 없음" };
+            return { id: key, title: `앨범 (${key})`, artist: "알 수 없음" };
         };
     }, []);
 
-    useEffect(() => {
-        const sync = () => {
-        /** =========================
-         * 1. 좋아요한 앨범
-         ========================= */
+    // Context에서 받은 좋아요 플레이리스트 + 로컬 앨범 데이터 결합
+    const items = useMemo((): PlaylistItem[] => {
+        // 1. 좋아요한 앨범 (로컬 mock에서)
         const albumLikedMap = getLikedAlbumIds();
         const albumKeys = Object.keys(albumLikedMap).filter((k) => albumLikedMap[k]);
 
         const likedAlbums: PlaylistItem[] = albumKeys.map((key) => {
             const meta = resolveAlbumMeta(key);
             return {
-            id: meta.id,         // ✅ 항상 진짜 album.id로 정규화(가능하면)
-            title: meta.title,   // ✅ 앨범명
-            owner: meta.artist,  // ✅ 아티스트명
-            liked: true,
-            kind: "album",
+                id: meta.id,
+                title: meta.title,
+                owner: meta.artist,
+                liked: true,
+                kind: "album" as const,
             };
         });
 
-        /** =========================
-         * 2. 좋아요한 플레이리스트
-         ========================= */
-        const likedPlMap = getLikedPlaylistIds();
-        const likedPlIds = Object.keys(likedPlMap).filter((id) => likedPlMap[id]);
-
-        const likedPlaylists: PlaylistItem[] = getAllPlaylists()
-            .filter((p) => p.id !== LIKED_SYSTEM_ID)
-            .filter((p) => likedPlIds.includes(p.id))
-            .map((p) => ({
+        // 2. Context의 좋아요한 플레이리스트
+        const playlistItems: PlaylistItem[] = likedPlaylists.map((p) => ({
             id: p.id,
             title: p.title,
-            owner: p.owner,
+            owner: p.creator_nickname,
             liked: true,
-            kind: "playlist",
-            }));
+            kind: p.title === "나의 좋아요 목록" ? "system" : "playlist",
+        }));
 
-        /** =========================
-         * 3. 최종 목록
-         ========================= */
-        const list: PlaylistItem[] = [
-            {
-            id: LIKED_SYSTEM_ID,
-            title: "나의 좋아요 목록",
-            owner: "—",
-            liked: true,
-            kind: "system",
-            },
-            ...likedAlbums,
-            ...likedPlaylists,
-        ];
+        // 3. "나의 좋아요 목록"을 맨 앞에, 앨범, 그 다음 나머지 플레이리스트 순서
+        const system = playlistItems.filter((p) => p.kind === "system");
+        const others = playlistItems.filter((p) => p.kind !== "system");
 
-        setItems(list);
-        };
-
-        sync();
-        return subscribePlaylists(sync);
-    }, [resolveAlbumMeta]);
+        return [...system, ...likedAlbums, ...others];
+    }, [likedPlaylists, resolveAlbumMeta]);
 
     const gridClass = useMemo(
         () => `
@@ -145,7 +111,7 @@ export default function MyPlaylistsLiked() {
                     {it.liked && (
                     <div className={[
                         "absolute top-2 right-3 text-xl drop-shadow",
-                        it.id === LIKED_SYSTEM_ID ? "text-[#E4524D]" : "text-[#AFDEE2]"].join(" ")}
+                        it.kind === "system" ? "text-[#E4524D]" : "text-[#AFDEE2]"].join(" ")}
                     >♥
                     </div>
                     )}

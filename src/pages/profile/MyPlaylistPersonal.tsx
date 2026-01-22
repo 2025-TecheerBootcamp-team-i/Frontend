@@ -1,52 +1,31 @@
-    import { useEffect, useMemo, useState } from "react";
-    import { useNavigate } from "react-router-dom";
-    import { FaPlus } from "react-icons/fa6";
-    import {
-    createPlaylist,
-    getAllPlaylists,
-    subscribePlaylists,
-    } from "../../mocks/playlistMock";
+import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { FaPlus } from "react-icons/fa6";
+import { usePlaylists } from "../../contexts/PlaylistContext";
 
-    type PlaylistItem = {
+type PlaylistItem = {
     id: string;
     title: string;
     owner: string;
-    };
+};
 
-    const LIKED_SYSTEM_ID = "liked";
-
-    export default function MyPlaylistsPersonal() {
+export default function MyPlaylistsPersonal() {
     const navigate = useNavigate();
+    const { myPlaylists, createPlaylist } = usePlaylists();
 
-    const [items, setItems] = useState<PlaylistItem[]>([]);
-
-    useEffect(() => {
-        const sync = () => {
-        // ✅ liked 시스템 플리는 개인 목록에서 제외
-        const list = getAllPlaylists()
-            .filter((p) => p.id !== LIKED_SYSTEM_ID)
+    // "나의 좋아요 목록" 제외한 개인 플레이리스트만 표시
+    const items = useMemo((): PlaylistItem[] => {
+        return myPlaylists
+            .filter((p) => p.title !== "나의 좋아요 목록")
             .map((p) => ({
-            id: p.id,
-            title: p.title,
-            owner: p.owner,
+                id: p.id,
+                title: p.title,
+                owner: p.creator_nickname,
             }));
+    }, [myPlaylists]);
 
-        setItems(list);
-        };
-
-        sync();
-        return subscribePlaylists(sync);
-    }, []);
-
-    const handleCreate = () => {
-        const p = createPlaylist({
-        title: "새 플레이리스트",
-        owner: "사용자",
-        isPublic: false,
-        });
-
-        // ✅ 생성 직후 상세로 이동 (원하면 주석 처리하면 목록에만 추가됨)
-        navigate(`/playlist/${p.id}`);
+    const handleCreate = async () => {
+        await createPlaylist();
     };
 
     // ✅ 스타일 string은 useMemo로 고정(선택)
