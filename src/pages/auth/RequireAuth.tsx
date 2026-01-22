@@ -1,7 +1,16 @@
 import type { ReactNode } from "react";
+import { useEffect } from "react";
+import { logoutClient } from "../../api/auth"; // 경로 맞게
 
 export default function RequireAuth({ children }: { children: ReactNode }) {
     const token = localStorage.getItem("access_token");
+
+    // ✅ 토큰 없을 때 "로컬 프로필/유저정보"도 같이 정리 (한 번만)
+    useEffect(() => {
+        if (!token) {
+        logoutClient();
+        }
+    }, [token]);
 
     if (!token) {
         return (
