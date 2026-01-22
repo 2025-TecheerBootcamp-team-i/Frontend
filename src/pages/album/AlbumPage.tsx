@@ -502,7 +502,7 @@ export default function AlbumDetailPage() {
         <div className="w-full min-w-0 overflow-x-auto">
         {/* 상단 */}
         <section className="relative overflow-visible">
-            <div className="relative h-72 bg-[#1D1D1D]/70 border-b border-[#3D3D3D] overflow-hidden">
+            <div className="relative h-72 bg-[#1D1D1D]/70 border-b border-[#3D3D3D]/80 overflow-hidden">
             <button
                 type="button"
                 onClick={() => navigate(-1)}
