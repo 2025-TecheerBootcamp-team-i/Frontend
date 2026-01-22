@@ -2,6 +2,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import React, { useRef, useMemo, useState, useEffect } from "react";
 import { MdOutlineNavigateNext } from "react-icons/md";
 import { usePlaylists } from "../../contexts/PlaylistContext";
+import { SYSTEM_LIKED_PLAYLIST_TITLE } from "../../api/playlist";
 
 type PlaylistItem = {
     id: string;
@@ -223,7 +224,7 @@ export default function MyPlaylistPage() {
             title: p.title,
             owner: p.creator_nickname,
             scope: "personal" as const,
-            kind: p.title === "나의 좋아요 목록" ? "system" : "playlist",
+            kind: p.title === SYSTEM_LIKED_PLAYLIST_TITLE ? "system" : "playlist",
         }));
     }, [myPlaylists]);
 
@@ -233,15 +234,15 @@ export default function MyPlaylistPage() {
             id: p.id,
             title: p.title,
             owner: p.creator_nickname,
-            scope: p.title === "나의 좋아요 목록" ? "personal" : "shared",
+            scope: p.title === SYSTEM_LIKED_PLAYLIST_TITLE ? "personal" : "shared",
             liked: true,
-            kind: p.title === "나의 좋아요 목록" ? "system" : "playlist",
+            kind: p.title === SYSTEM_LIKED_PLAYLIST_TITLE ? "system" : "playlist",
         }));
     }, [likedPlaylists]);
 
-    // 개인 플레이리스트 (나의 좋아요 목록 제외)
+    // 개인 플레이리스트 (시스템 플레이리스트 제외)
     const personalPlaylistsOnly = useMemo(() => {
-        return personalAll.filter((p) => p.title !== "나의 좋아요 목록");
+        return personalAll.filter((p) => p.title !== SYSTEM_LIKED_PLAYLIST_TITLE);
     }, [personalAll]);
 
     const handleClickPlaylist = (id: string) => {

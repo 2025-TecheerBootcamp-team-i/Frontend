@@ -33,6 +33,17 @@ export interface PlaylistSummary {
   updated_at: string;
 }
 
+export const SYSTEM_LIKED_PLAYLIST_TITLE = "나의 좋아요 목록";
+
+/** 
+ * 시스템 플레이리스트인지 확인
+ * @param title 플레이리스트 제목
+ */
+export function isSystemPlaylist(title: string): boolean {
+  return title === SYSTEM_LIKED_PLAYLIST_TITLE;
+}
+
+
 /** 플레이리스트 상세 정보 (상세 조회 및 생성/수정 응답용) */
 export interface PlaylistDetail extends PlaylistSummary {
   items: PlaylistItem[];

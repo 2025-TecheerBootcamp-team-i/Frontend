@@ -12,6 +12,7 @@ import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
 import { requireLogin } from "../../api/auth";
 import { getCurrentUserId } from "../../utils/auth";
+import { isSystemPlaylist } from "../../api/playlist";
 
 import { IoChevronBack, IoPlayCircle, IoShuffle } from "react-icons/io5";
 import { MdDelete, MdFavorite } from "react-icons/md";
@@ -38,6 +39,11 @@ const formatTotal = (sec: number) => {
     return `${s}초`;
 };
 
+type PendingPlay = {
+    key: "play" | "shuffle";
+    tracks: PlayerTrack[];
+};
+
 export default function PlaylistDetailPage() {
     const { playlistId } = useParams();
     const { playTracks, enqueueTracks } = usePlayer();
@@ -47,6 +53,13 @@ export default function PlaylistDetailPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const currentUserId = getCurrentUserId();
+    
+    // ✅ Hook을 컴포넌트 최상단에 선언 (early return 이전)
+    const [localLiked, setLocalLiked] = useState(false);
+    const [localLikeCount, setLocalLikeCount] = useState(0);
+    const [checkedIds, setCheckedIds] = useState<Record<number, boolean>>({});
+    const [playConfirmOpen, setPlayConfirmOpen] = useState(false);
+    const [pendingPlay, setPendingPlay] = useState<PendingPlay | null>(null);
 
     // 플레이리스트 상세 정보 로드
     const fetchPlaylistDetail = async () => {
@@ -73,15 +86,13 @@ export default function PlaylistDetailPage() {
         fetchPlaylistDetail();
     }, [playlistId]);
     
-    const [checkedIds, setCheckedIds] = useState<Record<number, boolean>>({});
-
-    type PendingPlay = {
-        key: "play" | "shuffle";
-        tracks: PlayerTrack[];
-    };
-
-    const [playConfirmOpen, setPlayConfirmOpen] = useState(false);
-    const [pendingPlay, setPendingPlay] = useState<PendingPlay | null>(null);
+    // ✅ playlist 로드되면 좋아요 상태 업데이트
+    useEffect(() => {
+        if (playlist) {
+            setLocalLiked(playlist.is_liked);
+            setLocalLikeCount(playlist.like_count);
+        }
+    }, [playlist]);
 
     const runPendingPlay = (mode: "replace" | "enqueue") => {
             if (!requireLogin("로그인 후 이용 가능합니다.")) return;
@@ -193,17 +204,15 @@ export default function PlaylistDetailPage() {
     const toggleOne = (id: number) =>
         setCheckedIds((prev) => ({ ...prev, [id]: !prev[id] }));
 
-    const isSystemPlaylist = playlist.title === "나의 좋아요 목록";
+    // 시스템 플레이리스트 판별
+    const isSystemPl = isSystemPlaylist(playlist.title);
     
-    // 편집 버튼 표시 조건 (엄격한 로직)
+    // 편집 버튼 표시 조건
     const canEdit = currentUserId !== null && 
                     playlist.user_id === currentUserId && 
-                    !isSystemPlaylist;
+                    !isSystemPl;
 
     // 좋아요 토글
-    const [localLiked, setLocalLiked] = useState(playlist.is_liked);
-    const [localLikeCount, setLocalLikeCount] = useState(playlist.like_count);
-
     const toggleLike = async () => {
         if (!requireLogin("로그인 후 이용 가능합니다.")) return;
 
@@ -245,7 +254,17 @@ export default function PlaylistDetailPage() {
                 <IoChevronBack size={22} />
             </button>
 
-             {/* 편집 버튼 (조건부 표시) */}
+             {/* 시스템 플레이리스트 하트 표시 (오른쪽 상단) */}
+            {isSystemPl && (
+                <div 
+                    className="absolute right-4 top-5 z-10 w-11 h-11 rounded-full bg-white/10 flex items-center justify-center"
+                    title="나의 좋아요 목록"
+                >
+                    <MdFavorite size={24} className="text-[#E4524D]" />
+                </div>
+            )}
+
+            {/* 편집 버튼 (조건부 표시) */}
             {canEdit && (
             <button
                 type="button"
@@ -348,7 +367,7 @@ export default function PlaylistDetailPage() {
                 </div>
 
             <div className="mt-4 flex flex-nowrap gap-3 overflow-x-auto no-scrollbar">
-                {actions.filter((a) => !(isSystemPlaylist && a.key === "delete")).map((a) => {
+                {actions.filter((a) => !(isSystemPl && a.key === "delete")).map((a) => {
                     const disabled =
                     (a.key === "play" || a.key === "shuffle"|| a.key === "delete") && selectedCount === 0;
 

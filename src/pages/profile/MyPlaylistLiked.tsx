@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { usePlaylists } from "../../contexts/PlaylistContext";
 import { getLikedAlbumIds } from "../../mocks/playlistMock";
 import { ARTISTS } from "../../mocks/artistsMock";
+import { SYSTEM_LIKED_PLAYLIST_TITLE } from "../../api/playlist";
 
 type PlaylistItem = {
     id: string;
@@ -62,10 +63,10 @@ export default function MyPlaylistsLiked() {
             title: p.title,
             owner: p.creator_nickname,
             liked: true,
-            kind: p.title === "나의 좋아요 목록" ? "system" : "playlist",
+            kind: p.title === SYSTEM_LIKED_PLAYLIST_TITLE ? "system" : "playlist",
         }));
 
-        // 3. "나의 좋아요 목록"을 맨 앞에, 앨범, 그 다음 나머지 플레이리스트 순서
+        // 3. 시스템 플레이리스트를 맨 앞에, 앨범, 그 다음 나머지 플레이리스트 순서
         const system = playlistItems.filter((p) => p.kind === "system");
         const others = playlistItems.filter((p) => p.kind !== "system");
 

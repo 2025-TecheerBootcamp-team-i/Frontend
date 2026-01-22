@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from "rea
 import type { ReactNode } from "react";
 import { listMyPlaylists, listLikedPlaylists, createPlaylist as createPlaylistAPI } from "../api/playlist";
 import type { PlaylistSummary } from "../api/playlist";
+import { SYSTEM_LIKED_PLAYLIST_TITLE } from "../api/playlist";
 
 // ==========================================
 // 타입 정의
@@ -80,11 +81,10 @@ export function PlaylistProvider({ children }: { children: ReactNode }) {
         listLikedPlaylists(),
       ]);
 
-      // 내 플레이리스트 처리
+      // 내 플레이리스트 처리 - 시스템 플레이리스트를 맨 앞에 배치
       const myMapped = myData.map(mapToPlaylist);
       
-      // "나의 좋아요 목록"을 찾아서 맨 앞에 배치
-      const likedListIdx = myMapped.findIndex((p) => p.title === "나의 좋아요 목록");
+      const likedListIdx = myMapped.findIndex((p) => p.title === SYSTEM_LIKED_PLAYLIST_TITLE);
       if (likedListIdx !== -1) {
         const [likedList] = myMapped.splice(likedListIdx, 1);
         myMapped.unshift(likedList);
@@ -92,11 +92,10 @@ export function PlaylistProvider({ children }: { children: ReactNode }) {
 
       setMyPlaylists(myMapped);
 
-      // 좋아요한 플레이리스트 처리
+      // 좋아요한 플레이리스트 처리 - 시스템 플레이리스트를 맨 앞에 배치
       const likedMapped = likedData.map(mapToPlaylist);
       
-      // "나의 좋아요 목록"을 맨 앞에
-      const systemIdx = likedMapped.findIndex((p) => p.title === "나의 좋아요 목록");
+      const systemIdx = likedMapped.findIndex((p) => p.title === SYSTEM_LIKED_PLAYLIST_TITLE);
       if (systemIdx !== -1) {
         const [system] = likedMapped.splice(systemIdx, 1);
         likedMapped.unshift(system);
@@ -122,9 +121,9 @@ export function PlaylistProvider({ children }: { children: ReactNode }) {
       
       const mapped = mapToPlaylist(newPlaylist);
       
-      // "나의 좋아요 목록" 다음에 삽입
+      // 시스템 플레이리스트 다음에 삽입
       setMyPlaylists((prev) => {
-        if (prev.length > 0 && prev[0].title === "나의 좋아요 목록") {
+        if (prev.length > 0 && prev[0].title === SYSTEM_LIKED_PLAYLIST_TITLE) {
           return [prev[0], mapped, ...prev.slice(1)];
         }
         return [mapped, ...prev];
