@@ -69,7 +69,6 @@ function Sidebar({
     >
       {/* ✅ 스크롤 없음: overflow-y-auto 절대 넣지 말기 */}
       <div className="flex flex-col gap-4 flex-1 min-h-0">
-        {/* 마이페이지: 조금 늘어도 OK, 하지만 넘치면 안 되니까 clamp로 안전하게 */}
         <div
           className="
             w-full
@@ -127,14 +126,18 @@ function Sidebar({
 
             <div className="mb-3 border-b border-[#464646]" />
 
-            <div className="p-1 overflow-x-auto overflow-y-hidden">
+            <div className="overflow-x-auto overflow-y-hidden">
               <div className="flex gap-3">
                 {playlists.slice(0, 2).map((p) => (
                   <button
                     onClick={() => navigate(`/playlist/${p.id}`)}
                     key={p.id}
                     type="button"
-                    className="shrink-0 w-20 h-20 rounded-xl overflow-hidden bg-[#777777] hover:scale-[1.03] hover:shadow transition"
+                    className="
+                      shrink-0
+                      w-[clamp(80px,11vh,100px)]
+                      h-[clamp(80px,11vh,100px)]
+                      rounded-xl overflow-hidden bg-[#777777] hover:scale-[1.03] hover:shadow transition"
                     title={p.title}
                   >
                     {p.coverUrl ? (
@@ -150,7 +153,10 @@ function Sidebar({
                 <button
                   onClick={onCreatePlaylist}
                   type="button"
-                  className="w-10 h-20 bg-[#777777] rounded-xl hover:bg-zinc-400 transition text-[#3D3D3D]"
+                  className="
+                    w-10
+                    h-[clamp(80px,11vh,100px)]
+                    bg-[#777777] rounded-xl hover:bg-zinc-400 transition text-[#3D3D3D]"
                   aria-label="플레이리스트 추가"
                   title="플레이리스트 추가"
                 >
