@@ -26,25 +26,28 @@ const actions = [
 
 type ActionKey = (typeof actions)[number]["key"];
 
-    // ✅ 분초 변환 및 생성 일자 
-    const formatDuration = (sec: number) => {
-        if (!Number.isFinite(sec) || sec < 0) return "0:00";
-        const m = Math.floor(sec / 60);
-        const s = sec % 60;
-        return `${m}:${String(s).padStart(2, "0")}`;
-    };
+// ✅ 분초 변환 및 생성 일자
+const formatDuration = (sec: number) => {
+    if (!Number.isFinite(sec) || sec < 0) return "0:00";
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${String(s).padStart(2, "0")}`;
+};
 
-    const formatGeneratedAt = (iso: string) => {
-        const d = new Date(iso);
-        if (Number.isNaN(d.getTime())) return iso;
-        return `${String(d.getFullYear()).slice(2)}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(
+const formatGeneratedAt = (iso: string) => {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    return `${String(d.getFullYear()).slice(2)}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(
         d.getDate()
-        ).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-    };
+    ).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+};
 
 export default function ChartTop100() {
     const GRID = "grid-cols-[44px_90px_1.2fr_1fr_200px]";
-    const { setTrackAndPlay, playTracks } = usePlayer();
+
+    // ✅ PlayerContext
+    // NOTE: enqueueTracks가 PlayerContext에 없으면 추가/노출 필요
+    const { setTrackAndPlay, playTracks, enqueueTracks } = usePlayer();
 
     // ✅ API 상태
     const [chart, setChart] = useState<ChartData | null>(null);
@@ -55,10 +58,10 @@ export default function ChartTop100() {
     const rows = useMemo(() => {
         if (!chart) return [];
         const seen = new Set<string>();
-        return chart.items.filter(item => {
-            if (seen.has(item.musicId)) return false;
-            seen.add(item.musicId);
-            return true;
+        return chart.items.filter((item) => {
+        if (seen.has(item.musicId)) return false;
+        seen.add(item.musicId);
+        return true;
         });
     }, [chart]);
 
@@ -75,6 +78,7 @@ export default function ChartTop100() {
         coverUrl: row.albumImage,
     });
 
+    // ✅ 체크박스
     const [checkedIds, setCheckedIds] = useState<Record<string, boolean>>({});
     const allChecked = rows.length > 0 && rows.every((r) => checkedIds[r.musicId]);
 
@@ -96,64 +100,57 @@ export default function ChartTop100() {
     // ✅ 이전 스냅샷(“전 순위”) 저장: 렌더링을 안 일으키는 저장소
     const prevRankByIdRef = useRef<Record<string, number>>({});
 
-    // ✅ 화면 표시용 diff 저장
-    // const [diffById, setDiffById] = useState<Record<string, number>>({});
-
     useEffect(() => {
-    let alive = true;
+        let alive = true;
 
-    const load = async () => {
+        const load = async () => {
         setLoading(true);
         setErrorMsg(null);
 
-    try {
-        const data = await fetchChart("realtime");
-        if (!alive) return;
+        try {
+            const data = await fetchChart("realtime");
+            if (!alive) return;
 
-        // ✅ 1) 이전 순위 맵(전 스냅샷)
-        const prev = prevRankByIdRef.current;
+            // ✅ 1) 이전 순위 맵(전 스냅샷)
+            const prev = prevRankByIdRef.current;
 
-        // ✅ 2) 이번 diff 계산 (이전 - 현재)
-        const nextDiff: Record<string, number> = {};
-        for (const item of data.items) {
-            const id = item.musicId; // ✅ 고유키
+            // ✅ 2) 이번 diff 계산 (이전 - 현재) (사용 안 하면 제거 가능)
+            const nextDiff: Record<string, number> = {};
+            for (const item of data.items) {
+            const id = item.musicId;
             const prevRank = prev[id];
-
-            // 이전 스냅샷이 있으면 비교, 없으면 0 처리(—로 표시)
             nextDiff[id] = typeof prevRank === "number" ? prevRank - item.rank : 0;
-        }
+            }
 
-        // setDiffById(nextDiff);
-        setChart(data);
+            setChart(data);
 
-        // ✅ 3) 이번 순위를 “다음번 비교용(전 스냅샷)”으로 저장
-        const nextPrev: Record<string, number> = {};
-        for (const item of data.items) {
+            // ✅ 3) 이번 순위를 “다음번 비교용(전 스냅샷)”으로 저장
+            const nextPrev: Record<string, number> = {};
+            for (const item of data.items) {
             nextPrev[item.musicId] = item.rank;
-        }
-        prevRankByIdRef.current = nextPrev;
+            }
+            prevRankByIdRef.current = nextPrev;
         } catch (err) {
-        if (!alive) return;
-        console.error(err);
-        setChart(null);
-        setErrorMsg("차트 데이터를 불러오지 못했어요.");
+            if (!alive) return;
+            console.error(err);
+            setChart(null);
+            setErrorMsg("차트 데이터를 불러오지 못했어요.");
         } finally {
-        if (alive) setLoading(false);
-    }
-    };
+            if (alive) setLoading(false);
+        }
+        };
 
-    // ✅ 최초 1회 즉시 로드
-    load();
+        // ✅ 최초 1회 즉시 로드
+        load();
 
-    // ✅ 10분마다 갱신
-    const timer = window.setInterval(load, 10 * 60 * 1000);
+        // ✅ 10분마다 갱신
+        const timer = window.setInterval(load, 10 * 60 * 1000);
 
-    return () => {
+        return () => {
         alive = false;
         window.clearInterval(timer);
-    };
+        };
     }, []);
-
 
     // ✅ 담기 모달
     const [addOpen, setAddOpen] = useState(false);
@@ -226,12 +223,45 @@ export default function ChartTop100() {
         setCheckedIds({});
     };
 
+    // ✅ (추가) 재생 방식 선택 모달용 상태
+    type PendingPlay = {
+        key: ActionKey; // "play" | "shuffle"
+        tracks: PlayerTrack[];
+    };
+
+    const [playConfirmOpen, setPlayConfirmOpen] = useState(false);
+    const [pendingPlay, setPendingPlay] = useState<PendingPlay | null>(null);
+
+    const runPendingPlay = (mode: "replace" | "enqueue") => {
+        if (!pendingPlay) return;
+
+        const isShuffle = pendingPlay.key === "shuffle";
+
+        if (mode === "replace") {
+        playTracks(pendingPlay.tracks, { shuffle: isShuffle });
+        } else {
+        enqueueTracks(pendingPlay.tracks, { shuffle: isShuffle });
+        }
+
+        setCheckedIds({});
+        setPendingPlay(null);
+        setPlayConfirmOpen(false);
+    };
+
+    // ✅ 액션
     const handleAction = (key: ActionKey) => {
         if (!requireLogin("로그인 후 이용 가능합니다.")) return;
+
+        // play/shuffle/add/like는 선택곡 필요
         if (selectedCount === 0 && (key === "play" || key === "shuffle" || key === "add" || key === "like")) return;
 
-        if (key === "play") playTracks(checkedTracks);
-        if (key === "shuffle") playTracks(checkedTracks, { shuffle: true });
+        // ✅ play/shuffle → 모달로 선택
+        if (key === "play" || key === "shuffle") {
+        setPendingPlay({ key, tracks: checkedTracks });
+        setPlayConfirmOpen(true);
+        return;
+        }
+
         if (key === "add") setAddOpen(true);
         if (key === "like") addSelectedToLiked();
     };
@@ -263,7 +293,7 @@ export default function ChartTop100() {
                 <div className="flex items-center gap-6">
                     <h2 className="text-xl font-semibold text-[#F6F6F6]">실시간 TOP 100 차트</h2>
                     <div className="text-sm text-[#999999]">
-                        {chart?.generatedAt ? formatGeneratedAt(chart.generatedAt) : ""}
+                    {chart?.generatedAt ? formatGeneratedAt(chart.generatedAt) : ""}
                     </div>
                 </div>
                 </div>
@@ -272,6 +302,7 @@ export default function ChartTop100() {
                 <div className="mt-4 flex flex-nowrap gap-3">
                 {actions.map((a) => {
                     const disabled = selectedCount === 0;
+
                     return (
                     <button
                         key={a.key}
@@ -376,18 +407,18 @@ export default function ChartTop100() {
                     {/* 곡정보(커버+제목) */}
                     <div className="flex pl-2 items-center gap-4 min-w-0">
                         {row.albumImage ? (
-                            <img 
-                            src={row.albumImage} 
+                        <img
+                            src={row.albumImage}
                             alt={row.albumName}
                             className="w-12 h-12 rounded-lg object-cover bg-[#777777] shrink-0"
                             onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                                const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                                if (fallback) fallback.style.display = 'block';
+                            e.currentTarget.style.display = "none";
+                            const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                            if (fallback) fallback.style.display = "block";
                             }}
-                            />
+                        />
                         ) : null}
-                        <div className={`w-12 h-12 rounded-lg bg-[#777777] shrink-0 ${row.albumImage ? 'hidden' : ''}`} />
+                        <div className={`w-12 h-12 rounded-lg bg-[#777777] shrink-0 ${row.albumImage ? "hidden" : ""}`} />
                         <div className="min-w-0">
                         <div className="text-sm text-[#F6F6F6] truncate">
                             {row.musicName}
@@ -447,19 +478,21 @@ export default function ChartTop100() {
                         <div className="mt-2 text-xs text-[#777]">(liked 같은 시스템 플리는 제외됨)</div>
                     </div>
                     ) : (
-                    addTargets.map((p) => (
+                    addTargets
+                        .filter((p) => p.id !== LIKED_SYSTEM_ID)
+                        .map((p) => (
                         <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => addSelectedToPlaylist(p.id)}
-                        className="w-full text-left px-6 py-4 hover:bg-white/5 transition border-b border-[#464646]"
+                            key={p.id}
+                            type="button"
+                            onClick={() => addSelectedToPlaylist(p.id)}
+                            className="w-full text-left px-6 py-4 hover:bg-white/5 transition border-b border-[#464646]"
                         >
-                        <div className="text-sm font-semibold text-[#F6F6F6] truncate">{p.title}</div>
-                        <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">
+                            <div className="text-sm font-semibold text-[#F6F6F6] truncate">{p.title}</div>
+                            <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">
                             {p.owner} · {p.isPublic ? "공개" : "비공개"}
-                        </div>
+                            </div>
                         </button>
-                    ))
+                        ))
                     )}
                 </div>
 
@@ -467,6 +500,81 @@ export default function ChartTop100() {
                     <button
                     type="button"
                     onClick={() => setAddOpen(false)}
+                    className="px-4 py-2 rounded-2xl text-sm text-[#F6F6F6] hover:bg-white/10 transition"
+                    >
+                    취소
+                    </button>
+                </div>
+                </div>
+            </div>
+            </div>
+        )}
+
+        {/* ✅ 재생 방식 선택 모달 */}
+        {playConfirmOpen && pendingPlay && (
+            <div className="fixed inset-0 z-[999] whitespace-normal">
+            <button
+                type="button"
+                className="absolute inset-0 bg-black/50"
+                onClick={() => {
+                setPlayConfirmOpen(false);
+                setPendingPlay(null);
+                }}
+                aria-label="닫기"
+            />
+            <div className="absolute inset-0 grid place-items-center p-6">
+                <div className="w-full max-w-[440px] rounded-3xl bg-[#2d2d2d] border border-[#464646] shadow-2xl overflow-hidden">
+                <div className="px-6 py-4 flex items-center justify-between border-b border-[#464646]">
+                    <div className="text-base font-semibold text-[#F6F6F6]">재생 방식 선택</div>
+                    <button
+                    type="button"
+                    onClick={() => {
+                        setPlayConfirmOpen(false);
+                        setPendingPlay(null);
+                    }}
+                    className="text-[#F6F6F6]/70 hover:text-white transition"
+                    aria-label="닫기"
+                    >
+                    ✕
+                    </button>
+                </div>
+
+                <div className="px-6 py-4 text-sm text-[#F6F6F6]/70">
+                    선택한 {pendingPlay.tracks.length}곡을 {pendingPlay.key === "shuffle" ? "셔플로 " : ""}어떻게
+                    재생할까요?
+                </div>
+
+                <div className="px-6 pb-6 grid grid-cols-1 gap-3">
+                    <button
+                    type="button"
+                    onClick={() => runPendingPlay("replace")}
+                    className="w-full px-4 py-3 rounded-2xl text-sm text-[#F6F6F6] outline outline-1 outline-[#464646] hover:bg-white/10 transition text-left"
+                    >
+                    <div className="font-semibold text-[#afdee2]">현재 재생 대기목록 지우고 재생</div>
+                    <div className="mt-1 text-xs text-[#999]">
+                        지금 재생 대기목록을 초기화하고 선택한 곡들로 새로 재생합니다.
+                    </div>
+                    </button>
+
+                    <button
+                    type="button"
+                    onClick={() => runPendingPlay("enqueue")}
+                    className="w-full px-4 py-3 rounded-2xl text-sm text-[#F6F6F6] outline outline-1 outline-[#464646] hover:bg-white/10 transition text-left"
+                    >
+                    <div className="font-semibold text-[#afdee2]">재생 대기목록 맨 뒤에 추가</div>
+                    <div className="mt-1 text-xs text-[#999]">
+                        현재 재생은 유지하고, 선택한 곡들을 재생 대기 목록 마지막에 둡니다.
+                    </div>
+                    </button>
+                </div>
+
+                <div className="px-6 py-4 border-t border-[#464646] flex justify-end">
+                    <button
+                    type="button"
+                    onClick={() => {
+                        setPlayConfirmOpen(false);
+                        setPendingPlay(null);
+                    }}
                     className="px-4 py-2 rounded-2xl text-sm text-[#F6F6F6] hover:bg-white/10 transition"
                     >
                     취소
