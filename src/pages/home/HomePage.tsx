@@ -58,7 +58,7 @@ function HorizontalScroller({
         <div
             ref={ref}
             onScroll={update}
-            className="overflow-x-auto overflow-y-hidden no-scrollbar"
+            className="overflow-x-auto overflow-y-hidden"
         >
             {children}
         </div>
