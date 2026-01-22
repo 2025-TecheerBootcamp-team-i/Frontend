@@ -111,10 +111,10 @@ function Sidebar({
               나의 플레이리스트
             </button>
 
-            <div className="mb-3 border-b border-[#464646]" />
+            <div className="mb-2 border-b border-[#464646]" />
 
-            <div className="overflow-x-auto overflow-y-hidden">
-              <div className="flex gap-3">
+            <div className="p-1 overflow-x-auto overflow-y-hidden">
+              <div className="flex gap-3 overflow-visible">
                 {playlists.slice(0, 2).map((p) => (
                   <button
                     onClick={() => navigate(`/playlist/${p.id}`)}
@@ -124,7 +124,8 @@ function Sidebar({
                       shrink-0
                       w-[clamp(80px,11vh,100px)]
                       h-[clamp(80px,11vh,100px)]
-                      rounded-xl overflow-hidden bg-[#777777] hover:scale-[1.03] hover:shadow transition"
+                      rounded-xl overflow-hidden bg-[#777777] hover:scale-[1.03] hover:shadow transition
+                      z-10 relative hover:z-30 origin-center"
                     title={p.title}
                   >
                     {p.coverUrl ? (
