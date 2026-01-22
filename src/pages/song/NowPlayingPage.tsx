@@ -21,6 +21,33 @@ import {
 } from "../../mocks/playlistMock";
 import { getBestAlbumCover } from "../../api/album";
 
+// ✅ NowPlayingPage.tsx 상단 (import 아래) — 1번만 주입되는 이퀄라이저 CSS
+let __npEqStyleInjected = false;
+function ensureNowPlayingEqStyle() {
+    if (__npEqStyleInjected) return;
+    __npEqStyleInjected = true;
+
+    const style = document.createElement("style");
+    style.setAttribute("data-nowplaying-eq", "true");
+    style.innerHTML = `
+        @keyframes np-eq-calm {
+            0%   { transform: scaleY(0.22); opacity: .45; }
+            25%  { transform: scaleY(0.38); opacity: .60; }
+            50%  { transform: scaleY(0.30); opacity: .52; }
+            75%  { transform: scaleY(0.48); opacity: .65; }
+            100% { transform: scaleY(0.22); opacity: .45; }
+            }
+
+            .np-eq-bar {
+            transform-origin: bottom;
+            will-change: transform, opacity;
+            }
+
+    `;
+    document.head.appendChild(style);
+}
+
+
 type LyricLine = { t: number; text: string; timestamp?: string | null };
 
 // ✅ 검색 API 응답 타입 (SearchAll.tsx 기반 추정)
@@ -41,44 +68,55 @@ type AlbumTrack = { music_id?: number | null; music_name?: string | null };
 type AlbumDetailResponse = { tracks?: AlbumTrack[] };
 
 export default function NowPlayingPage() {
+    ensureNowPlayingEqStyle();
+  
     const navigate = useNavigate();
-
+  
+    // ✅ 먼저 PlayerContext에서 isPlaying을 꺼내야 함 (순서 중요)
     const {
-        current,
-        queue,
-        history,
-        progress,
-        duration,
-        isPlaying,
-        toggle,
-        seek,
-        removeFromQueue,
-        moveQueueItem,
-        shuffleQueue,
-        nextTrack,
-        previousTrack,
-        repeatMode,
-        toggleRepeat,
-        setTrackAndPlay,
+      current,
+      queue,
+      history,
+      progress,
+      duration,
+      isPlaying,
+      toggle,
+      seek,
+      removeFromQueue,
+      moveQueueItem,
+      shuffleQueue,
+      nextTrack,
+      previousTrack,
+      repeatMode,
+      toggleRepeat,
+      setTrackAndPlay,
     } = usePlayer();
-
+  
     const hasTrack = !!current;
-
+  
+    // ✅ 재생 재시작 시 애니메이션 리셋용
+    const [playSeq, setPlaySeq] = useState(0);
+  
+    useEffect(() => {
+      // 곡이 있고 + 재생 시작될 때만 playSeq 증가
+      if (hasTrack && isPlaying) setPlaySeq((v) => v + 1);
+    }, [hasTrack, isPlaying, current?.id]);
+  
     const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
-
+  
     // 이미지 URL 처리 함수
     const processImageUrl = useCallback((url: string | null | undefined): string | null => {
-        if (!url) return null;
-
-        const base = import.meta.env.VITE_API_BASE_URL as string | undefined;
-
-        if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("//")) {
+      if (!url) return null;
+  
+      const base = import.meta.env.VITE_API_BASE_URL as string | undefined;
+  
+      if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("//")) {
         return url;
-        }
-        if (base && url.startsWith("/")) {
+      }
+      if (base && url.startsWith("/")) {
         return `${base.replace("/api/v1", "")}${url}`;
-        }
-        return url;
+      }
+      return url;
     }, []);
 
     // 메인 앨범 이미지 (image_large_square 우선, 없으면 coverUrl)
@@ -721,8 +759,53 @@ export default function NowPlayingPage() {
                 <div className="h-full pt-4 overflow-hidden">
                 <div className="h-full flex flex-col items-center justify-center px-6">
                     <div className="w-full max-w-[860px] flex flex-col items-center gap-4">
-                    {/* 앨범아트 */}
-                    <div className="w-[360px] aspect-square rounded-3xl bg-white/25 overflow-hidden relative">
+                    {/* ✅ 앨범 + 뒤 이퀄라이저 */}
+                    <div className="relative">
+                    {/* ✅ 이퀄라이저(곡 있을 때만 보이게) */}
+                    {hasTrack && (
+                        <div
+                        className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                        style={{
+                            width: 820,
+                            height: 240,
+                            opacity: 0.75,
+                            zIndex: 0,
+                        }}
+                        aria-hidden
+                        >
+                        <div className="w-full h-full flex items-end justify-center gap-[10px]">
+                            {Array.from({ length: 26 }).map((_, i) => {
+                            const eqActive = hasTrack && isPlaying; // ✅ 재생 중일 때만
+                            const dur = 1.6 + (i % 7) * 0.18;       // ✅ 더 느리게(잔잔)
+                            const delay = (i % 11) * 0.07;
+
+                            return (
+                                <div
+                                key={`${playSeq}-${i}`} // ✅ 재생 재시작 시 리셋
+                                className="np-eq-bar rounded-full"
+                                style={{
+                                    width: 12,
+                                    height: 60 + (i % 6) * 28,
+                                    background: "rgba(255,255,255,0.28)",
+
+                                    animation: eqActive
+                                    ? `np-eq-calm ${dur}s ease-in-out infinite`
+                                    : "none",
+                                    animationDelay: `${delay}s`,
+
+                                    transform: eqActive ? undefined : "scaleY(0.22)",
+                                    opacity: eqActive ? 0.55 : 0.25,
+                                    transition: "transform 0.25s ease, opacity 0.25s ease",
+                                }}
+                                />
+                            );
+                            })}
+                        </div>
+                        </div>
+                    )}
+
+                    {/* ✅ 기존 앨범아트(원래 그대로 유지) */}
+                    <div className="w-[360px] aspect-square rounded-3xl bg-white/25 overflow-hidden relative z-10">
                         {hasTrack && mainAlbumImage ? (
                         <>
                             <img
@@ -730,10 +813,6 @@ export default function NowPlayingPage() {
                             alt={current.title}
                             className="w-full h-full object-cover relative z-10"
                             onError={(ev) => {
-                                console.error(`[NowPlayingPage] ❌ 메인 앨범 이미지 로드 실패:`, {
-                                title: current.title,
-                                image_url: mainAlbumImage,
-                                });
                                 (ev.currentTarget as HTMLImageElement).style.display = "none";
                             }}
                             loading="lazy"
@@ -746,6 +825,9 @@ export default function NowPlayingPage() {
                         </div>
                         )}
                     </div>
+                    </div>
+
+
 
                     <div className="min-w-0 text-center">
                         <div className="text-lg font-semibold text-[#F6F6F6] truncate">
