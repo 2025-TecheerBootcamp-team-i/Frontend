@@ -42,6 +42,7 @@ export default function SearchArtist() {
   const q = (sp.get("q") ?? "").trim();
 
   const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
+  const __DEV__ = import.meta.env.DEV;
 
   // API 데이터 상태
   const [apiArtists, setApiArtists] = useState<Artist[]>([]);
@@ -158,7 +159,7 @@ export default function SearchArtist() {
               .map((r) => r.artist_id)
               .filter((id): id is number => id !== null)
           )
-        );
+        ).slice(0,16);
 
         if (uniqueArtistIds.length > 0) {
           await fetchArtistDetails(uniqueArtistIds);
@@ -202,7 +203,7 @@ export default function SearchArtist() {
   }, [API_BASE, q, apiArtists, artistDetails]);
 
   return (
-    <section className="w-full mt-4 rounded-3xl bg-[#2d2d2d]/80 border border-[#464646] px-8 py-10 min-h-[560px]">
+    <section className="w-full mt-4 rounded-3xl bg-[#2d2d2d]/80 border border-[#464646] px-6 py-8 min-h-[560px]">
       {/* 아티스트 그리드 */}
       {loading && artists.length === 0 ? (
         <div className="text-center text-[#999] py-12">검색 중...</div>
@@ -260,25 +261,15 @@ export default function SearchArtist() {
                         alt={a.name}
                         className="w-full h-full object-cover relative z-10"
                         onError={(e) => {
-                          console.error(`[SearchArtist] ❌ 아티스트 이미지 로드 실패:`, {
-                            name: a.name,
-                            id: a.id,
-                            image_url: a.image,
-                          });
+                          if (__DEV__) console.error("[SearchArtist] ❌ 이미지 로드 실패", { name: a.name, id: a.id, image_url: a.image });
                           (e.target as HTMLImageElement).style.display = "none";
                         }}
                         onLoad={(e) => {
-                          console.log(`[SearchArtist] ✅ 아티스트 이미지 로드 성공:`, {
-                            name: a.name,
-                            id: a.id,
-                            image_url: a.image,
-                          });
+                          if (__DEV__) console.log("[SearchArtist] ✅ 이미지 로드 성공", { name: a.name, id: a.id, image_url: a.image });
                           const img = e.target as HTMLImageElement;
                           const fallback = img.nextElementSibling as HTMLElement;
-                          if (fallback) {
-                            fallback.style.display = "none";
-                          }
-                        }}
+                          if (fallback) fallback.style.display = "none";
+                        }}                        
                         loading="lazy"
                       />
                       <div className="absolute inset-0 bg-[#777777] animate-pulse z-0" />
@@ -297,13 +288,6 @@ export default function SearchArtist() {
             ))}
           </div>
           </div>
-
-          {/* 결과 없음 */}
-          {q && artists.length === 0 && !loading && (
-            <div className="mt-12 text-center text-sm text-[#8A8A8A]">
-              <span className="text-[#f6f6f6]/80">{q}</span>에 해당하는 아티스트가 없습니다.
-            </div>
-          )}
         </>
       )}
     </section>
