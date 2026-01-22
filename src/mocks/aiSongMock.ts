@@ -31,8 +31,10 @@
     const fmtKoreanDate = (d = new Date()) =>
     `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
 
+    {/*
     const genId = () =>
     `t-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    */}
 
     // ✅ 초기 더미: 지금 네 DUMMY_TRACKS랑 비슷하게
     let TRACKS: AiTrack[] = [
