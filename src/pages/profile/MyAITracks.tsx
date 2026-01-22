@@ -179,7 +179,7 @@ const formatKoreanDate = (dateString: string): string => {
 
                     {items.length === 0 && (
                         <div className="col-span-full px-2 py-10 text-sm text-[#F6F6F6]/60 text-center">
-                            아직 만든 AI 곡이 없어. 오른쪽 위 + 로 만들어보자.
+                            아직 만든 AI 곡이 없어요. AI로 멋진 곡을 만들어보세요!
                         </div>
                     )}
                 </div>

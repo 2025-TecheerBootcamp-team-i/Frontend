@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+// AiSongPage.tsx
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getAiSongById, updateAiSong } from "../../mocks/aiSongMock";
+import { getAiSongById } from "../../mocks/aiSongMock";
 import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
+import { getCurrentUserId } from "../../utils/auth";
 
 import {
   getPlaylistById,
@@ -17,15 +19,14 @@ import {
   MdShare,
   MdAdd,
   MdFavoriteBorder,
-  MdFileUpload,
   MdContentCopy,
   MdFavorite,
+  MdDelete,
 } from "react-icons/md";
 import { IoChevronBack } from "react-icons/io5";
 
 type AiTrack = {
-  musicId: number; // 백엔드 music_id (id 대신 musicId 사용)
-  status: "Upload" | "Draft";
+  musicId: number; // 백엔드 music_id
   title: string;
   desc: string;
   duration: string;
@@ -50,13 +51,68 @@ const FADE_STYLE = `
 }
 `;
 
+// ✅ any 없이 안전하게 mock → AiTrack 변환
+function mapMockToAiTrack(raw: unknown, fallbackId: string): AiTrack | null {
+  if (raw === null || typeof raw !== "object") return null;
+
+  const obj = raw as Record<string, unknown>;
+
+  const musicId =
+    typeof obj.musicId === "number"
+      ? obj.musicId
+      : typeof obj.id === "number"
+        ? obj.id
+        : Number(fallbackId);
+
+  if (!Number.isFinite(musicId)) return null;
+
+  const title = typeof obj.title === "string" ? obj.title : "제목 없음";
+  const desc = typeof obj.desc === "string" ? obj.desc : "";
+  const duration = typeof obj.duration === "string" ? obj.duration : "--:--";
+  const createdAt = typeof obj.createdAt === "string" ? obj.createdAt : "";
+  const isAi = typeof obj.isAi === "boolean" ? obj.isAi : true;
+  const artist = typeof obj.artist === "string" ? obj.artist : "Unknown";
+  const plays = typeof obj.plays === "number" ? obj.plays : 0;
+
+  const lyrics =
+    typeof obj.lyrics === "string"
+      ? obj.lyrics
+      : typeof obj.prompt === "string"
+        ? obj.prompt
+        : "내용이 없습니다.";
+
+  const coverUrl = typeof obj.coverUrl === "string" ? obj.coverUrl : undefined;
+  const audioUrl = typeof obj.audioUrl === "string" ? obj.audioUrl : undefined;
+  const prompt = typeof obj.prompt === "string" ? obj.prompt : undefined;
+
+  const ownerId = typeof obj.ownerId === "string" ? obj.ownerId : undefined;
+  const ownerName = typeof obj.ownerName === "string" ? obj.ownerName : undefined;
+
+  return {
+    musicId,
+    title,
+    desc,
+    duration,
+    createdAt,
+    isAi,
+    artist,
+    plays,
+    lyrics,
+    coverUrl,
+    audioUrl,
+    prompt,
+    ownerId,
+    ownerName,
+  };
+}
+
 function ActionCircle({
   icon,
   label,
   onClick,
   disabled,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   onClick?: () => void;
   disabled?: boolean;
@@ -69,7 +125,7 @@ function ActionCircle({
       disabled={disabled}
       className={`
         shrink-0
-        w-9 h-9 rounded-full
+        w-12 h-12 rounded-full
         flex items-center justify-center
         transition-all duration-200
         ${
@@ -94,15 +150,12 @@ export default function AiSongPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
 
+  // ✅ env: "https://.../api/v1" 같은 형태면, 아래 fetch에서 `${API_BASE}/${id}/`
   const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
-
-  // ✅ 업로드 확인 모달
-  const [uploadConfirmOpen, setUploadConfirmOpen] = useState(false);
 
   const [track, setTrack] = useState<AiTrack | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
@@ -140,13 +193,13 @@ export default function AiSongPage() {
     mode === "summary" ? clampText(styleText, 50) : styleText;
 
   const artist = track?.artist ?? "Unknown Artist";
-  const plays = track?.plays ?? 0;
   const lyricsOrPrompt = track?.lyrics ?? track?.prompt ?? "내용이 없습니다.";
 
-  const dummyFound = useMemo(() => {
+  // ✅ API 없을 때 mock fallback (unknown으로 받고, mapMockToAiTrack로 변환)
+  const dummyFound = useMemo<unknown>(() => {
     if (!id) return null;
     const musicId = parseInt(id, 10);
-    if (isNaN(musicId)) return null;
+    if (Number.isNaN(musicId)) return null;
     return getAiSongById(musicId);
   }, [id]);
 
@@ -155,11 +208,9 @@ export default function AiSongPage() {
     setTitleDraft(track.title ?? "");
   }, [track]);
 
-  // ✅ 현재 로그인 유저(너희 앱 실제 값으로 교체)
-  const CURRENT_USER_ID = "me";
-
-  // ✅ 소유자 여부
-  const isOwner = track?.ownerId ? track.ownerId === CURRENT_USER_ID : false;
+  const CURRENT_USER_ID = String(getCurrentUserId() ?? "").trim();
+  const OWNER_ID = String(track?.ownerId ?? "").trim();
+  const isOwner = OWNER_ID.length > 0 && OWNER_ID === CURRENT_USER_ID;
 
   // ✅ liked 동기화
   useEffect(() => {
@@ -167,7 +218,9 @@ export default function AiSongPage() {
 
     const syncLiked = () => {
       const likedPl = getPlaylistById(LIKED_SYSTEM_ID);
-      const isLiked = !!likedPl?.tracks?.some((t) => t.id === track.musicId.toString());
+      const isLiked = !!likedPl?.tracks?.some(
+        (t) => t.id === track.musicId.toString()
+      );
       setLiked(isLiked);
     };
 
@@ -216,10 +269,13 @@ export default function AiSongPage() {
 
     if (API_BASE) {
       try {
-        // ⚠️ 백엔드 스펙: PATCH /api/v1/{music_id}/
-        await fetch(`${API_BASE}/${track.id}/`, {
+        const token = localStorage.getItem("access_token");
+        await fetch(`${API_BASE}/${track.musicId}/`, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
           body: JSON.stringify({ title: nextTitle }),
         });
       } catch (e) {
@@ -234,6 +290,11 @@ export default function AiSongPage() {
     setIsEditingTitle(false);
   };
 
+  // ✅ 남의 곡 보고 있을 때 편집모드가 켜져있으면 자동 종료
+  useEffect(() => {
+    if (!isOwner && isEditingTitle) setIsEditingTitle(false);
+  }, [isOwner, isEditingTitle]);
+
   // ✅ 데이터 로딩
   useEffect(() => {
     if (!id) {
@@ -241,9 +302,16 @@ export default function AiSongPage() {
       return;
     }
 
+    // API 없으면 mock
     if (!API_BASE) {
-      setTrack(dummyFound);
-      setError(dummyFound ? null : "해당 곡을 찾지 못했습니다.");
+      const mapped = mapMockToAiTrack(dummyFound, id);
+      if (!mapped) {
+        setTrack(null);
+        setError("해당 곡을 찾지 못했습니다.");
+        return;
+      }
+      setTrack(mapped);
+      setError(null);
       return;
     }
 
@@ -254,7 +322,6 @@ export default function AiSongPage() {
         setLoading(true);
         setError(null);
 
-        // ⚠️ 백엔드 스펙: GET /api/v1/{music_id}/
         const token = localStorage.getItem("access_token");
         const res = await fetch(`${API_BASE}/${id}/`, {
           method: "GET",
@@ -266,21 +333,16 @@ export default function AiSongPage() {
         });
 
         if (!res.ok) throw new Error(`API 오류: ${res.status}`);
-        const data = await res.json();
-        
-        // 디버깅: API 응답 확인
-        console.log("[AISongPage] API 응답:", data);
-        console.log("[AISongPage] album_image_square:", data.album_image_square);
-        console.log("[AISongPage] album:", data.album);
+        const data: unknown = await res.json();
 
-        // duration을 초 단위에서 "mm:ss" 형식으로 변환
+        // duration: seconds -> "m:ss"
         const formatDuration = (seconds: number): string => {
           const mins = Math.floor(seconds / 60);
           const secs = Math.floor(seconds % 60);
           return `${mins}:${secs.toString().padStart(2, "0")}`;
         };
 
-        // 날짜를 한국어 형식으로 변환
+        // created_at: "M월 D일"
         const formatKoreanDate = (dateString: string): string => {
           try {
             const date = new Date(dateString);
@@ -290,30 +352,103 @@ export default function AiSongPage() {
           }
         };
 
+        if (data === null || typeof data !== "object") {
+          throw new Error("API 응답 형식이 올바르지 않습니다.");
+        }
+
+        const obj = data as Record<string, unknown>;
+
+        const musicIdNum =
+          typeof obj.music_id === "number" ? obj.music_id : Number(id);
+        if (!Number.isFinite(musicIdNum)) throw new Error("music_id가 올바르지 않습니다.");
+
+        const aiInfo =
+          obj.ai_info && typeof obj.ai_info === "object"
+            ? (obj.ai_info as Record<string, unknown>)
+            : null;
+
+        const inputPrompt =
+          aiInfo && typeof aiInfo.input_prompt === "string" ? aiInfo.input_prompt : "";
+        const convertedPrompt =
+          aiInfo && typeof aiInfo.converted_prompt === "string" ? aiInfo.converted_prompt : "";
+
+        const createdAt =
+          typeof obj.created_at === "string" ? formatKoreanDate(obj.created_at) : "";
+
+        const duration =
+          typeof obj.duration === "number" ? formatDuration(obj.duration) : "--:--";
+
+        const coverUrl = typeof obj.album_image === "string" ? obj.album_image : undefined;
+        const audioUrl = typeof obj.audio_url === "string" ? obj.audio_url : undefined;
+
+        // user / artist 이름 매핑 (안전하게)
+        const user =
+          obj.user && typeof obj.user === "object"
+            ? (obj.user as Record<string, unknown>)
+            : null;
+
+        const nickname = user && typeof user.nickname === "string" ? user.nickname : undefined;
+
+        const artistObj =
+          obj.artist && typeof obj.artist === "object"
+            ? (obj.artist as Record<string, unknown>)
+            : null;
+
+        const artistNameFromArtistObj =
+          artistObj && typeof artistObj.artist_name === "string" ? artistObj.artist_name : undefined;
+
+        const artistNameFromRoot =
+          typeof obj.artist_name === "string" ? obj.artist_name : undefined;
+
+        const finalArtist =
+          nickname ?? artistNameFromRoot ?? artistNameFromArtistObj ?? "Unknown";
+
+        const plays = typeof obj.plays === "number" ? obj.plays : 0;
+
+        const lyrics =
+          typeof obj.lyrics === "string"
+            ? obj.lyrics
+            : inputPrompt || convertedPrompt || "내용이 없습니다.";
+
+        const title =
+          typeof obj.music_name === "string" ? obj.music_name : "제목 없음";
+
+        const ownerId =
+          typeof obj.user_id === "number"
+            ? String(obj.user_id)
+            : typeof obj.user_id === "string"
+              ? obj.user_id
+              : user && typeof user.id === "number"
+                ? String(user.id)
+                : user && typeof user.id === "string"
+                  ? user.id
+                  : undefined;
+        
+
         const mapped: AiTrack = {
-          id: data.music_id?.toString() ?? id,
-          status: data.audio_url ? "Upload" : "Draft",
-          title: data.music_name ?? "제목 없음",
-          desc: data.ai_info?.input_prompt || data.ai_info?.converted_prompt || "",
-          duration: typeof data.duration === "number" ? formatDuration(data.duration) : "--:--",
-          createdAt: data.created_at ? formatKoreanDate(data.created_at) : "",
-          isAi: data.is_ai ?? true,
-          coverUrl: data.album_image || undefined,
-          audioUrl: data.audio_url || undefined,
-          prompt: data.ai_info?.input_prompt || data.ai_info?.converted_prompt || "",
-          artist: data.user?.nickname ?? data.artist_name ?? data.artist?.artist_name ?? "Unknown",
-          plays: typeof data.plays === "number" ? data.plays : 0,
-          lyrics: data.lyrics || data.ai_info?.input_prompt || "내용이 없습니다.",
-          ownerId: data.user_id?.toString(),
-          ownerName: data.user?.nickname,
-          musicId: typeof data.music_id === "number" ? data.music_id : undefined,
+          musicId: musicIdNum,
+          title,
+          desc: inputPrompt || convertedPrompt || "",
+          duration,
+          createdAt,
+          isAi: typeof obj.is_ai === "boolean" ? obj.is_ai : true,
+          coverUrl,
+          audioUrl,
+          prompt: inputPrompt || convertedPrompt || "",
+          artist: finalArtist,
+          plays,
+          lyrics,
+          ownerId,
+          ownerName: nickname,
         };
 
-        console.log("[AISongPage] mapped coverUrl:", mapped.coverUrl);
         setTrack(mapped);
       } catch (e: unknown) {
         if ((e as DOMException)?.name === "AbortError") return;
-        if (dummyFound) setTrack(dummyFound);
+
+        const mapped = mapMockToAiTrack(dummyFound, id);
+        if (mapped) setTrack(mapped);
+
         setError(e instanceof Error ? e.message : "알 수 없는 오류");
       } finally {
         setLoading(false);
@@ -322,13 +457,6 @@ export default function AiSongPage() {
 
     return () => controller.abort();
   }, [API_BASE, id, dummyFound]);
-
-  // 커버는 서버 응답의 image_large_square 및 album 관련 필드를 우선 사용
-
-  // ✅ 남의 곡 보고 있을 때 편집모드가 켜져있으면 자동 종료
-  useEffect(() => {
-    if (!isOwner && isEditingTitle) setIsEditingTitle(false);
-  }, [isOwner, isEditingTitle]);
 
   /** =========================
    * ✅ 액션버튼 패턴 (단일 곡 = 현재곡 1개)
@@ -345,7 +473,7 @@ export default function AiSongPage() {
         duration: track.duration,
         audioUrl: track.audioUrl ?? "/audio/sample.mp3",
         coverUrl: track.coverUrl,
-        musicId: track.musicId, // 가사 로드에 필요한 music_id
+        musicId: track.musicId,
       },
     ];
   }, [track]);
@@ -404,7 +532,62 @@ export default function AiSongPage() {
     }
   };
 
-  type ActionKey = "play" | "add" | "share";
+  // ✅ 삭제 (내가 만든 곡만)
+  const deleteSong = async () => {
+    if (!track) return;
+    if (!isOwner) return;
+
+    const ok = window.confirm("이 곡을 삭제할까요? (되돌릴 수 없어요)");
+    if (!ok) return;
+
+    const trackIdStr = track.musicId.toString();
+
+    // 1) 플레이리스트들에서 제거(프론트 상태 정리)
+    try {
+      const pls = getUserPlaylists();
+      for (const p of pls) {
+        const curr = getPlaylistById(p.id);
+        if (!curr) continue;
+        if (!curr.tracks?.some((t) => t.id === trackIdStr)) continue;
+        updatePlaylist(p.id, {
+          tracks: curr.tracks.filter((t) => t.id !== trackIdStr),
+        });
+      }
+
+      // liked에서도 제거
+      const likedPl = getPlaylistById(LIKED_SYSTEM_ID);
+      if (likedPl?.tracks?.some((t) => t.id === trackIdStr)) {
+        updatePlaylist(LIKED_SYSTEM_ID, {
+          tracks: likedPl.tracks.filter((t) => t.id !== trackIdStr),
+        });
+      }
+    } catch (e) {
+      console.error("playlist cleanup failed", e);
+    }
+
+    // 2) 서버 삭제
+    if (API_BASE) {
+      try {
+        const token = localStorage.getItem("access_token");
+        const res = await fetch(`${API_BASE}/${track.musicId}/`, {
+          method: "DELETE",
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
+        if (!res.ok) throw new Error(`삭제 실패: ${res.status}`);
+      } catch (e) {
+        console.error("delete failed", e);
+        setCopyToast("삭제에 실패했습니다.");
+        return;
+      }
+    }
+
+    setCopyToast("삭제되었습니다.");
+    navigate(-1);
+  };
+
+  type ActionKey = "play" | "add" | "share" | "delete";
 
   const handleAction = (key: ActionKey) => {
     if (selectedCount === 0) return;
@@ -412,40 +595,7 @@ export default function AiSongPage() {
     if (key === "play") playTracks(selectedTracks);
     if (key === "add") setAddOpen(true);
     if (key === "share") shareSelected();
-  };
-
-  /** =========================
-   * ✅ 업로드 확정 (모달의 “업로드” 버튼에서만 실행)
-   ========================= */
-  const confirmUpload = async () => {
-    if (!track || track.status === "Upload") return;
-
-    // 1) UI 반영
-    setTrack((prev) => (prev ? { ...prev, status: "Upload" } : prev));
-
-    // 2) 모달 닫기
-    setUploadConfirmOpen(false);
-
-    // 3) mock 반영
-    try {
-      updateAiSong(track.musicId, { status: "Upload" });
-    } catch (e) {
-      console.error("mock upload failed", e);
-    }
-
-    // 4) 서버 반영
-    if (API_BASE) {
-      try {
-        // ⚠️ 백엔드 스펙: PATCH /api/v1/{music_id}/
-        await fetch(`${API_BASE}/${track.id}/`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "Upload" }),
-        });
-      } catch (e) {
-        console.error("api upload failed", e);
-      }
-    }
+    if (key === "delete") deleteSong();
   };
 
   return (
@@ -495,11 +645,11 @@ export default function AiSongPage() {
                       alt="cover"
                       className="h-full w-full object-cover"
                       onError={(e) => {
-                        console.error("[AISongPage] 이미지 표시 실패:", track.coverUrl);
+                        console.error(
+                          "[AISongPage] 이미지 표시 실패:",
+                          track.coverUrl
+                        );
                         (e.target as HTMLImageElement).style.display = "none";
-                      }}
-                      onLoad={() => {
-                        console.log("[AISongPage] 이미지 로드 성공:", track.coverUrl);
                       }}
                     />
                   ) : (
@@ -628,36 +778,11 @@ export default function AiSongPage() {
 
                       <div className="mt-6 flex items-center justify-between gap-4">
                         <div className="text-sm text-[#f6f6f6]">
-                          {track.createdAt} | {plays}회 | {track.duration}
+                          {track.createdAt} | {track.duration}
                         </div>
                       </div>
 
-                      <div className="mt-6 flex items-end gap-2 flex-nowrap overflow-x-auto">
-                        {isOwner && (
-                          <button
-                            type="button"
-                            disabled={track.status === "Upload"}
-                            onClick={() => {
-                              if (track.status === "Upload") return;
-                              // ✅ 여기서는 “모달만 열기”
-                              setUploadConfirmOpen(true);
-                            }}
-                            className={`
-                              shrink-0 inline-flex items-center justify-center gap-1
-                              w-[120px] h-9 px-3 rounded-full text-sm transition
-                              ${
-                                track.status === "Upload"
-                                  ? "bg-[#555555] text-[#999999] cursor-not-allowed"
-                                  : "bg-[#AFDEE2] text-[#1f1f1f] hover:bg-[#87B2B6]"
-                              }
-                            `}
-                            aria-label="upload"
-                          >
-                            <MdFileUpload size={18} />
-                            {track.status === "Upload" ? "업로드됨" : "업로드하기"}
-                          </button>
-                        )}
-
+                      <div className="mt-4 flex items-end gap-2 flex-nowrap overflow-x-auto">
                         <ActionCircle
                           icon={<MdPlayArrow size={20} />}
                           label="재생"
@@ -688,6 +813,16 @@ export default function AiSongPage() {
                           onClick={toggleLike}
                           disabled={selectedCount === 0}
                         />
+
+                        {/* ✅ 내가 만든 곡이면 삭제 버튼 표시 */}
+                        {isOwner && (
+                          <ActionCircle
+                            icon={<MdDelete size={18} />}
+                            label="삭제"
+                            onClick={() => handleAction("delete")}
+                            disabled={selectedCount === 0}
+                          />
+                        )}
                       </div>
                     </div>
                   </div>
@@ -767,60 +902,6 @@ export default function AiSongPage() {
                     className="px-4 py-2 rounded-2xl text-sm text-[#F6F6F6] hover:bg-white/10 transition"
                   >
                     취소
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ✅ 업로드 확인 모달 */}
-        {uploadConfirmOpen && (
-          <div className="fixed inset-0 z-[999] whitespace-normal">
-            {/* 바깥 클릭 = 취소 */}
-            <button
-              type="button"
-              className="absolute inset-0 bg-black/50"
-              onClick={() => setUploadConfirmOpen(false)}
-              aria-label="닫기"
-            />
-
-            <div className="absolute inset-0 grid place-items-center p-6">
-              <div className="w-full max-w-[420px] rounded-3xl bg-[#2d2d2d] border border-[#464646] shadow-2xl overflow-hidden">
-                <div className="px-6 py-4 flex items-center justify-between border-b border-[#464646]">
-                  <div className="text-base font-semibold text-[#F6F6F6]">
-                    곡을 업로드하시겠습니까?
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setUploadConfirmOpen(false)}
-                    className="text-[#F6F6F6]/70 hover:text-white transition"
-                    aria-label="닫기"
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                <div className="px-6 py-5 text-sm text-[#F6F6F6]/70 leading-relaxed">
-                  업로드된 곡은 다른 사용자에게 공개됩니다.
-                </div>
-
-                <div className="px-6 py-4 border-t border-[#464646] flex justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setUploadConfirmOpen(false)}
-                    className="px-4 py-2 rounded-2xl text-sm text-[#F6F6F6] hover:bg-white/10 transition"
-                  >
-                    취소
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={confirmUpload}
-                    className="px-4 py-2 rounded-2xl text-sm font-semibold
-                              bg-[#AFDEE2] text-[#1f1f1f] hover:bg-[#87B2B6] transition"
-                  >
-                    업로드
                   </button>
                 </div>
               </div>
