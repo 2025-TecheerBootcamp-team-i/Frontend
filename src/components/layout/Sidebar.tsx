@@ -62,8 +62,8 @@ function Sidebar({
             bg-white/[0.05]
             backdrop-blur-2xl
             border border-white/10
-            rounded-[32px]
-            px-5 py-4
+            rounded-[40px]
+            px-6 py-4
             flex-none
             shadow-[0_20px_50px_rgba(0,0,0,0.3)]
           "
@@ -74,20 +74,20 @@ function Sidebar({
           <div className="flex items-center justify-between">
             <button
               onClick={() => navigate("/mypage")}
-              className="hover:text-[#888] transition font-semibold text-lg text-[#F6F6F6]"
+              className="hover:text-[#f6f6f6]/50 transition font-semibold text-lg text-[#F6F6F6]"
             >
               마이페이지
             </button>
 
             <button
               onClick={() => navigate("/mypage")}
-              className="hover:text-[#888] transition mb-2 text-[#F6F6F6]"
+              className="hover:text-[#f6f6f6]/50 transition mb-2 text-[#F6F6F6]"
             >
               <MdOutlineNavigateNext size={30} />
             </button>
           </div>
 
-          <div className="mb-3 border-b border-[#464646]" />
+          <div className="mb-3 border-b border-white/[0.10]" />
 
           <div className="flex gap-4">
             <div className="w-24 h-24 bg-[#777777] rounded-2xl overflow-hidden">
@@ -106,12 +106,12 @@ function Sidebar({
             <button
               type="button"
               onClick={() => navigate("/my-playlists")}
-              className="mt-3 hover:text-[#888] transition font-normal text-base mb-2 text-[#F6F6F6]"
+              className="mt-3 hover:text-[#f6f6f6]/50 transition font-normal text-base mb-2 text-[#F6F6F6]"
             >
               나의 플레이리스트
             </button>
 
-            <div className="mb-2 border-b border-[#464646]" />
+            <div className="mb-2 border-b border-white/[0.10]" />
 
             <div className="p-1 overflow-x-auto overflow-y-hidden">
               <div className="flex gap-3 overflow-visible">
@@ -145,7 +145,7 @@ function Sidebar({
                     shrink-0
                     w-[clamp(80px,11vh,100px)]
                     h-[clamp(80px,11vh,100px)]
-                    bg-[#777777] rounded-xl hover:bg-zinc-400 transition text-[#3D3D3D] flex items-center justify-center text-3xl"
+                    bg-[#777777] rounded-xl hover:bg-[#777777]/50 transition text-[#3d3d3d] flex items-center justify-center text-xl"
                   aria-label="플레이리스트 추가"
                   title="플레이리스트 추가"
                 >
@@ -156,7 +156,7 @@ function Sidebar({
           </div>
         </div>
 
-        <div className="border-b border-[#3D3D3D]" />
+        <div className="border-b border-white/[0.10]" />
 
         {/* AI 음악: 남는 공간 먹되, 너무 커지지 않게 clamp */}
         <div
@@ -165,8 +165,8 @@ function Sidebar({
             bg-white/[0.05]
             backdrop-blur-2xl
             border border-white/10
-            rounded-[32px]
-            px-5 py-4
+            rounded-[40px]
+            px-6 py-4
             flex flex-col
             min-h-0
             shadow-[0_20px_50px_rgba(0,0,0,0.3)]
@@ -179,14 +179,14 @@ function Sidebar({
           <div className="flex items-center justify-between">
             <button
               onClick={() => navigate("/ai")}
-              className="hover:text-[#888] transition font-semibold text-lg mb-2 text-[#F6F6F6]"
+              className="mt-1 hover:text-[#f6f6f6]/50 transition font-semibold text-lg mb-2 text-[#F6F6F6]"
             >
               AI 음악 만들기
             </button>
 
             <button
               onClick={() => navigate("/ai")}
-              className="hover:text-[#888] transition mb-2 text-[#F6F6F6]"
+              className="mt-1 hover:text-[#f6f6f6]/50 transition mb-2 text-[#F6F6F6]"
             >
               <MdOutlineNavigateNext size={30} />
             </button>
@@ -225,6 +225,7 @@ function Sidebar({
               onClick={handleGenerate}
               disabled={!prompt.trim()}
               className="
+                mt-1
                 px-3 py-1.5
                 rounded-xl
                 text-xs
