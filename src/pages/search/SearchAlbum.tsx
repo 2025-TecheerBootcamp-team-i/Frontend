@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { FaPlay } from "react-icons/fa6";
 
 type Album = { id: string; title: string; artist: string; year?: string; image?: string | null };
 
@@ -290,8 +291,9 @@ export default function SearchAlbum() {
                           const fallback = img.nextElementSibling as HTMLElement;
                           if (fallback) fallback.style.display = "none";
                         }}
-                        
                         loading="lazy"
+                        decoding="async"
+                        fetchPriority="low"
                       />
                       
                       {/* 오버레이 재생 아이콘 효과 */}

@@ -567,6 +567,9 @@ export default function ArtistPage() {
                     }
                     alt={artist.name}
                     className="w-full h-full object-cover relative z-10"
+                    loading="eager"
+                    decoding="async"
+                    fetchPriority="high"
                     onError={(e) => {
                     console.error(`[ArtistPage] ❌ 아티스트 이미지 로드 실패:`, {
                         name: artist.name,
@@ -648,10 +651,12 @@ export default function ArtistPage() {
                             }
                             alt={t.album}
                             className="w-full h-full object-cover relative z-10"
+                            loading="lazy"
+                            decoding="async"
+                            fetchPriority="low"
                             onError={(e) => {
                             (e.target as HTMLImageElement).style.display = "none";
                             }}
-                            loading="lazy"
                         />
                         <div className="absolute inset-0 bg-white/5 animate-pulse z-0" />
                         </>
@@ -733,10 +738,12 @@ export default function ArtistPage() {
                                     }
                                     alt={al.title}
                                     className="w-full h-full object-cover relative z-10 transition-transform duration-1000 group-hover:scale-110"
+                                    loading="lazy"
+                                    decoding="async"
+                                    fetchPriority="low"
                                     onError={(e) => {
                                     (e.target as HTMLImageElement).style.display = "none";
                                     }}
-                                    loading="lazy"
                                 />
                                 </>
                             ) : (

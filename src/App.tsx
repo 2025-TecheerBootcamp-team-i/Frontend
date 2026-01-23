@@ -5,51 +5,66 @@ import MainLayout2 from "./components/layout/MainLayout2";
 import PlainLayout from "./components/layout/PlainLayout";
 import Nolayout from "./components/layout/Nolayout";
 
+// Lazy load all pages for better performance
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
 const SignUpPage = lazy(() => import("./pages/auth/SignupPage"));
+const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
 import RequireAuth from "./pages/auth/RequireAuth";
 
-import HomePage from "./pages/home/HomePage";
-import ChartPage from "./pages/chart/ChartPage";
-import MyPage from "./pages/profile/MyPage";
+// Home & Main Pages
+const HomePage = lazy(() => import("./pages/home/HomePage"));
+const ChartPage = lazy(() => import("./pages/chart/ChartPage"));
+const MyPage = lazy(() => import("./pages/profile/MyPage"));
 
-import AiCreatePage from "./pages/ai/AICreatePage";
-import AiSongPage from "./pages/ai/AISongPage";
+// AI Pages
+const AiCreatePage = lazy(() => import("./pages/ai/AICreatePage"));
+const AiSongPage = lazy(() => import("./pages/ai/AISongPage"));
 
-import PlaylistPage from "./pages/album/PlaylistPage";
-import MyPlaylistPage from "./pages/profile/MyPlaylistPage";
-import MyPlaylistPersonal from "./pages/profile/MyPlaylistPersonal";
-import MyPlaylistLiked from "./pages/profile/MyPlaylistLiked";
-import PlaylistEdit from "./pages/album/PlaylistEdit";
-import MyAITracks from "./pages/profile/MyAITracks";
+// Playlist Pages
+const PlaylistPage = lazy(() => import("./pages/album/PlaylistPage"));
+const MyPlaylistPage = lazy(() => import("./pages/profile/MyPlaylistPage"));
+const MyPlaylistPersonal = lazy(() => import("./pages/profile/MyPlaylistPersonal"));
+const MyPlaylistLiked = lazy(() => import("./pages/profile/MyPlaylistLiked"));
+const PlaylistEdit = lazy(() => import("./pages/album/PlaylistEdit"));
+const MyAITracks = lazy(() => import("./pages/profile/MyAITracks"));
 
+// Artist Pages
+const ArtistPage = lazy(() => import("./pages/artist/ArtistPage"));
+const ArtistTracksPage = lazy(() => import("./pages/artist/ArtistTracksPage"));
+const ArtistAlbumsPage = lazy(() => import("./pages/artist/ArtistAlbumsPage"));
+const AlbumPage = lazy(() => import("./pages/album/AlbumPage"));
 
-import ArtistPage from "./pages/artist/ArtistPage";
-import ArtistTracksPage from "./pages/artist/ArtistTracksPage";
-import ArtistAlbumsPage from "./pages/artist/ArtistAlbumsPage";
-import AlbumPage from "./pages/album/AlbumPage";
+// Search Pages
+const SearchPage = lazy(() => import("./pages/search/SearchPage"));
+const SearchAll = lazy(() => import("./pages/search/SearchAll"));
+const SearchArtist = lazy(() => import("./pages/search/SearchArtist"));
+const SearchAlbum = lazy(() => import("./pages/search/SearchAlbum"));
+const SearchSong = lazy(() => import("./pages/search/SearchSong"));
+const SearchPlaylist = lazy(() => import("./pages/search/SearchPlaylist.tsx"));
 
-import SearchPage from "./pages/search/SearchPage";
-import SearchAll from "./pages/search/SearchAll";
-import SearchArtist from "./pages/search/SearchArtist";
-import SearchAlbum from "./pages/search/SearchAlbum";
-import SearchSong from "./pages/search/SearchSong";
-import SearchPlaylist from "./pages/search/SearchPlaylist.tsx";
+// Chart Pages
+const ChartTop100 = lazy(() => import("./pages/chart/ChartTop100"));
+const ChartDaily = lazy(() => import("./pages/chart/ChartDaily"));
+const ChartAI = lazy(() => import("./pages/chart/ChartAI"));
 
-import ChartTop100 from "./pages/chart/ChartTop100";
-import ChartDaily from "./pages/chart/ChartDaily";
-import ChartAI from "./pages/chart/ChartAI";
+// Song Pages
+const NowPlayingPage = lazy(() => import("./pages/song/NowPlayingPage"));
 
-import NowPlayingPage from "./pages/song/NowPlayingPage";
 import { PlayerProvider } from "./player/PlayerContext";
 import { ToastProvider } from "./components/common/ToastProvider";
 import { PlaylistProvider } from "./contexts/PlaylistContext";
 
-const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
-
 function AuthFallback() {
   return (
     <div className="min-h-[100dvh] w-full grid place-items-center bg-[#2d2d2d]">
+      <div className="text-sm text-white/60">Loading...</div>
+    </div>
+  );
+}
+
+function PageLoader() {
+  return (
+    <div className="min-h-[50vh] w-full grid place-items-center">
       <div className="text-sm text-white/60">Loading...</div>
     </div>
   );
@@ -71,46 +86,46 @@ export default function App() {
 
       {/* ✅ 사이드바가 필요한 모든 페이지 */}
       <Route element={<MainLayout />}>
-        <Route path="/home" element={<HomePage />} />
-        <Route path="/chart" element={<ChartPage />}>
+        <Route path="/home" element={<Suspense fallback={<PageLoader />}><HomePage /></Suspense>} />
+        <Route path="/chart" element={<Suspense fallback={<PageLoader />}><ChartPage /></Suspense>}>
           <Route index element={<Navigate to="top100" replace />} />
-          <Route path="top100" element={<ChartTop100 />} />
-          <Route path="daily" element={<ChartDaily />} />
-          <Route path="ai" element={<ChartAI />} />
+          <Route path="top100" element={<Suspense fallback={<PageLoader />}><ChartTop100 /></Suspense>} />
+          <Route path="daily" element={<Suspense fallback={<PageLoader />}><ChartDaily /></Suspense>} />
+          <Route path="ai" element={<Suspense fallback={<PageLoader />}><ChartAI /></Suspense>} />
         </Route>
-        <Route path="/mypage" element={<RequireAuth><MyPage /></RequireAuth>} />
-        <Route path="/my-playlists" element={<RequireAuth><MyPlaylistPage /></RequireAuth>}>
-          <Route path="personal" element={<MyPlaylistPersonal />} />
-          <Route path="liked" element={<MyPlaylistLiked />} />
+        <Route path="/mypage" element={<RequireAuth><Suspense fallback={<PageLoader />}><MyPage /></Suspense></RequireAuth>} />
+        <Route path="/my-playlists" element={<RequireAuth><Suspense fallback={<PageLoader />}><MyPlaylistPage /></Suspense></RequireAuth>}>
+          <Route path="personal" element={<Suspense fallback={<PageLoader />}><MyPlaylistPersonal /></Suspense>} />
+          <Route path="liked" element={<Suspense fallback={<PageLoader />}><MyPlaylistLiked /></Suspense>} />
         </Route>
-        <Route path="/ai/create" element={<RequireAuth><AiCreatePage /></RequireAuth>} />
+        <Route path="/ai/create" element={<RequireAuth><Suspense fallback={<PageLoader />}><AiCreatePage /></Suspense></RequireAuth>} />
         <Route path="/ai" element={<Navigate to="/ai/create" replace />} />
-        <Route path="/aisong/:id" element={<RequireAuth><AiSongPage /></RequireAuth>} />
-        <Route path="/my/ai-songs" element={<RequireAuth><MyAITracks /></RequireAuth>} />
-        <Route path="/search" element={<SearchPage />}>
+        <Route path="/aisong/:id" element={<RequireAuth><Suspense fallback={<PageLoader />}><AiSongPage /></Suspense></RequireAuth>} />
+        <Route path="/my/ai-songs" element={<RequireAuth><Suspense fallback={<PageLoader />}><MyAITracks /></Suspense></RequireAuth>} />
+        <Route path="/search" element={<Suspense fallback={<PageLoader />}><SearchPage /></Suspense>}>
           <Route index element={<SearchRedirect />} />
-          <Route path="all" element={<SearchAll />} />
-          <Route path="artist" element={<SearchArtist />} />
-          <Route path="album" element={<SearchAlbum />} />
-          <Route path="song" element={<SearchSong />} />
-          <Route path="playlist" element={<SearchPlaylist />} />
+          <Route path="all" element={<Suspense fallback={<PageLoader />}><SearchAll /></Suspense>} />
+          <Route path="artist" element={<Suspense fallback={<PageLoader />}><SearchArtist /></Suspense>} />
+          <Route path="album" element={<Suspense fallback={<PageLoader />}><SearchAlbum /></Suspense>} />
+          <Route path="song" element={<Suspense fallback={<PageLoader />}><SearchSong /></Suspense>} />
+          <Route path="playlist" element={<Suspense fallback={<PageLoader />}><SearchPlaylist /></Suspense>} />
         </Route>
       </Route>
 
       {/* ✅ 메인 레이아웃에 패딩이 없는 버전 */}
       <Route element={<MainLayout2 />}>
-        <Route path="/artists/:artistId" element={<ArtistPage />} />
-        <Route path="/artists/:artistId/tracks" element={<ArtistTracksPage />} />
-        <Route path="/artists/:artistId/albums" element={<ArtistAlbumsPage />} />
-        <Route path="/album/:albumId" element={<AlbumPage />} />
-        <Route path="/playlist/:playlistId" element={<PlaylistPage />} />
-        <Route path="/playlist/:playlistId/edit" element={<PlaylistEdit />} />
+        <Route path="/artists/:artistId" element={<Suspense fallback={<PageLoader />}><ArtistPage /></Suspense>} />
+        <Route path="/artists/:artistId/tracks" element={<Suspense fallback={<PageLoader />}><ArtistTracksPage /></Suspense>} />
+        <Route path="/artists/:artistId/albums" element={<Suspense fallback={<PageLoader />}><ArtistAlbumsPage /></Suspense>} />
+        <Route path="/album/:albumId" element={<Suspense fallback={<PageLoader />}><AlbumPage /></Suspense>} />
+        <Route path="/playlist/:playlistId" element={<Suspense fallback={<PageLoader />}><PlaylistPage /></Suspense>} />
+        <Route path="/playlist/:playlistId/edit" element={<Suspense fallback={<PageLoader />}><PlaylistEdit /></Suspense>} />
       </Route>
       
       
       {/* ✅ 사이드바 없는 구간 (곡 상세보기 용도) */}
       <Route element={<PlainLayout />}>
-        <Route path="/now-playing" element={<NowPlayingPage />} />
+        <Route path="/now-playing" element={<Suspense fallback={<PageLoader />}><NowPlayingPage /></Suspense>} />
       </Route>
 
       {/* ✅ 사이드바, 헤더, 플레이바 없는 구간 (로그인/회원가입 용도) */}

@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import "./index.css";
 import App from "./App";
 import { PlayerProvider } from "./player/PlayerContext";
+import { reportWebVitals } from "./utils/reportWebVitals";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -14,3 +15,6 @@ createRoot(document.getElementById("root")!).render(
     </BrowserRouter>
   </StrictMode>
 );
+
+// Report Web Vitals for performance monitoring
+reportWebVitals();

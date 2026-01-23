@@ -237,8 +237,6 @@ export const Typewriter: React.FC<TypewriterProps> = ({ text, config, triggerRep
           transition={{ duration: 0.2, delay: lineIndex * 0.1 }}
         >
           {line.split('').map((char, charIndex) => {
-              const globalIndex = displayedText.split('\n').slice(0, lineIndex).join('\n').length + 
-                              (lineIndex > 0 ? 1 : 0) + charIndex;
             return (
               <motion.span
                 key={`${lineIndex}-${charIndex}`}
