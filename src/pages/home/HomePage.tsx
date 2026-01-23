@@ -73,7 +73,7 @@ function HorizontalScroller({
             }}
             className="
                 absolute left-1 top-1/2 -translate-y-1/2 z-10
-                h-12 w-12 rounded-full
+                h-9 w-9 rounded-full
                 bg-[#1d1d1d]/50 text-[#f6f6f6]
                 flex items-center justify-center
                 hover:bg-[#1d1d1d]/70 transition
@@ -81,7 +81,7 @@ function HorizontalScroller({
             "
             aria-label="왼쪽으로 이동"
             >
-            <MdOutlineNavigateNext size={28} />
+            <MdOutlineNavigateNext size={22} />
             </button>
         )}
 
@@ -95,14 +95,14 @@ function HorizontalScroller({
             }}
             className="
                 absolute right-1 top-1/2 -translate-y-1/2 z-10
-                h-12 w-12 rounded-full
+                h-9 w-9 rounded-full
                 bg-[#1d1d1d]/50 text-[#f6f6f6]
                 flex items-center justify-center
                 hover:bg-[#1d1d1d]/70 transition
             "
             aria-label="오른쪽으로 이동"
             >
-            <MdOutlineNavigateNext size={28} />
+            <MdOutlineNavigateNext size={22} />
             </button>
         )}
 
@@ -110,7 +110,7 @@ function HorizontalScroller({
         {canScroll && showRight && (
             <div
             className={[
-                "pointer-events-none absolute right-0 top-0 h-full w-24 bg-gradient-to-l to-transparent",
+                "pointer-events-none absolute right-0 top-0 h-full w-16 bg-gradient-to-l to-transparent",
                 gradientFromClass,
             ].join(" ")}
             />
@@ -118,7 +118,7 @@ function HorizontalScroller({
         {canScroll && showLeft && (
             <div
             className={[
-                "pointer-events-none absolute left-0 top-0 h-full w-24 bg-gradient-to-r to-transparent",
+                "pointer-events-none absolute left-0 top-0 h-full w-16 bg-gradient-to-r to-transparent",
                 gradientFromClass,
             ].join(" ")}
             />
@@ -329,7 +329,7 @@ function HomePage() {
         type="button"
         onClick={() => setTab(key)}
         className={[
-            "h-10 px-6 rounded-full text-base font-medium transition whitespace-nowrap",
+            "h-9 px-4 rounded-full text-sm transition whitespace-nowrap",
             active
             ? "bg-[#E4524D] text-[#F6F6F6]"
             : "bg-[#4d4d4d] text-[#F6F6F6] hover:bg-[#5d5d5d]",
@@ -418,7 +418,7 @@ function HomePage() {
                                 {/* 유리구슬 효과 레이어들 */}
                                 <div className="absolute inset-0 bg-gradient-to-tr from-black/30 via-transparent to-white/20 pointer-events-none" />
                                 <div className="absolute top-[8%] left-[15%] w-[45%] h-[25%] bg-gradient-to-b from-white/50 to-transparent rounded-[100%] rotate-[-15deg] blur-[3px] pointer-events-none opacity-80 group-hover:opacity-100 transition-opacity" />
-                                <div className="absolute bottom-[5%] right-[10%] w-[35%] h-[20%] bg-white/30 blur-[10px] rounded-full pointer-events-none" />
+                                <div className="absolute bottom-[5%] right([10%] w-[35%] h-[20%] bg-white/30 blur-[10px] rounded-full pointer-events-none" />
                                 <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
                             </>
                         ) : (
@@ -445,27 +445,27 @@ function HomePage() {
             </div>
         </section>
 
-        {/* 차트 요약 */}
-        <section className="mb-8">
-            <div className="rounded-[40px] bg-[#1d1d1d]/60 backdrop-blur-xl border border-white/5 p-10 pb-4 shadow-2xl">
+        {/* 차트 요약 - 원격 저장소 크기로 복구 */}
+        <section className="mb-4">
+            <div className="rounded-3xl bg-[#2d2d2d]/80 p-6 pb-2">
             <div className="overflow-x-auto">
-                <div className="min-w-[1000px]">
+                <div className="min-w-[980px]">
                 {/* 상단 헤더 */}
-                <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-6">
+                <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
                     <button
                         type="button"
                         onClick={goChart}
                         aria-label="전체 차트로 이동"
                         title="전체 차트"
-                        className="px-4 text-3xl font-bold hover:text-[#AFDEE2] text-[#F6F6F6] whitespace-nowrap transition"
+                        className="px-3 text-xl font-semibold hover:text-[#888] text-[#F6F6F6] whitespace-nowrap transition"
                     >
                         실시간 차트
                     </button>
 
-                    <div className="flex gap-3 shrink-0">
+                    <div className="flex gap-2 shrink-0">
                         {tabBtn("TOP100", "TOP\u00A0100")}
-                        {tabBtn("DAILY", "일간차트")}
+                        {tabBtn("DAILY", "일일차트")}
                         {tabBtn("AI", "AI 음악")}
                     </div>
                     </div>
@@ -473,34 +473,34 @@ function HomePage() {
                     <button
                     type="button"
                     onClick={goChart}
-                    className="p-2 shrink-0 text-[#F6F6F6] hover:text-[#AFDEE2] transition"
+                    className="px-4 shrink-0 text-[#F6F6F6] hover:text-[#888] text-xl leading-none"
                     aria-label="전체 차트로 이동"
                     title="전체 차트"
                     >
-                    <MdOutlineNavigateNext size={40} />
+                    <MdOutlineNavigateNext size={30} />
                     </button>
                 </div>
 
-                <div className="border-b border-white/5" />
+                <div className="border-b border-[#464646]" />
 
-                {chartLoading && <div className="p-8 text-[#F6F6F6]/70 text-lg">차트 로딩중...</div>}
-                {chartError && <div className="p-8 text-red-300 text-lg">{chartError}</div>}
+                {chartLoading && <div className="p-4 text-[#F6F6F6]/70">차트 로딩중...</div>}
+                {chartError && <div className="p-4 text-red-300">{chartError}</div>}
 
                 {/* 리스트 */}
-                <div className="divide-y divide-white/5 overflow-hidden">
+                <div className="divide-y divide-[#464646] overflow-hidden">
                     {previewRows.map((row) => (
                     <div
                         key={row.musicId}
                         className="
                         group w-full text-left grid
-                        grid-cols-[80px_100px_1fr_1fr_100px]
-                        items-center px-4 py-4
-                        hover:bg-white/5 transition-all duration-300
+                        grid-cols-[60px_70px_1fr_1fr_80px]
+                        items-center px-2 py-2
+                        hover:bg-[#3d3d3d] transition
                         "
                     >
                         {/* 순위 / 재생 버튼 */}
                         <div className="relative flex items-center justify-center">
-                        <span className="text-xl font-bold text-[#F6F6F6]/40 transition-opacity group-hover:opacity-0">
+                        <span className="text-sm text-[#F6F6F6] transition-opacity group-hover:opacity-0">
                             {row.rank}
                         </span>
 
@@ -510,12 +510,12 @@ function HomePage() {
                                 e.stopPropagation();
                                 setTrackAndPlay(toTrack(row));
                             }}
-                            className="absolute opacity-0 scale-75 transition-all group-hover:opacity-100 group-hover:scale-125 text-[#AFDEE2]">
+                            className="absolute opacity-0 transition-opacity group-hover:opacity-100 text-[#AFDEE2]">
                             <FaPlay />
                         </button>
                         </div>
 
-                        <div className="text-center text-sm font-semibold">
+                        <div className="text-center text-xs font-medium">
                         {(() => {
                             const change = row.rankChange;
 
@@ -526,52 +526,48 @@ function HomePage() {
                         })()}
                         </div>
 
-                        <div className="ml-6 flex items-center gap-6 min-w-0 truncate">
+                        <div className="ml-5 flex items-center gap-4 min-w-0 truncate">
                         {row.albumImage ? (
-                            <div className="w-16 h-16 rounded-xl overflow-hidden shadow-lg shrink-0">
-                                <img 
-                                src={row.albumImage} 
-                                alt={row.albumName}
-                                className="w-full h-full object-cover bg-[#D9D9D9]"
-                                onError={(e) => {
-                                    e.currentTarget.style.display = 'none';
-                                    const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                                    if (fallback) fallback.style.display = 'block';
-                                }}
-                                />
-                                <div className="w-full h-full bg-[#D9D9D9] hidden" />
-                            </div>
-                        ) : (
-                            <div className="w-16 h-16 rounded-xl bg-[#D9D9D9] shrink-0 shadow-lg" />
-                        )}
-                        <div className="text-lg font-semibold text-[#F6F6F6] truncate">
+                            <img 
+                            src={row.albumImage} 
+                            alt={row.albumName}
+                            className="w-12 h-12 rounded-lg object-cover bg-[#D9D9D9] shrink-0"
+                            onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                                if (fallback) fallback.style.display = 'block';
+                            }}
+                            />
+                        ) : null}
+                        <div className={`w-12 h-12 rounded-lg bg-[#D9D9D9] shrink-0 ${row.albumImage ? 'hidden' : ''}`} />
+                        <div className="text-sm text-[#F6F6F6] whitespace-nowrap">
                             {row.musicName}
                             {row.isAi && (
-                                <span className="shrink-0 ml-4 text-xs px-3 py-1 rounded-full bg-[#E4524D]/20 text-[#E4524D] font-bold">
+                                <span className="shrink-0 ml-3 text-xs px-2 py-[1px] rounded-full bg-[#E4524D]/20 text-[#E4524D]">
                                 AI
                                 </span>
                             )}
                         </div>
                         </div>
 
-                        <div className="hidden sm:block text-base text-[#F6F6F6]/60 truncate">
+                        <div className="hidden sm:block text-sm text-[#F6F6F6] whitespace-nowrap">
                         {row.artistName}
                         </div>
 
-                        <div className="text-right pr-8 text-base font-medium text-[#F6F6F6]/40 tabular-nums">
+                        <div className="text-right pr-6 text-sm text-[#F6F6F6] whitespace-nowrap">
                         {formatDuration(row.durationSec)}
                         </div>
                     </div>
                     ))}
                 </div>
 
-                <div className="flex justify-center border-t border-white/5 p-6 text-[#F6F6F6]/40">
+                <div className="flex justify-center border-t border-[#464646] p-4 text-[#D9D9D9]">
                     <button
                     type="button"
                     onClick={goChart}
                     aria-label="전체 차트로 이동"
                     title="전체 차트"
-                    className="text-lg font-semibold hover:text-[#AFDEE2] transition"
+                    className="hover:text-[#aaaaaa] transition"
                     >
                     더보기
                     </button>
@@ -612,7 +608,6 @@ function HomePage() {
                 >
                     {/* 커버 */}
                     <div className="w-[260px] h-[260px] rounded-[32px] bg-white/5 border border-white/10 group-hover:bg-white/10 transition-all duration-500 shadow-xl overflow-hidden relative">
-                        {/* 실제 이미지가 있다면 여기에 추가 가능 */}
                         <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
                     </div>
 
