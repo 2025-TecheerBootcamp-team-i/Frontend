@@ -431,6 +431,20 @@ export default function AlbumDetailPage() {
 
     const { artist, album } = effective;
 
+    // 앨범 뒷배경 이미지 그라디언트 위한 API 호출
+    const resolvedAlbumImage = (() => {
+        const raw = album.albumImage;
+        if (!raw) return undefined;
+
+        if (raw.startsWith("http") || raw.startsWith("//")) return raw;
+
+        if (API_BASE && raw.startsWith("/")) {
+            return `${API_BASE.replace("/api/v1", "")}${raw}`;
+        }
+
+        return raw;
+        })();
+
     const selectedTracks = tracks.filter((t) => !!checkedIds[t.id]);
     const selectedCount = selectedTracks.length;
 
@@ -503,6 +517,58 @@ export default function AlbumDetailPage() {
         {/* 상단 */}
         <section className="relative overflow-visible">
             <div className="relative h-72 bg-[#1D1D1D]/70 border-b border-[#3D3D3D] overflow-hidden">
+                {/* ✅ 블러 배경 레이어: 앨범 이미지가 있으면 그걸 블러로 깔기 */}
+                {resolvedAlbumImage && (
+                <div className="pointer-events-none absolute inset-0 z-0">
+                    <img
+                    src={resolvedAlbumImage}
+                    alt=""
+                    aria-hidden="true"
+                    className="
+                        absolute inset-0 z-0
+                        w-full h-full object-cover
+                        scale-125 blur-3xl opacity-80
+                        saturate-125 brightness-125 contrast-80
+                        "
+                    loading="eager"
+                    onError={(e) => {
+                    // 배경이 깨지면 그냥 기본 배경색 보이게 처리
+                    (e.target as HTMLImageElement).style.display = "none";
+                    }}
+                    />
+                        {/* 파스텔 그라디언트 1 */}
+                        <div
+                        className="
+                            pointer-events-none absolute inset-0 z-[1]
+                            opacity-70
+                            bg-[linear-gradient(120deg,rgba(255,255,255,0.24),rgba(255,255,255,0.10),rgba(40,40,40,0.10),rgba(255,255,255,0.20))]
+                            bg-[length:260%_260%]
+                            animate-bgShift
+                        "
+                        />
+
+                        {/* 파스텔 그라디언트 2 */}
+                        <div
+                        className="
+                            pointer-events-none absolute inset-0 z-[2]
+                            opacity-40
+                            blur-xl
+                            bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.25),transparent_55%),radial-gradient(circle_at_70%_80%,rgba(175,222,226,0.25),transparent_55%)]
+                            bg-[length:240%_240%]
+                            animate-bgShift2
+                        "
+                        />
+                    {/* 아래쪽으로 갈수록 더 진하게 */}
+                    <div
+                    className="
+                        absolute inset-0
+                        bg-gradient-to-b
+                        from-[#1D1D1D]/10 via-[#1D1D1D]/65 to-[#1D1D1D]
+                    "
+                    />
+                </div>
+                )}
+
             <button
                 type="button"
                 onClick={() => navigate(-1)}
@@ -545,7 +611,7 @@ export default function AlbumDetailPage() {
                         </span>
                     </button>
 
-                    <div className="text-3xl font-extrabold text-[#F6F6F6] leading-none truncate">
+                    <div className="text-3xl font-extrabold text-[#F6F6F6]">
                         {album.title}
                     </div>
                     <div className="mt-2 text-sm text-[#F6F6F6]/60 truncate">

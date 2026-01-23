@@ -73,6 +73,20 @@ type ArtistAlbumApi = {
     return `${m}:${String(s).padStart(2, "0")}`;
     }
 
+    // 아티스트 뒷배경 그라디언트를 위한 이미지 URL 호출
+    function resolveImgUrl(API_BASE: string | undefined, src?: string | null) {
+    if (!src) return null;
+
+    if (src.startsWith("http") || src.startsWith("//")) return src;
+
+    if (API_BASE && src.startsWith("/")) {
+        return `${API_BASE.replace("/api/v1", "")}${src}`;
+    }
+
+    return src;
+    }
+
+
     function HorizontalScroller({
         children,
         scrollStep = 300,
@@ -230,6 +244,9 @@ export default function ArtistPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [playingId, setPlayingId] = useState<string | null>(null);
+
+    // 아티스트 뒷배경 그라디언트를 위한 이미지 URL
+    const artistImageUrl = resolveImgUrl(API_BASE, artist?.image);
 
     // API 데이터 로딩
     useEffect(() => {
@@ -420,6 +437,56 @@ export default function ArtistPage() {
         {/* 상단 */}
         <section className="relative overflow-visible">
             <div className="relative h-72 bg-[#1D1D1D]/70 border-b border-[#3D3D3D] overflow-hidden">
+                {/* ✅ 블러 배경 레이어: 아티스트 이미지 */}
+                    {artistImageUrl && (
+                    <img
+                        src={artistImageUrl}
+                        alt=""
+                        aria-hidden="true"
+                        className="
+                        absolute inset-0 z-0
+                        w-full h-full object-cover
+                        scale-125 blur-3xl opacity-80
+                        saturate-125 brightness-125 contrast-80
+                        "
+                        loading="eager"
+                        onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                    />
+                    )}
+                        {/* 파스텔 그라디언트 1 */}
+                        <div
+                        className="
+                        pointer-events-none absolute inset-0 z-[1]
+                        opacity-40
+                        mix-blend-soft-light
+                        bg-[linear-gradient(120deg,rgba(255,255,255,0.22),rgba(255,255,255,0.06),rgba(0,0,0,0.10),rgba(255,255,255,0.18))]
+                        bg-[length:260%_260%]
+                        animate-bgShift
+                        "
+                        />
+
+                        {/* 파스텔 그라디언트 2 */}
+                        <div
+                        className="
+                            pointer-events-none absolute inset-0 z-[2]
+                            opacity-50
+                            blur-xl
+                            bg-[linear-gradient(to_bottom,rgba(29,29,29,0.05)_0%,rgba(29,29,29,0.45)_70%,rgba(29,29,29,0.75)_100%)]
+                            bg-[length:240%_240%]
+                            animate-bgShift2
+                        "
+                        />
+                    {/* 아래쪽으로 갈수록 더 진하게 */}
+                    <div
+                    className="
+                        absolute inset-0
+                        bg-gradient-to-b
+                        from-[#1D1D1D]/10 via-[#1D1D1D]/65 to-[#1D1D1D]
+                    "
+                    />
+                {/* 그라디언트 필드 여기까지 */}
                 {/* 상단 왼쪽 뒤로 */}
                 <button
                 type="button"

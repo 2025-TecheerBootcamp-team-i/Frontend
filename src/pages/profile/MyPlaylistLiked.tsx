@@ -14,7 +14,18 @@ type PlaylistItem = {
     liked?: boolean;
     kind?: "playlist" | "album" | "system";
     coverUrl?: string | null;
+    coverUrls?: string[];
 };
+
+// MyPlaylistPage.tsx와 동일한 방식: 좋아요 곡 -> 앨범이미지 4장 만들기
+function buildCoverUrlsFromLikedTracks(tracks: LikedTrack[], limit = 4): string[] {
+  const urls = tracks
+    .map((t) => t.album_image)
+    .filter((v): v is string => typeof v === "string" && v.length > 0);
+
+    // 같은 앨범 이미지 중복 제거 후 최대 limit개
+  return Array.from(new Set(urls)).slice(0, limit);
+}
 
 /** 좋아요 및 공개여부 앨범 API 응답 타입(백엔드 스펙에 맞춰 수정) */
 type LikedAlbumApi = {
@@ -82,6 +93,12 @@ export default function MyPlaylistsLiked() {
     const [collectionsLoading, setCollectionsLoading] = useState(false);
     const [collectionsError, setCollectionsError] = useState<string | null>(null);
 
+     /** ✅ (추가) likedTracks -> 4등분용 coverUrls 생성 */
+    const likedCoverUrls = useMemo(
+      () => buildCoverUrlsFromLikedTracks(likedTracks, 4),
+      [likedTracks]
+    );
+
     const refresh = useCallback(async () => {
       setLoading(true);
 
@@ -108,19 +125,57 @@ export default function MyPlaylistsLiked() {
       }
     }, []);
 
+     /** ✅ (옵션) 좋아요 앨범/플리도 나중에 API 붙이면 여기만 채우면 됨 */
+  const refreshCollections = useCallback(async () => {
+    setCollectionsLoading(true);
+
+    const userId = getCurrentUserId();
+    if (!userId) {
+      setCollectionsLoading(false);
+      setCollectionsError("user_id를 찾을 수 없어요.");
+      setCollectionItems([]);
+      return;
+    }
+
+    try {
+      setCollectionsError(null);
+
+      const [albums, playlists] = await Promise.all([
+        fetchLikedAlbumsApi(String(userId)),
+        fetchLikedPlaylistsApi(String(userId)),
+      ]);
+
+      setCollectionItems([
+        ...mapLikedAlbumsToItems(albums),
+        ...mapLikedPlaylistsToItems(playlists),
+      ]);
+    } catch (e) {
+      console.error("[MyPlaylistsLiked] 좋아요 목록(앨범/플리) 불러오기 실패:", e);
+      setCollectionsError("좋아요 목록(앨범/플리)을 불러오지 못했어요.");
+      setCollectionItems([]);
+    } finally {
+      setCollectionsLoading(false);
+    }
+  }, []);
+
+
    // 페이지로 돌아왔을 때 최신화
   useEffect(() => {
     refresh();
+    refreshCollections();
 
-    const onFocus = () => refresh();
+    const onFocus = () => {
+      refresh();
+      refreshCollections();
+    }
+
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
-  }, [refresh]);
+    }, [refresh, refreshCollections]);
 
   // 화면에 보여줄 카드 목록
   const items: PlaylistItem[] = useMemo(() => {
     const count = likedTracks.length;
-    const coverUrl = likedTracks[0]?.album_image ?? null;
 
     return [
       {
@@ -129,10 +184,11 @@ export default function MyPlaylistsLiked() {
         owner: loading ? "불러오는 중..." : error ? "불러오기 실패" : `총 ${count}곡`,
         liked: true,
         kind: "system",
-        coverUrl,
+        coverUrls: likedCoverUrls,
+        coverUrl: likedCoverUrls[0] ?? null,
       },
     ];
-  }, [likedTracks, loading, error]);
+  }, [likedTracks, likedCoverUrls, loading, error]);
 
     const gridClass = useMemo(
         () => `
@@ -165,8 +221,29 @@ export default function MyPlaylistsLiked() {
                 onClick={() => navigate(`/playlist/${it.id}`)}
                 className="w-[220px] text-left group"
                 >
-                <div className="relative aspect-square rounded-2xl bg-[#6b6b6b]/40 border border-[#464646] group-hover:bg-[#6b6b6b]/55 transition">
-                    {it.coverUrl ? (
+                <div className="relative aspect-square rounded-2xl overflow-hidden bg-[#6b6b6b]/40 border border-[#464646] group-hover:bg-[#6b6b6b]/55 transition">
+                  {it.coverUrls?.length ? (
+                    <div className="absolute inset-0 grid grid-cols-2 grid-rows-2">
+                      {Array.from({ length: 4 }).map((_, idx) => {
+                        const src = it.coverUrls?.[idx];
+                        return src ? (
+                          <img
+                            key={idx}
+                            src={src}
+                            alt={`${it.title} cover ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                            decoding="async"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).style.display = "none";
+                            }}
+                          />
+                        ) : (
+                          <div key={idx} className="w-full h-full bg-[#3a3a3a]/40" />
+                        );
+                      })}
+                    </div>
+                ) : it.coverUrl ? (
                         <img
                         src={it.coverUrl}
                         alt={it.title}

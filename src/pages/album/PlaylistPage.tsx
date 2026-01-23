@@ -399,9 +399,9 @@ export default function PlaylistDetailPage() {
             className="
                 absolute left-12 top-28
                 w-[228px] h-[228px]
-                rounded-3xl bg-[#777777]
-                z-20
-                shadow-xl
+                rounded-3xl overflow-hidden
+                bg-[#777777]
+                z-20 shadow-xl
             ">
             <div className="grid grid-cols-2 grid-rows-2 w-full h-full">
                 {Array.from({ length: 4 }).map((_, i) => {
@@ -428,18 +428,6 @@ export default function PlaylistDetailPage() {
             </div>
             </div>
         </section>
-
-
-
-
-
-
-
-
-
-
-
-
 
         {/* 본문 */}
         <div className="mt-[70px] px-4 space-y-6">

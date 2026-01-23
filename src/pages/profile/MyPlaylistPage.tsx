@@ -10,6 +10,7 @@ import {
 import { ARTISTS } from "../../mocks/artistsMock";
 
 import { fetchLikedTracks, type LikedTrack } from "../../api/LikedSong";
+import { getCurrentUserId } from "../../utils/auth";
 
 const LIKED_SYSTEM_ID = "liked"; // 나중에 "liked -system으로 수정해야 함. 그렇지 않으면 개인 목록 맨 앞에 좋아요 누른 곡 리스트 생성됨"
 
@@ -37,20 +38,6 @@ function buildCoverUrlsFromLikedTracks(tracks: LikedTrack[], limit = 4): string[
   // ✅ 같은 앨범 이미지 중복 제거
   return Array.from(new Set(urls)).slice(0, limit);
 }
-
-// ✅ utils/auth 의존 없이 user_id 가져오기 (프로젝트 저장 키에 맞게 조정)
-const getStoredUserId = (): number | null => {
-  const userRaw = localStorage.getItem("user");
-  if (!userRaw) return null;
-
-  try {
-    const user = JSON.parse(userRaw) as { id?: number | string };
-    const n = Number(user.id);
-    return Number.isFinite(n) && n > 0 ? n : null;
-  } catch {
-    return null;
-  }
-};
 
 /* ===================== UI 컴포넌트 ===================== */
 function Tab({ to, label }: { to: string; label: string }) {
@@ -288,163 +275,173 @@ function Tab({ to, label }: { to: string; label: string }) {
 
 /* ===================== 페이지 화면 및 API ===================== */
 export default function MyPlaylistPage() {
-    const navigate = useNavigate();
-    const { pathname } = useLocation();
-    const isRoot = pathname === "/my-playlists";
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const isRoot = pathname === "/my-playlists";
 
-    const [personalAll, setPersonalAll] = useState<PlaylistItem[]>([]);
-    const [likedAll, setLikedAll] = useState<PlaylistItem[]>([]);
+  /* =====================
+   좋아요 기능
+  ===================== */
 
-    // 좋아요 누른 곡 리스트
-    const [likedTracks, setLikedTracks] = useState<LikedTrack[]>([]);
-    const likedCoverUrls = useMemo(
+  // 1) mock 플레이리스트 원본만 state로 관리 (subscribe는 1번만)
+  const [allPlaylists, setAllPlaylists] = useState(() => getAllPlaylists());
+
+  useEffect(() => {
+    const sync = () => setAllPlaylists(getAllPlaylists());
+    sync();
+    return subscribePlaylists(sync);
+  }, []);
+
+  // 2) 좋아요 누른 곡 리스트 (API)
+  const [likedTracks, setLikedTracks] = useState<LikedTrack[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const user_id = getCurrentUserId();
+        if (!user_id) return;
+
+        const tracks = await fetchLikedTracks(user_id);
+        setLikedTracks(Array.isArray(tracks) ? tracks : []);
+      } catch (e) {
+        console.error("[MyPlaylistPage] fetchLikedTracks 실패:", e);
+      }
+    })();
+  }, []);
+
+  // 3) 좋아요 곡들의 앨범이미지로 2x2 모자이크 커버 생성
+  const likedCoverUrls = useMemo(
     () => buildCoverUrlsFromLikedTracks(likedTracks, 4),
     [likedTracks]
-    );
+  );
 
-    // fetchLikedTracks(user_id) 호출
-    const getUserId = () => {
-    const raw =
-        localStorage.getItem("user")
-    return raw ? Number(raw) : null;
-    };
+  // 4) 앨범 메타 인덱스 (albumId -> {title, owner})
+  const albumIndex = useMemo(() => {
+    const map = new Map<string, { title: string; owner: string }>();
+    Object.values(ARTISTS).forEach((artist) => {
+      artist.albums.forEach((alb) => {
+        map.set(alb.id, { title: alb.title, owner: artist.name });
+      });
+    });
+    return map;
+  }, []);
 
-    useEffect(() => {
-    (async () => {
-        try {
-        const uid = getUserId();
-        if (!uid) return; // 필요하면 navigate("/login") 가능
+  /* =====================
+   파생 데이터는 useMemo로 계산
+  ===================== */
 
-        const tracks = await fetchLikedTracks(uid); // ✅ 여기서 import한 fetchLikedTracks 사용
-        setLikedTracks(tracks); // ✅ 상태에 저장
-        } catch (e) {
-        console.error("[MyPlaylistPage] fetchLikedTracks 실패:", e);
-        }
-    })();
-    }, []);
+  // 개인 목록(시스템 liked 제외)
+  const personalAll: PlaylistItem[] = useMemo(() => {
+    return allPlaylists
+      .filter((p) => p.id !== LIKED_SYSTEM_ID)
+      .map((p) => ({
+        id: p.id,
+        title: p.title,
+        owner: p.owner,
+        scope: "personal" as const,
+      }));
+  }, [allPlaylists]);
 
-        const albumIndex = useMemo(() => {
-            const map = new Map<string, { title: string; owner: string }>();
-            Object.values(ARTISTS).forEach((artist) => {
-                artist.albums.forEach((alb) => {
-                    map.set(alb.id, { title: alb.title, owner: artist.name });
-                });
-                });
-            return map;
-        }, []);
+  // 좋아요 섹션(시스템 카드 + 좋아요 앨범 + 좋아요 플레이리스트)
+  const likedAll: PlaylistItem[] = useMemo(() => {
+    const userPlaylists = allPlaylists.filter((p) => p.id !== LIKED_SYSTEM_ID);
 
-    useEffect(() => {
-        const sync = () => {
-        const all = getAllPlaylists();
+    // 좋아요 앨범
+    const albumLikedMap = getLikedAlbumIds();
+    const albumIds = Object.keys(albumLikedMap).filter((id) => albumLikedMap[id]);
 
-        // ✅ 개인 목록(= 시스템 liked 제외한 전체)
-        const personal = all
-            .filter((p) => p.id !== LIKED_SYSTEM_ID)
-            .map((p) => ({
-            id: p.id,
-            title: p.title,
-            owner: p.owner,
-            scope: "personal" as const,
-            }));
+    const likedAlbums: PlaylistItem[] = albumIds.map((albumId) => {
+      const meta = albumIndex.get(albumId);
+      return {
+        id: albumId,
+        title: meta?.title ?? `앨범 (${albumId})`,
+        owner: meta?.owner ?? "알 수 없음",
+        scope: "shared" as const,
+        liked: true,
+        kind: "album",
+      };
+    });
 
-            const albumLikedMap = getLikedAlbumIds();
-            const albumIds = Object.keys(albumLikedMap).filter((id) => albumLikedMap[id]);
+    // 좋아요 플레이리스트
+    const likedMap = getLikedPlaylistIds();
+    const likedIdSet = new Set(Object.keys(likedMap).filter((id) => likedMap[id]));
 
-            const likedAlbums: PlaylistItem[] = albumIds.map((albumId) => {
-            const meta = albumIndex.get(albumId);
-            return {
-                id: albumId,
-                title: meta?.title ?? `앨범 (${albumId})`,
-                owner: meta?.owner ?? "알 수 없음",
-                scope: "shared" as const, // 의미 없으면 personal로 둬도 됨
-                liked: true,
-                kind: "album",
-            };
-            });
+    const likedPlaylists: PlaylistItem[] = userPlaylists
+      .filter((p) => likedIdSet.has(p.id))
+      .map((p) => ({
+        id: p.id,
+        title: p.title,
+        owner: p.owner,
+        scope: "personal" as const,
+        liked: true,
+      }));
 
-        // ✅ 좋아요한 플레이리스트 목록
-        const likedMap = getLikedPlaylistIds(); // { [id]: true/false }
-        const likedIds = Object.keys(likedMap).filter((id) => likedMap[id]);
+    // 좋아요 섹션 첫 카드(시스템)
+    return [
+      {
+        id: LIKED_SYSTEM_ID,
+        title: "나의 좋아요 목록",
+        owner: "—",
+        scope: "personal",
+        kind: "system",
+        coverUrls: likedCoverUrls,
+      },
+      ...likedAlbums,
+      ...likedPlaylists,
+    ];
+  }, [allPlaylists, albumIndex, likedCoverUrls]);
 
-        const likedPlaylists = all
-            .filter((p) => p.id !== LIKED_SYSTEM_ID)
-            .filter((p) => likedIds.includes(p.id))
-            .map((p) => ({
-            id: p.id,
-            title: p.title,
-            owner: p.owner,
-            scope: "personal" as const,
-            liked: true,
-            }));
+  const personalTop = useMemo(() => personalAll.slice(0, 6), [personalAll]);
+  const likedTop = useMemo(() => likedAll.slice(0, 6), [likedAll]);
 
-        // ✅ 좋아요 섹션은 항상 첫 카드: "나의 좋아요 목록" + 그 뒤에 좋아요한 플리들
-        const likedList: PlaylistItem[] = [
-            { id: LIKED_SYSTEM_ID, title: "나의 좋아요 목록", owner: "—", scope: "personal", kind: "system", coverUrls: likedCoverUrls, },
-            ...likedAlbums,
-            ...likedPlaylists,
-        ];
+  const handleClickPlaylist = (id: string) => {
+    const it = likedAll.find((x) => x.id === id) || personalAll.find((x) => x.id === id);
 
-        setPersonalAll(personal);
-        setLikedAll(likedList);
-        };
-
-        sync();
-        return subscribePlaylists(sync);
-    }, [albumIndex]);
-
-    const personalTop = useMemo(() => personalAll.slice(0, 6), [personalAll]);
-    const likedTop = useMemo(() => likedAll.slice(0, 6), [likedAll]);
-
-    const handleClickPlaylist = (id: string) => {
-        const it = likedAll.find((x) => x.id === id) || personalAll.find((x) => x.id === id);
-
-        if (id === LIKED_SYSTEM_ID || it?.kind === "system") {
-                navigate("/my-playlists/liked");
-                return;
-        }
-
-        if (it?.kind === "album") {
-            navigate(`/album/${id}`);
-            return;
-        }
-        navigate(`/playlist/${id}`);
-    };
-
-
-    return (
-        <div className="w-full min-w-0 h-full flex flex-col">
-        <div className="sticky top-0 z-20 pt-2">
-            <div className="mt-2 px-4 flex gap-3 items-center">
-            <Tab to="" label="모두" />
-            <Tab to="personal" label="개인" />
-            <Tab to="liked" label="♥" />
-            </div>
-            <div className="mt-4 border-b border-[#464646]" />
-        </div>
-
-        <div className="flex-1 min-h-0 overflow-y-auto py-4">
-            <div className="px-0">
-            {isRoot ? (
-                <div className="space-y-6">
-                <Section
-                    title="개인"
-                    items={personalTop}
-                    onMore={() => navigate("personal")}
-                    onClickItem={handleClickPlaylist}
-                />
-
-                <Section
-                    title="좋아요"
-                    items={likedTop}
-                    onMore={() => navigate("liked")}
-                    onClickItem={handleClickPlaylist}
-                />
-                </div>
-            ) : (
-                <Outlet />
-            )}
-            </div>
-        </div>
-        </div>
-    );
+    if (id === LIKED_SYSTEM_ID || it?.kind === "system") {
+      navigate("/my-playlists/liked");
+      return;
     }
+    if (it?.kind === "album") {
+      navigate(`/album/${id}`);
+      return;
+    }
+    navigate(`/playlist/${id}`);
+  };
+
+  return (
+    <div className="w-full min-w-0 h-full flex flex-col">
+      {/* ... (이하 UI 렌더는 기존 그대로) */}
+      <div className="sticky top-0 z-20 pt-2">
+        <div className="mt-2 px-4 flex gap-3 items-center">
+          <Tab to="" label="모두" />
+          <Tab to="personal" label="개인" />
+          <Tab to="liked" label="♥" />
+        </div>
+        <div className="mt-4 border-b border-[#464646]" />
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-y-auto py-4">
+        <div className="px-0">
+          {isRoot ? (
+            <div className="space-y-6">
+              <Section
+                title="개인"
+                items={personalTop}
+                onMore={() => navigate("personal")}
+                onClickItem={handleClickPlaylist}
+              />
+              <Section
+                title="좋아요"
+                items={likedTop}
+                onMore={() => navigate("liked")}
+                onClickItem={handleClickPlaylist}
+              />
+            </div>
+          ) : (
+            <Outlet />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
