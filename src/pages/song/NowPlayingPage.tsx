@@ -1,23 +1,13 @@
+import axios from "axios";
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { MdFavorite, MdAutoAwesome, MdQueueMusic, MdClose } from "react-icons/md";
-import {
-    MdPlayArrow,
-    MdPause,
-    MdSkipNext,
-    MdSkipPrevious,
-    MdShuffle,
-    MdRepeat,
-} from "react-icons/md";
+import { MdQueueMusic, MdClose, MdDelete, MdDragIndicator, MdPlayArrow, MdPause, MdSkipNext, MdSkipPrevious, MdShuffle, MdRepeat, MdFavorite, MdAutoAwesome} from "react-icons/md";
 import { RiDashboardFill } from "react-icons/ri";
 import { GrContract } from "react-icons/gr";
 import { usePlayer } from "../../player/PlayerContext";
-import {
-    isTrackLiked,
-    toggleTrackLike,
-    subscribePlaylists,
-} from "../../mocks/playlistMock";
+
 import { getBestAlbumCover } from "../../api/album";
+import { likecount, likeTrack, deleteTrack } from "../../api/LikedSong";
 
 // ✅ NowPlayingPage.tsx 상단 (import 아래) — 1번만 주입되는 이퀄라이저 CSS
 let __npEqStyleInjected = false;
@@ -346,36 +336,92 @@ export default function NowPlayingPage() {
     const [leftOpen, setLeftOpen] = useState(false); // 분석 대시보드
     const [rightOpen, setRightOpen] = useState(false); // 재생목록
 
-    // ✅ playlists 변화 감지(좋아요 count 반영용)
-    const [plTick, setPlTick] = useState(0);
+    // ✅ 좋아요 상태
+    const [musicId, setMusicId] = useState<number | null>(null);
+    const [liked, setLiked] = useState(false);
+    const [likeCount, setLikeCount] = useState(0);
+    const [likeLoading, setLikeLoading] = useState(false);
+    
+    // ✅ 현재 곡의 musicId (트랙이 바뀔 때만 바뀌는 값)
+    const currentMusicId = (current as { musicId?: number | null } | null)?.musicId ?? null;
+
     useEffect(() => {
-        const unsub = subscribePlaylists(() => setPlTick((v) => v + 1));
-        return () => {
-        // subscribePlaylists가 cleanup을 리턴하는 경우만 안전하게 호출
-        if (typeof unsub === "function") unsub();
-        };
-    }, []);
+    let cancelled = false;
 
-    const liked = useMemo(() => {
-        if (!current) return false;
-        return isTrackLiked(current.id);
-    }, [current, plTick]);
+    (async () => {
+        if (!currentMusicId) {
+        setMusicId(null);
+        setLiked(false);
+        setLikeCount(0);
+        return;
+        }
 
-    const toggleLike = () => {
-        if (!current) return;
+        // 2) musicId 확정
+        setMusicId(currentMusicId);
 
-        toggleTrackLike({
-        id: current.id,
-        title: current.title,
-        artist: current.artist,
-        album: current.album,
-        duration: current.duration ?? "0:00",
-        likeCount: current.likeCount ?? 0,
-        });
+
+        // 3) 좋아요 상태/카운트 GET
+        try {
+        const data = await likecount(currentMusicId);
+        if (cancelled) return;
+
+        setLikeCount(data.like_count ?? 0);
+        setLiked(!!data.is_liked);
+        } catch (e) {
+        console.warn("[NowPlayingPage] likecount(GET) 실패:", e);
+        }
+    })();
+
+    return () => {
+        cancelled = true;
+    };
+    }, [currentMusicId]);
+
+ 
+    // ✅ toggleLike: POST/DELETE + 응답값으로 상태 갱신
+   const toggleLike = async () => {
+    const id = currentMusicId; // ✅ track 바뀔 때 갱신되는 값 사용
+    if (!id || likeLoading) return;
+
+    const wasLiked = liked; // ✅ 클릭 순간의 프론트 상태 스냅샷
+    setLikeLoading(true);
+
+    console.log("LIKE CLICK", { id, liked: wasLiked, likeCount });
+
+    try {
+        if (wasLiked) {
+        // ✅ 이미 좋아요 상태면 → 취소(DELETE)
+        const del = await deleteTrack(id);
+        console.log("UNLIKE RES(DELETE)", del);
+
+        // ✅ 서버가 확정해준 상태로 동기화
+        setLiked(!!del?.is_liked); // 보통 false
+        } else {
+        // ✅ 좋아요 아닌 상태면 → 등록(POST)
+        const post = await likeTrack(id);
+        console.log("LIKE RES(POST)", post);
+
+        // ✅ 서버가 확정해준 상태로 동기화
+        setLiked(!!post?.is_liked); // 보통 true
+        }
+
+        // ✅ like_count는 GET으로 최종 동기화
+        const fresh = await likecount(id);
+        console.log("LIKE AFTER(GET)", fresh);
+
+        setLikeCount(Number(fresh?.like_count ?? 0) || 0);
+    } catch (e) {
+        if (axios.isAxiosError(e)) {
+        console.warn("[NowPlayingPage] toggleLike 실패:", e.response?.status, e.response?.data);
+        } else {
+        console.warn("[NowPlayingPage] toggleLike 실패:", e);
+        }
+    } finally {
+        setLikeLoading(false);
+    }
     };
 
-    const baseLikeCount = current?.likeCount ?? 0;
-    const shownLikeCount = liked ? baseLikeCount + 1 : baseLikeCount;
+    const shownLikeCount = Number.isFinite(likeCount) ? likeCount : 0;
 
     // ✅ push 레이아웃
     const LEFT_W = 400;

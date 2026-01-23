@@ -10,6 +10,7 @@ type PlaylistItem = {
     liked?: boolean;
     kind?: "playlist" | "album" | "system";
     coverUrl?: string | null;
+    coverUrls?: string[];
 };
 
 export default function MyPlaylistsLiked() {

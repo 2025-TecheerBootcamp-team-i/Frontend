@@ -81,10 +81,24 @@ function formatSeconds(sec: number | null): string {
     return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-function HorizontalScroller({
-    children,
-    scrollStep = 300,
-    gradientFromClass = "from-[#2d2d2d]/80",
+    // 아티스트 뒷배경 그라디언트를 위한 이미지 URL 호출
+    function resolveImgUrl(API_BASE: string | undefined, src?: string | null) {
+    if (!src) return null;
+
+    if (src.startsWith("http") || src.startsWith("//")) return src;
+
+    if (API_BASE && src.startsWith("/")) {
+        return `${API_BASE.replace("/api/v1", "")}${src}`;
+    }
+
+    return src;
+    }
+
+
+    function HorizontalScroller({
+        children,
+        scrollStep = 300,
+        gradientFromClass = "from-[#2d2d2d]/80", // ✅ Section 배경이랑 맞춤
     }: HorizontalScrollerProps) {
     const ref = useRef<HTMLDivElement>(null);
     const [canScroll, setCanScroll] = useState(false);
@@ -236,7 +250,10 @@ export default function ArtistPage() {
     // ✅ 재생 중 상태 (버튼 disable / 중복 호출 방지)
     const [playingId, setPlayingId] = useState<string | null>(null);
 
-    // ✅ API 데이터 로딩
+    // 아티스트 뒷배경 그라디언트를 위한 이미지 URL
+    const artistImageUrl = resolveImgUrl(API_BASE, artist?.image);
+
+    // API 데이터 로딩
     useEffect(() => {
         if (!artistId) {
         setError("아티스트 ID가 없습니다.");
@@ -496,9 +513,59 @@ export default function ArtistPage() {
         <div className="w-full min-w-0 overflow-x-auto">
         {/* 상단 */}
         <section className="relative overflow-visible">
-            <div className="relative h-72 bg-white/[0.05] backdrop-blur-2xl border-b border-white/10 overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
-            {/* 뒤로 */}
-            <button
+            <div className="relative h-72 bg-[#1D1D1D]/70 border-b border-[#3D3D3D] overflow-hidden">
+                {/* ✅ 블러 배경 레이어: 아티스트 이미지 */}
+                    {artistImageUrl && (
+                    <img
+                        src={artistImageUrl}
+                        alt=""
+                        aria-hidden="true"
+                        className="
+                        absolute inset-0 z-0
+                        w-full h-full object-cover
+                        scale-125 blur-3xl opacity-80
+                        saturate-125 brightness-125 contrast-80
+                        "
+                        loading="eager"
+                        onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                    />
+                    )}
+                        {/* 파스텔 그라디언트 1 */}
+                        <div
+                        className="
+                        pointer-events-none absolute inset-0 z-[1]
+                        opacity-40
+                        mix-blend-soft-light
+                        bg-[linear-gradient(120deg,rgba(255,255,255,0.22),rgba(255,255,255,0.06),rgba(0,0,0,0.10),rgba(255,255,255,0.18))]
+                        bg-[length:260%_260%]
+                        animate-bgShift
+                        "
+                        />
+
+                        {/* 파스텔 그라디언트 2 */}
+                        <div
+                        className="
+                            pointer-events-none absolute inset-0 z-[2]
+                            opacity-50
+                            blur-xl
+                            bg-[linear-gradient(to_bottom,rgba(29,29,29,0.05)_0%,rgba(29,29,29,0.45)_70%,rgba(29,29,29,0.75)_100%)]
+                            bg-[length:240%_240%]
+                            animate-bgShift2
+                        "
+                        />
+                    {/* 아래쪽으로 갈수록 더 진하게 */}
+                    <div
+                    className="
+                        absolute inset-0
+                        bg-gradient-to-b
+                        from-[#1D1D1D]/10 via-[#1D1D1D]/65 to-[#1D1D1D]
+                    "
+                    />
+                {/* 그라디언트 필드 여기까지 */}
+                {/* 상단 왼쪽 뒤로 */}
+                <button
                 type="button"
                 onClick={() => navigate(-1)}
                 className="absolute left-4 top-5 z-10 p-2 text-[#F6F6F6] rounded-full hover:bg-white/10 transition"
