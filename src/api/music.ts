@@ -63,24 +63,24 @@ export interface MusicListItem {
 
 export async function listAllAiMusic(options?: ListMusicOptions): Promise<MusicListItem[]> {
   const params: Record<string, string> = {};
-  
+
   if (options?.is_ai !== undefined) {
     params.is_ai = options.is_ai ? 'true' : 'false';
   }
-  
+
   if (options?.user_id !== undefined) {
     params.user_id = options.user_id.toString();
   }
-  
+
   console.log("[API] listAllAiMusic 호출", { params });
-  
+
   const res = await axiosInstance.get<MusicListItem[]>('/', { params });
-  
-  console.log("[API] listAllAiMusic 응답", { 
+
+  console.log("[API] listAllAiMusic 응답", {
     count: res.data?.length ?? 0,
-    data: res.data 
+    data: res.data
   });
-  
+
   return Array.isArray(res.data) ? res.data : [];
 }
 
@@ -165,13 +165,105 @@ export async function getAlbumImageByMusicId(musicId: number): Promise<string | 
     // 2. 앨범 ID를 찾기 위해 앨범 이름으로 검색하거나, 다른 방법 사용
     // 일단 음악 상세에서 album_id를 직접 가져올 수 있는지 확인 필요
     // 없으면 앨범 이름으로 검색해야 할 수도 있음
-    
+
     // 임시로 음악 상세 API 응답에 album_id가 포함되어 있는지 확인
     // 없으면 앨범 이름으로 검색하는 로직 추가 필요
-    
+
     return null;
   } catch (error) {
     console.error("[API] getAlbumImageByMusicId 실패", { musicId, error });
     return null;
+  }
+}
+
+/**
+ * 태그 그래프 데이터 조회 (Treemap용)
+ * GET /api/v1/tracks/{music_id}/tag-graph
+ */
+export interface TagGraphItem {
+  name: string;
+  size: number;
+  color?: string;
+  children?: TagGraphItem[];
+  [key: string]: unknown;
+}
+
+// Treemap용 percentage 기반 글래스모피즘 색상 생성
+// 전체 UI와 조화로운 반투명 톤
+function getColorByPercentage(percentage: number, minPct: number, maxPct: number): string {
+  // 0~1 범위로 정규화
+  const normalized = maxPct === minPct ? 0.5 : (percentage - minPct) / (maxPct - minPct);
+
+  // 글래스모피즘: 낮은 채도, 높은 명도, rgba 사용
+  let hue: number;
+
+  if (normalized < 0.2) {
+    hue = 180; // 청록
+  } else if (normalized < 0.4) {
+    hue = 200; // 스카이블루
+  } else if (normalized < 0.6) {
+    hue = 220; // 블루
+  } else if (normalized < 0.8) {
+    hue = 260; // 보라
+  } else {
+    hue = 300; // 핑크
+  }
+
+  // 반투명 글래스 느낌: rgba 사용
+  return `hsla(${hue}, 20%, 75%, 0.35)`;
+}
+
+export async function getTagGraph(musicId: number): Promise<TagGraphItem[]> {
+  try {
+    // TODO: 임시로 36번 데이터만 사용 (백엔드에 다른 데이터 추가 후 제거)
+    const targetMusicId = 36;
+    console.log("[API] getTagGraph 호출", { musicId, targetMusicId });
+    const res = await axiosInstance.get<any>(`/tracks/${targetMusicId}/tag-graph`);
+    console.log("[API] getTagGraph 응답 원본:", res.data);
+
+    // API 응답 형식에 따라 데이터 추출
+    // 응답 형태: [{name: "Tags", children: [{name, size, percentage}, ...]}]
+    let rawData: any[] = [];
+    const data = res.data;
+
+    if (Array.isArray(data) && data.length > 0 && data[0].children) {
+      // [{name: "Tags", children: [...]}] 형태
+      rawData = data[0].children;
+    } else if (Array.isArray(data)) {
+      // 배열 형태: [{name, percentage}, ...]
+      rawData = data;
+    } else if (data && Array.isArray(data.children)) {
+      // 트리 형태: {name: "Tags", children: [{name, size}, ...]}
+      rawData = data.children;
+    } else if (data && Array.isArray(data.tags)) {
+      rawData = data.tags;
+    } else if (data && Array.isArray(data.data)) {
+      rawData = data.data;
+    }
+
+    console.log("[API] getTagGraph 파싱된 데이터:", rawData);
+
+    if (rawData.length === 0) {
+      console.warn("[API] Unexpected tag-graph response format:", data);
+      return [];
+    }
+
+    // API 응답을 TagGraphItem 형식으로 변환
+    // percentage를 size로 사용 (Treemap 크기 결정)
+    const percentages = rawData.map((item: any) => item.percentage ?? item.size ?? item.value ?? 10);
+    const minPct = Math.min(...percentages);
+    const maxPct = Math.max(...percentages);
+
+    return rawData.map((item: any, index: number) => {
+      const pct = item.percentage ?? item.size ?? item.value ?? 10;
+      return {
+        name: item.name || item.tag_key || item.tag || item.label || `Tag ${index + 1}`,
+        size: pct,
+        color: getColorByPercentage(pct, minPct, maxPct),
+      };
+    });
+  } catch (error) {
+    console.error("[API] getTagGraph 실패", { musicId, error });
+    return [];
   }
 }
