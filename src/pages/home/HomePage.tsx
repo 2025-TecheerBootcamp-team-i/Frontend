@@ -379,11 +379,11 @@ function HomePage() {
     return (
         <>
         {/* 인기 아티스트 */}
-        <section className="mb-8">
+        <section className="mb-2">
             <div className="relative">
             <div
                 ref={scrollRef}
-                className="flex gap-10 overflow-x-auto px-4 py-6 no-scrollbar scroll-smooth"
+                className="flex gap-4 overflow-x-auto px-4 py-6 no-scrollbar scroll-smooth"
             >
                 {popularLoading && <div className="text-[#F6F6F6]/70 px-2">로딩중...</div>}
                 {popularError && <div className="text-red-300 px-2">{popularError}</div>}
@@ -397,11 +397,10 @@ function HomePage() {
                     {/* ✅ 유리구슬 효과 + 훨씬 큰 크기(200px) 적용 */}
                     <div
                         className="
-                            w-[200px] h-[200px] rounded-full bg-white/[0.05]
+                            w-[180px] h-[180px] rounded-full bg-white/[0.05]
                             transition-all duration-700 ease-out
-                            group-hover:-translate-y-4 group-hover:scale-110 
-                            group-hover:shadow-[0_40px_80px_rgba(0,0,0,0.6),0_0_50px_rgba(175,222,226,0.25)]
-                            border border-white/20 group-hover:border-white/40
+                            group-hover:-translate-y-2 group-hover:scale-110
+                            group-hover:shadow-[0_25px_50px_rgba(0,0,0,0.35),0_0_30px_rgba(175,222,226,0.15)]
                             overflow-hidden relative
                             backdrop-blur-2xl
                             shadow-[inset_0_2px_15px_rgba(255,255,255,0.2),0_15px_30px_rgba(0,0,0,0.4)]
@@ -412,7 +411,7 @@ function HomePage() {
                                 <img
                                     src={a.image_small_circle}
                                     alt={a.artist_name}
-                                    className="w-full h-full object-cover transition-all duration-1000 group-hover:scale-125 opacity-80 group-hover:opacity-100 brightness-95 group-hover:brightness-110"
+                                    className="w-full h-full object-cover transition-all duration-1000 group-hover:scale-125 opacity-80 group-hover:opacity-100"
                                 />
                                 
                                 {/* 유리구슬 효과 레이어들 */}
@@ -428,40 +427,40 @@ function HomePage() {
                         )}
                     </div>
 
-                    <div className="mt-6 w-[200px] text-center font-bold text-lg text-[#F6F6F6] truncate tracking-tight transition-colors group-hover:text-[#AFDEE2]">{a.artist_name}</div>
-                    <div className="mt-2 text-xs font-light text-white/30 tracking-widest uppercase">
-                        RANK #{a.rank}
+                    <div className="mt-4 w-[200px] text-center text-sm text-[#F6F6F6]/80 break-words leading-snug transition group-hover:text-[#f6f6f6]/50">{a.artist_name}</div>
+                    <div className="mt-2 text-xs text-[#f6f6f6]/30">
+                        #{a.rank} · {a.play_count}회
                     </div>
                 </div>
                 ))}
             </div>
 
             {showLeft && (
-                <div className="pointer-events-none absolute left-0 top-0 h-full w-20 bg-gradient-to-r from-[#080808] to-transparent z-10" />
+                <div className="pointer-events-none absolute left-0 top-0 h-full w-20 bg-gradient-to-r from-black/40 to-transparent z-10" />
             )}
             {showRight && (
-                <div className="pointer-events-none absolute right-0 top-0 h-full w-20 bg-gradient-to-l from-[#080808] to-transparent z-10" />
+                <div className="pointer-events-none absolute right-0 top-0 h-full w-20 bg-gradient-to-l from-black/40 to-transparent z-10" />
             )}
             </div>
         </section>
 
         {/* 차트 요약 - 투명 유리 박스 스타일 적용 */}
-        <section className="mb-8">
-            <div className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 p-8 pb-4 shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
+        <section className="mb-4">
+            <div className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 p-6 pb-2 shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
             <div className="overflow-x-auto">
                 <div className="min-w-[980px]">
                 {/* 상단 헤더 */}
-                <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-6">
+                <div className="flex items-center pt-2 justify-between mb-3">
+                    <div className="flex items-center gap-3">
                     <button
                         type="button"
                         onClick={goChart}
-                        className="px-2 text-2xl font-black tracking-[0.2em] uppercase hover:text-[#AFDEE2] text-white transition-colors opacity-80"
+                        className="px-3 text-2xl font-semibold hover:text-[#f6f6f6]/50 text-[#f6f6f6] transition whitespace-nowrap"
                     >
                         실시간 차트
                     </button>
 
-                    <div className="flex gap-3 shrink-0">
+                    <div className="flex gap-2 shrink-0">
                         {tabBtn("TOP100", "TOP 100")}
                         {tabBtn("DAILY", "일일차트")}
                         {tabBtn("AI", "AI 음악")}
@@ -471,15 +470,15 @@ function HomePage() {
                     <button
                     type="button"
                     onClick={goChart}
-                    className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-all"
+                    className="px-3 shrink-0 text-[#f6f6f6] hover:text-[#f6f6f6]/50 text-xl leading-none transition"
                     >
                     <MdOutlineNavigateNext size={30} />
                     </button>
                 </div>
 
-                <div className="border-b border-white/10 mb-6" />
+                <div className="border-b border-white/10" />
 
-                {chartLoading && <div className="p-4 text-white/50">차트 로딩중...</div>}
+                {chartLoading && <div className="p-4 text-[#f6f6f6]/50">차트 로딩중...</div>}
                 {chartError && <div className="p-4 text-red-400/80">{chartError}</div>}
 
                 {/* 리스트 */}
@@ -490,8 +489,8 @@ function HomePage() {
                         className="
                         group w-full text-left grid
                         grid-cols-[60px_70px_1fr_1fr_80px]
-                        items-center px-4 py-3
-                        hover:bg-white/[0.08] transition-all duration-300 rounded-2xl
+                        items-center px-2 py-2
+                        hover:bg-white/[0.08] transition-all
                         "
                     >
                         {/* 순위 / 재생 버튼 */}
@@ -536,7 +535,7 @@ function HomePage() {
                             />
                         ) : null}
                         <div className={`w-12 h-12 rounded-lg bg-[#D9D9D9] shrink-0 ${row.albumImage ? 'hidden' : ''}`} />
-                        <div className="text-sm text-[#F6F6F6] whitespace-nowrap">
+                        <div className="text-sm text-[#F6F6F6] whitespace-nowrap truncate">
                             {row.musicName}
                             {row.isAi && (
                                 <span className="shrink-0 ml-3 text-xs px-2 py-[1px] rounded-full bg-[#E4524D]/20 text-[#E4524D]">
@@ -557,13 +556,13 @@ function HomePage() {
                     ))}
                 </div>
 
-                <div className="flex justify-center border-t border-[#464646] p-4 text-[#D9D9D9]">
+                <div className="flex justify-center border-t border-white/10 p-4 text-[#f6f6f6]/50">
                     <button
                     type="button"
                     onClick={goChart}
                     aria-label="전체 차트로 이동"
                     title="전체 차트"
-                    className="hover:text-[#aaaaaa] transition"
+                    className="hover:text-[#f6f6f6]/80 transition"
                     >
                     더보기
                     </button>
@@ -574,18 +573,18 @@ function HomePage() {
         </section>
 
         {/* 인기 공개 플레이리스트 (투명 유리 박스 스타일) */}
-        <section className="mb-10">
-        <div className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 p-10 pb-10 shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
+        <section className="mb-6">
+        <div className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 p-6 pb-6 shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
             {/* 헤더 */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-3">
             <div
-                className="px-4 text-2xl font-black tracking-[0.2em] text-white uppercase opacity-80"
+                className="px-3 pt-2 text-2xl font-semibold text-[#f6f6f6] whitespace-nowrap transition"
             >
                 인기 공개 플레이리스트
             </div>
             </div>
 
-            <div className="mb-8 border-b border-white/10" />
+            <div className="mb-4 border-b border-white/10" />
 
             {/* 로딩/에러 상태 */}
             {playlistsLoading && <div className="p-8 text-white/50 text-lg">플레이리스트 로딩중...</div>}
@@ -594,7 +593,7 @@ function HomePage() {
             {/* 플레이리스트 목록 */}
             {!playlistsLoading && !playlistsError && publicPlaylists.length > 0 && (
             <HorizontalScroller gradientFromClass="from-transparent">
-            <div className="flex gap-8 min-w-max pr-4">
+            <div className="flex gap-2 min-w-max pr-2">
                 {publicPlaylists.map((p) => (
                 <button
                     key={p.playlist_id}
@@ -624,7 +623,7 @@ function HomePage() {
 
             {/* 데이터 없음 */}
             {!playlistsLoading && !playlistsError && publicPlaylists.length === 0 && (
-                <div className="p-8 text-[#F6F6F6]/30 text-lg text-center">인기 플레이리스트가 없습니다</div>
+                <div className="px-4 text-[#F6F6F6]/30 text-base text-left">인기 플레이리스트가 없습니다</div>
             )}
         </div>
         </section>

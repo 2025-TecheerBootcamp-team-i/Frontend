@@ -45,8 +45,8 @@ function Header() {
       <div
         className="
           w-[50px] h-[50px] flex items-center justify-center
-          bg-gradient-to-tr from-[#3d3d3d] to-[#2d2d2d]
-          shadow-[0_10px_24px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.08)]
+          bg-white/[0.05]
+          shadow-[0_6px_18px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)]
           text-[#AFDEE2] rounded-full
         "
       >
@@ -58,10 +58,10 @@ function Header() {
         onClick={goHome}
         className="
           w-[50px] h-[50px] rounded-full flex items-center justify-center
-          bg-gradient-to-tr from-[#3d3d3d] to-[#2d2d2d]
-          transition hover:from-[#4d4d4d] hover:to-[#3a3a3a]
+          bg-white/[0.05]
+          transition hover:bg-white/[0.10]
           text-[#AFDEE2]
-          shadow-[0_10px_24px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.08)]
+          shadow-[0_6px_18px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)]
         "
       >
         <TiHome size={25} />
@@ -75,14 +75,14 @@ function Header() {
         }}
         className={[
           "w-[400px] h-[50px] flex items-center rounded-full px-4 py-3",
-          "bg-gradient-to-tr from-[#3d3d3d] to-[#2d2d2d]",
-          "shadow-[0_10px_24px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.08)]",
+          "bg-white/[0.05]",
+          "shadow-[0_6px_18px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)]",
           tagMode ? "ring-1 ring-[#AFDEE2]/40" : "",
         ].join(" ")}
       >
         <button
           type="submit"
-          className="hover:text-[#888] transition text-[#666666] translate-x-[-2px]"
+          className="hover:text-[#f6f6f6]/50 transition text-[#f6f6f6]/30 translate-x-[-2px]"
           aria-label="검색"
           title="검색"
         >
@@ -135,7 +135,7 @@ function Header() {
           }}
           className="
             bg-transparent outline-none text-sm w-full indent-[4px]
-            text-[#e0e0e0] placeholder:text-[#8a8a8a]
+            text-[#f6f6f6]/80 placeholder:text-[#f6f6f6]/30
           "
           placeholder={
             tagMode
