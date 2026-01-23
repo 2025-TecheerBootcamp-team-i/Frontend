@@ -53,3 +53,34 @@
     .animate-bgGradient {
         animation: bgGradientMove 18s ease-in-out infinite;
 }
+
+@keyframes bgShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes bgShift2 {
+  0%   { background-position: 120% 0%; }
+  50%  { background-position: 0% 120%; }
+  100% { background-position: 120% 0%; }
+}
+
+.animate-bgShift {
+  animation: bgShift 12s ease-in-out infinite;
+  will-change: background-position;
+  background-size: 240% 240%;
+}
+
+.animate-bgShift2 {
+  animation: bgShift2 16s ease-in-out infinite;
+  will-change: background-position;
+  background-size: 260% 260%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-bgShift,
+  .animate-bgShift2 {
+    animation: none;
+  }
+}
