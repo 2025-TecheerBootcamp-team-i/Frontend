@@ -411,7 +411,10 @@ function HomePage() {
                                 <img
                                     src={a.image_small_circle}
                                     alt={a.artist_name}
-                                    className="w-full h-full object-cover transition-all duration-1000 group-hover:scale-125 opacity-80 group-hover:opacity-100"
+                                    className="w-full h-full object-cover transition-all duration-1000 group-hover:scale-125 opacity-80 group-hover:opacity-100 brightness-95 group-hover:brightness-110"
+                                    loading="lazy"
+                                    decoding="async"
+                                    fetchPriority="low"
                                 />
                                 
                                 {/* 유리구슬 효과 레이어들 */}
@@ -527,6 +530,9 @@ function HomePage() {
                             src={row.albumImage} 
                             alt={row.albumName}
                             className="w-12 h-12 rounded-lg object-cover bg-[#D9D9D9] shrink-0"
+                            loading="lazy"
+                            decoding="async"
+                            fetchPriority="low"
                             onError={(e) => {
                                 e.currentTarget.style.display = 'none';
                                 const fallback = e.currentTarget.nextElementSibling as HTMLElement;

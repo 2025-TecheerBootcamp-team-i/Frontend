@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { FaPlay } from "react-icons/fa6";
 
 type Playlist = {
     id: string;

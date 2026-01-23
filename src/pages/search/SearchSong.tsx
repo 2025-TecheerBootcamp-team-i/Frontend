@@ -769,8 +769,9 @@ if (fail === 0) {
                         const fallback = img.nextElementSibling as HTMLElement;
                         if (fallback) fallback.style.display = "none";
                       }}
-                      
                       loading="lazy"
+                      decoding="async"
+                      fetchPriority="low"
                     />
                     <div className="absolute inset-0 bg-white/5 animate-pulse z-0" />
                   </>

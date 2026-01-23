@@ -689,6 +689,9 @@ export default function AlbumDetailPage() {
                         }
                         alt={album.title}
                         className="w-full h-full object-cover"
+                        loading="eager"
+                        decoding="async"
+                        fetchPriority="high"
                         onError={(e) => {
                             e.currentTarget.style.display = "none";
                         }}
@@ -840,6 +843,9 @@ export default function AlbumDetailPage() {
                                 }
                                 alt={t.title}
                                 className="w-full h-full object-cover"
+                                loading="lazy"
+                                decoding="async"
+                                fetchPriority="low"
                                 onError={(e) => {
                                     e.currentTarget.style.display = "none";
                                 }}
