@@ -70,17 +70,17 @@ export default function MyPlaylistsLiked() {
     );
 
     return (
-        <section className="rounded-3xl bg-[#2d2d2d]/80 border border-[#464646]">
+        <section className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
         {/* 헤더 */}
-        <div className="px-8 pt-6 pb-2 flex items-center justify-between">
-            <div className="text-lg font-semibold text-[#F6F6F6]">좋아요</div>
-            <div className="w-9 h-9 rounded-full border border-[#464646] bg-[#3f3f3f] text-[#F6F6F6] grid place-items-center text-xl">
+        <div className="px-10 pt-8 pb-4 flex items-center justify-between">
+            <div className="text-xl font-black tracking-[0.2em] text-white uppercase opacity-80">좋아요 목록</div>
+            <div className="w-10 h-10 rounded-full border border-white/10 bg-white/5 text-[#AFDEE2] grid place-items-center text-xl shadow-inner">
             ♥
             </div>
         </div>
 
-        <div className="mb-4 mx-4 border-b border-[#464646]" />
-        <div className="px-6 pb-8 overflow-x-auto">
+        <div className="mx-10 border-b border-white/10 mb-10" />
+        <div className="px-10 pb-10 overflow-x-auto">
             <div className={gridClass}>
             {items.map((it) => (
                 <button
@@ -89,33 +89,35 @@ export default function MyPlaylistsLiked() {
                 onClick={() => navigate(`/playlist/${it.id}`)}
                 className="w-[220px] text-left group"
                 >
-                <div className="relative aspect-square rounded-2xl bg-[#6b6b6b]/40 border border-[#464646] group-hover:bg-[#6b6b6b]/55 transition">
+                <div className="relative aspect-square rounded-[32px] bg-white/5 border border-white/10 group-hover:bg-white/10 transition-all duration-500 shadow-xl overflow-hidden">
                     {it.coverUrl ? (
                         <img
                         src={it.coverUrl}
                         alt={it.title}
-                        className="absolute inset-0 w-full h-full rounded-2xl object-cover opacity-90"
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                         loading="lazy"
                         />
                     ) : (
-                        <div className="absolute inset-0 bg-[#6b6b6b]/20" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
                     )}
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
 
                     {it.liked && (
                       <div className={[
-                          "absolute top-2 right-3 text-xl drop-shadow",
+                          "absolute top-4 right-5 text-2xl drop-shadow-lg transition-transform duration-500 group-hover:scale-125",
                           it.kind === "system" ? "text-[#E4524D]" : "text-[#AFDEE2]"].join(" ")}
                       >♥
                       </div>
                     )}
               </div>
 
-              <div className="mt-3 text-sm font-semibold text-[#F6F6F6] truncate">
-                {it.title}
-              </div>
-
-              <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">
-                {it.owner}
+              <div className="mt-5 px-2">
+                <div className="text-[15px] font-bold text-white/95 truncate tracking-tight group-hover:text-[#AFDEE2] transition-colors">
+                    {it.title}
+                </div>
+                <div className="mt-1.5 text-[11px] font-black text-white/20 uppercase tracking-widest">
+                    {it.owner}
+                </div>
               </div>
             </button>
           ))}

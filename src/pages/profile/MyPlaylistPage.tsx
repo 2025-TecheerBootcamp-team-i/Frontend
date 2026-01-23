@@ -158,9 +158,9 @@ function Tab({ to, label }: { to: string; label: string }) {
     onClickItem?: (id: string) => void;
     }) {
     return (
-        <section className="rounded-3xl bg-[#2d2d2d]/80 border border-[#464646]">
-        <div className="px-8 pt-6 pb-2 flex items-center justify-between">
-            <div className="text-lg font-semibold text-[#F6F6F6]">
+        <section className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
+        <div className="px-10 pt-8 pb-4 flex items-center justify-between">
+            <div className="text-xl font-black tracking-[0.2em] text-white uppercase opacity-80">
             {title}
             </div>
 
@@ -168,7 +168,7 @@ function Tab({ to, label }: { to: string; label: string }) {
             <button
             type="button"
             onClick={onMore}
-            className="text-[#F6F6F6] hover:text-[#888] transition text-xl leading-none"
+            className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-all"
             aria-label={`${title} 더보기`}
             title="더보기"
             >
@@ -177,11 +177,11 @@ function Tab({ to, label }: { to: string; label: string }) {
             )}
         </div>
 
-        <div className="mb-4 mx-4 border-b border-[#464646]" />
+        <div className="mx-10 border-b border-white/10 mb-8" />
 
-        <div className="px-6 pb-6">
-            <HorizontalScroller gradientFromClass="from-[#2d2d2d]/80">
-            <div className="flex gap-5 min-w-max pr-2">
+        <div className="px-10 pb-10">
+            <HorizontalScroller gradientFromClass="from-transparent">
+            <div className="flex gap-8 min-w-max pr-4">
                 {items.map((it) => (
                 <button
                     key={`${it.kind ?? "playlist"}:${it.id}`}
@@ -189,7 +189,7 @@ function Tab({ to, label }: { to: string; label: string }) {
                     onClick={() => onClickItem?.(it.id)}
                     className="w-[220px] text-left group shrink-0"
                 >
-                    <div className="relative aspect-square rounded-2xl overflow-hidden bg-[#6b6b6b]/40 border border-[#464646] group-hover:bg-[#6b6b6b]/55 transition">
+                    <div className="relative aspect-square rounded-[32px] overflow-hidden bg-white/5 border border-white/10 group-hover:bg-white/10 transition-all duration-500 shadow-xl">
                       {/* ✅ 커버(2x2 모자이크 우선) */}
                         {it.coverUrls?.length ? (
                             <div className="absolute inset-0 grid grid-cols-2 grid-rows-2">
@@ -208,7 +208,7 @@ function Tab({ to, label }: { to: string; label: string }) {
                                     }}
                                 />
                                 ) : (
-                                <div key={idx} className="w-full h-full bg-[#3a3a3a]/40" />
+                                <div key={idx} className="w-full h-full bg-white/5" />
                                 );
                             })}
                             </div>
@@ -216,29 +216,34 @@ function Tab({ to, label }: { to: string; label: string }) {
                             <img
                             src={it.coverUrl}
                             alt={`${it.title} cover`}
-                            className="absolute inset-0 w-full h-full object-cover"
+                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                             loading="lazy"
                             decoding="async"
                             onError={(e) => {
                                 (e.currentTarget as HTMLImageElement).style.display = "none";
                             }}
                             />
-                        ) : null}
+                        ) : (
+                            <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
+                        )}
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                     {/* ❤️ 좋아요 하트 */}
                     {it.liked || it.kind === "system" ? (
                     <div className={[
-                        "absolute top-2 right-3 text-xl drop-shadow",
+                        "absolute top-4 right-5 text-2xl drop-shadow-lg transition-transform duration-500 group-hover:scale-125",
                         it.kind === "system" ? "text-[#E4524D]" : "text-[#AFDEE2]"].join(" ")}
                     >♥
                     </div>
                     ) : null}
                     </div>
 
-                    <div className="mt-3 text-sm font-semibold text-[#F6F6F6] truncate">
-                        {it.title}
-                    </div>
-                    <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">
-                        {it.owner}
+                    <div className="mt-5 px-2">
+                        <div className="text-[15px] font-bold text-white/95 truncate tracking-tight group-hover:text-[#AFDEE2] transition-colors">
+                            {it.title}
+                        </div>
+                        <div className="mt-1.5 text-[11px] font-black text-white/20 uppercase tracking-widest">
+                            {it.owner}
+                        </div>
                     </div>
                 </button>
                 ))}
@@ -247,7 +252,7 @@ function Tab({ to, label }: { to: string; label: string }) {
         </div>
         </section>
     );
-}
+    }
 
 /* ===================== 페이지 화면 및 API ===================== */
 export default function MyPlaylistPage() {

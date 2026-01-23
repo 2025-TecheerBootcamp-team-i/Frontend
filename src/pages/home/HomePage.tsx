@@ -58,7 +58,7 @@ function HorizontalScroller({
         <div
             ref={ref}
             onScroll={update}
-            className="overflow-x-auto overflow-y-hidden"
+            className="overflow-x-auto overflow-y-hidden no-scrollbar"
         >
             {children}
         </div>
@@ -134,208 +134,192 @@ function getErrorMessage(e: unknown, fallback: string) {
 }  
 
 function HomePage() {
-        const navigate = useNavigate();
-        const { setTrackAndPlay } = usePlayer();
-    
-        // ✅ tab을 먼저 선언 (goChart에서 사용)
-        const [tab, setTab] = useState<"TOP100" | "DAILY" | "AI">("TOP100");
-    
-        const goChart = () => {
-        const map = { TOP100: "top100", DAILY: "daily", AI: "ai" } as const;
-        navigate(`/chart/${map[tab]}`);
-        };
-    
-        const [popularArtists, setPopularArtists] = useState<PopularArtist[]>([]);
-        const [popularLoading, setPopularLoading] = useState(false);
-        const [popularError, setPopularError] = useState<string | null>(null);
-    
-        const [chartByType, setChartByType] = useState<Record<ChartType, ChartData | null>>({
-        realtime: null,
-        daily: null,
-        ai: null,
-        });
-        const [chartLoading, setChartLoading] = useState(false);
-        const [chartError, setChartError] = useState<string | null>(null);
+    const navigate = useNavigate();
+    const { setTrackAndPlay } = usePlayer();
 
-        // 인기 공개 플레이리스트
-        const [publicPlaylists, setPublicPlaylists] = useState<PlaylistSummary[]>([]);
-        const [playlistsLoading, setPlaylistsLoading] = useState(false);
-        const [playlistsError, setPlaylistsError] = useState<string | null>(null);
-    
-        const TAB_TO_CHARTTYPE: Record<"TOP100" | "DAILY" | "AI", ChartType> = {
-        TOP100: "realtime",
-        DAILY: "daily",
-        AI: "ai",
-        };
-    
-        const scrollRef = useRef<HTMLDivElement>(null);
-        const [showLeft, setShowLeft] = useState(false);
-        const [showRight, setShowRight] = useState(false);
-    
-        const updateArtistScrollHint = () => {
-        const el = scrollRef.current;
-        if (!el) return;
-        const { scrollLeft, scrollWidth, clientWidth } = el;
-        setShowLeft(scrollLeft > 0);
-        setShowRight(scrollLeft + clientWidth < scrollWidth - 1);
-        };
-    
-        // ✅ 이전 순위 스냅샷 저장
-        const prevRankByIdRef = useRef<Record<string, number>>({});
-        // const [diffById, setDiffById] = useState<Record<string, number>>({});
-    
-        // ✅ 인기 아티스트 fetch (finally 추가해서 loading 정상 종료)
-        useEffect(() => {
+    // ✅ tab을 먼저 선언 (goChart에서 사용)
+    const [tab, setTab] = useState<"TOP100" | "DAILY" | "AI">("TOP100");
+
+    const goChart = () => {
+    const map = { TOP100: "top100", DAILY: "daily", AI: "ai" } as const;
+    navigate(`/chart/${map[tab]}`);
+    };
+
+    const [popularArtists, setPopularArtists] = useState<PopularArtist[]>([]);
+    const [popularLoading, setPopularLoading] = useState(false);
+    const [popularError, setPopularError] = useState<string | null>(null);
+
+    const [chartByType, setChartByType] = useState<Record<ChartType, ChartData | null>>({
+    realtime: null,
+    daily: null,
+    ai: null,
+    });
+    const [chartLoading, setChartLoading] = useState(false);
+    const [chartError, setChartError] = useState<string | null>(null);
+
+    // 인기 공개 플레이리스트
+    const [publicPlaylists, setPublicPlaylists] = useState<PlaylistSummary[]>([]);
+    const [playlistsLoading, setPlaylistsLoading] = useState(false);
+    const [playlistsError, setPlaylistsError] = useState<string | null>(null);
+
+    const TAB_TO_CHARTTYPE: Record<"TOP100" | "DAILY" | "AI", ChartType> = {
+    TOP100: "realtime",
+    DAILY: "daily",
+    AI: "ai",
+    };
+
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const [showLeft, setShowLeft] = useState(false);
+    const [showRight, setShowRight] = useState(false);
+
+    const updateArtistScrollHint = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    setShowLeft(scrollLeft > 0);
+    setShowRight(scrollLeft + clientWidth < scrollWidth - 1);
+    };
+
+    // ✅ 이전 순위 스냅샷 저장
+    const prevRankByIdRef = useRef<Record<string, number>>({});
+
+    // ✅ 인기 아티스트 fetch
+    useEffect(() => {
+    let alive = true;
+
+    (async () => {
+        try {
+        setPopularLoading(true);
+        setPopularError(null);
+
+        const data = await fetchPopularArtists(10);
+        if (!alive) return;
+
+        setPopularArtists(data);
+        } catch (e: unknown) {
+        if (!alive) return;
+        setPopularError(getErrorMessage(e, "인기 아티스트 로딩 실패"));
+        } finally {
+        setPopularLoading(false);
+        }
+    })();
+
+    return () => {
+        alive = false;
+    };
+    }, []);
+
+    useEffect(() => {
+    requestAnimationFrame(updateArtistScrollHint);
+    }, [popularArtists]);
+
+    // ✅ 스크롤 힌트 이벤트
+    useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    updateArtistScrollHint();
+    el.addEventListener("scroll", updateArtistScrollHint);
+    window.addEventListener("resize", updateArtistScrollHint);
+
+    return () => {
+        el.removeEventListener("scroll", updateArtistScrollHint);
+        window.removeEventListener("resize", updateArtistScrollHint);
+    };
+    }, []);
+
+    // ✅ 일일/AI 차트는 최초 1회만 로드
+    useEffect(() => {
+    let alive = true;
+
+    (async () => {
+        try {
+        const results = await Promise.allSettled([
+            fetchChart("daily"),
+            fetchChart("ai"),
+        ]);
+        if (!alive) return;
+
+        const daily = results[0].status === "fulfilled" ? results[0].value : null;
+        const ai = results[1].status === "fulfilled" ? results[1].value : null;
+
+        setChartByType((prev) => ({ ...prev, daily, ai }));
+        } catch (e: unknown) {
+        console.error("일일/AI 차트 로딩 실패:", e);
+        }
+    })();
+
+    return () => {
+        alive = false;
+    };
+    }, []);
+
+    // ✅ 인기 공개 플레이리스트 로드
+    useEffect(() => {
         let alive = true;
-    
+
         (async () => {
             try {
-            setPopularLoading(true);
-            setPopularError(null);
-    
-            const data = await fetchPopularArtists(8);
-            if (!alive) return;
-    
-            setPopularArtists(data);
+                setPlaylistsLoading(true);
+                setPlaylistsError(null);
+
+                const data = await listPublicPlaylists();
+                if (!alive) return;
+
+                const filtered = data.filter((p) => 
+                    p.like_count >= 20 && 
+                    p.visibility !== "system"
+                );
+
+                const shuffled = [...filtered].sort(() => Math.random() - 0.5);
+
+                setPublicPlaylists(shuffled);
             } catch (e: unknown) {
-            if (!alive) return;
-            setPopularError(getErrorMessage(e, "인기 아티스트 로딩 실패"));
+                if (!alive) return;
+                setPlaylistsError(getErrorMessage(e, "플레이리스트 로딩 실패"));
             } finally {
-            setPopularLoading(false);
-            }
-        })();
-    
-        return () => {
-            alive = false;
-        };
-        }, []);
-    
-        useEffect(() => {
-        requestAnimationFrame(updateArtistScrollHint);
-        }, [popularArtists]);
-    
-        // ✅ 스크롤 힌트 이벤트
-        useEffect(() => {
-        const el = scrollRef.current;
-        if (!el) return;
-    
-        updateArtistScrollHint();
-        el.addEventListener("scroll", updateArtistScrollHint);
-        window.addEventListener("resize", updateArtistScrollHint);
-    
-        return () => {
-            el.removeEventListener("scroll", updateArtistScrollHint);
-            window.removeEventListener("resize", updateArtistScrollHint);
-        };
-        }, []);
-    
-        // ✅ 일일/AI 차트는 최초 1회만 로드
-        useEffect(() => {
-        let alive = true;
-
-        (async () => {
-            try {
-            const results = await Promise.allSettled([
-                fetchChart("daily"),
-                fetchChart("ai"),
-            ]);
-            if (!alive) return;
-
-            const daily = results[0].status === "fulfilled" ? results[0].value : null;
-            const ai = results[1].status === "fulfilled" ? results[1].value : null;
-
-            setChartByType((prev) => ({ ...prev, daily, ai }));
-            } catch (e: unknown) {
-            console.error("일일/AI 차트 로딩 실패:", e);
+                if (alive) setPlaylistsLoading(false);
             }
         })();
 
         return () => {
             alive = false;
         };
-        }, []);
+    }, []);
 
-        // ✅ 인기 공개 플레이리스트 로드
-        useEffect(() => {
-            let alive = true;
+    // ✅ 실시간 차트는 10분마다 갱신
+    useEffect(() => {
+    let alive = true;
 
-            (async () => {
-                try {
-                    setPlaylistsLoading(true);
-                    setPlaylistsError(null);
+    const loadRealtime = async () => {
+        try {
+        setChartLoading(true);
+        setChartError(null);
 
-                    const data = await listPublicPlaylists();
-                    if (!alive) return;
+        const realtime = await fetchChart("realtime");
+        if (!alive) return;
 
-                    // like_count >= 20 필터링 + 시스템 플레이리스트 제외
-                    const filtered = data.filter((p) => 
-                        p.like_count >= 20 && 
-                        p.visibility !== "system"
-                    );
+        const nextPrev: Record<string, number> = {};
+        for (const item of realtime.items) nextPrev[item.musicId] = item.rank;
+        prevRankByIdRef.current = nextPrev;
 
-                    // 무작위 셔플
-                    const shuffled = [...filtered].sort(() => Math.random() - 0.5);
+        setChartByType((prev) => ({ ...prev, realtime }));
+        } catch (e: unknown) {
+        if (!alive) return;
+        setChartError(getErrorMessage(e, "실시간 차트 로딩 실패"));
+        } finally {
+        if (alive) setChartLoading(false);
+        }
+    };
 
-                    setPublicPlaylists(shuffled);
-                } catch (e: unknown) {
-                    if (!alive) return;
-                    setPlaylistsError(getErrorMessage(e, "플레이리스트 로딩 실패"));
-                } finally {
-                    if (alive) setPlaylistsLoading(false);
-                }
-            })();
+    loadRealtime();
+    const timer = window.setInterval(loadRealtime, 10 * 60 * 1000);
 
-            return () => {
-                alive = false;
-            };
-        }, []);
-
-        // ✅ 실시간 차트는 10분마다 갱신
-        useEffect(() => {
-        let alive = true;
-    
-        const loadRealtime = async () => {
-            try {
-            setChartLoading(true);
-            setChartError(null);
-
-            const realtime = await fetchChart("realtime");
-            if (!alive) return;
-
-            // diff 계산 (realtime 기준)
-            const prev = prevRankByIdRef.current;
-            const nextDiff: Record<string, number> = {};
-            for (const item of realtime.items) {
-                const prevRank = prev[item.musicId];
-                nextDiff[item.musicId] = typeof prevRank === "number" ? prevRank - item.rank : 0;
-            }
-            // setDiffById(nextDiff);
-
-            // 다음 비교용 스냅샷 저장
-            const nextPrev: Record<string, number> = {};
-            for (const item of realtime.items) nextPrev[item.musicId] = item.rank;
-            prevRankByIdRef.current = nextPrev;
-
-            setChartByType((prev) => ({ ...prev, realtime }));
-            } catch (e: unknown) {
-            if (!alive) return;
-            setChartError(getErrorMessage(e, "실시간 차트 로딩 실패"));
-            } finally {
-            if (alive) setChartLoading(false);
-            }
-        };
-
-        // ✅ 최초 1회 즉시 로드
-        loadRealtime();
-
-        // ✅ 10분마다 갱신
-        const timer = window.setInterval(loadRealtime, 10 * 60 * 1000);
-    
-        return () => {
-            alive = false;
-            window.clearInterval(timer);
-        };
-        }, []);
+    return () => {
+        alive = false;
+        window.clearInterval(timer);
+    };
+    }, []);
 
 
     const tabBtn = (key: "TOP100" | "DAILY" | "AI", label: string) => {
@@ -359,7 +343,6 @@ function HomePage() {
     const currentType = TAB_TO_CHARTTYPE[tab];
     const currentChart = chartByType[currentType];
     
-    // ✅ musicId 기준 중복 제거
     const previewRows = (() => {
         if (!currentChart) return [];
         const seen = new Set<string>();
@@ -396,83 +379,90 @@ function HomePage() {
     return (
         <>
         {/* 인기 아티스트 */}
-        <section className="mb-2">
+        <section className="mb-8">
             <div className="relative">
             <div
                 ref={scrollRef}
-                className="flex gap-8 overflow-x-auto px-2 py-4 no-scrollbar scroll-smooth"
+                className="flex gap-10 overflow-x-auto px-4 py-6 no-scrollbar scroll-smooth"
             >
-
-        
-        {popularLoading && <div className="text-[#F6F6F6]/70 px-2">로딩중...</div>}
-        {popularError && <div className="text-red-300 px-2">{popularError}</div>}
+                {popularLoading && <div className="text-[#F6F6F6]/70 px-2">로딩중...</div>}
+                {popularError && <div className="text-red-300 px-2">{popularError}</div>}
 
                 {!popularLoading && !popularError && popularArtists.map((a) => (
                 <div
                     key={a.artist_id}
-                    className="shrink-0 flex flex-col items-center animate-floatX"
-                >
-                    <button
-                    type="button"
+                    className="shrink-0 flex flex-col items-center group cursor-pointer"
                     onClick={() => navigate(`/artists/${a.artist_id}`)}
-                    className="
-                        w-[170px] h-[170px] rounded-full bg-[#3d3d3d]
-                        transition-all duration-300
-                        hover:-translate-y-1 hover:scale-105
-                        drop-shadow-md
-                        overflow-hidden
-                    "
+                >
+                    {/* ✅ 유리구슬 효과 + 훨씬 큰 크기(200px) 적용 */}
+                    <div
+                        className="
+                            w-[200px] h-[200px] rounded-full bg-white/[0.05]
+                            transition-all duration-700 ease-out
+                            group-hover:-translate-y-4 group-hover:scale-110 
+                            group-hover:shadow-[0_40px_80px_rgba(0,0,0,0.6),0_0_50px_rgba(175,222,226,0.25)]
+                            border border-white/20 group-hover:border-white/40
+                            overflow-hidden relative
+                            backdrop-blur-2xl
+                            shadow-[inset_0_2px_15px_rgba(255,255,255,0.2),0_15px_30px_rgba(0,0,0,0.4)]
+                        "
                     >
-                    {a.image_small_circle ? (
-                        <img
-                        src={a.image_small_circle}
-                        alt={a.artist_name}
-                        className="w-full h-full object-cover"
-                        />
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center text-[#F6F6F6] text-xl">
-                        {a.artist_name?.[0] ?? "?"}
-                        </div>
-                    )}
-                    </button>
+                        {a.image_small_circle ? (
+                            <>
+                                <img
+                                    src={a.image_small_circle}
+                                    alt={a.artist_name}
+                                    className="w-full h-full object-cover transition-all duration-1000 group-hover:scale-125 opacity-80 group-hover:opacity-100 brightness-95 group-hover:brightness-110"
+                                />
+                                
+                                {/* 유리구슬 효과 레이어들 */}
+                                <div className="absolute inset-0 bg-gradient-to-tr from-black/30 via-transparent to-white/20 pointer-events-none" />
+                                <div className="absolute top-[8%] left-[15%] w-[45%] h-[25%] bg-gradient-to-b from-white/50 to-transparent rounded-[100%] rotate-[-15deg] blur-[3px] pointer-events-none opacity-80 group-hover:opacity-100 transition-opacity" />
+                                <div className="absolute bottom-[5%] right([10%] w-[35%] h-[20%] bg-white/30 blur-[10px] rounded-full pointer-events-none" />
+                                <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+                            </>
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center text-white/10 animate-pulse bg-white/5">
+                                <div className="w-full h-full bg-gradient-to-br from-white/5 to-transparent" />
+                            </div>
+                        )}
+                    </div>
 
-                    <div className="mt-3 w-[140px] text-center break-words leading-snug text-sm text-[#F6F6F6]">{a.artist_name}</div>
-                    <div className="mt-1 text-xs text-[#F6F6F6]/60">
-                    #{a.rank} · {a.play_count}회
+                    <div className="mt-6 w-[200px] text-center font-bold text-lg text-[#F6F6F6] truncate tracking-tight transition-colors group-hover:text-[#AFDEE2]">{a.artist_name}</div>
+                    <div className="mt-2 text-xs font-light text-white/30 tracking-widest uppercase">
+                        RANK #{a.rank}
                     </div>
                 </div>
                 ))}
             </div>
 
             {showLeft && (
-                <div className="pointer-events-none absolute left-0 top-0 h-full w-10 bg-gradient-to-r from-[#2d2d2d] to-transparent" />
+                <div className="pointer-events-none absolute left-0 top-0 h-full w-20 bg-gradient-to-r from-[#080808] to-transparent z-10" />
             )}
             {showRight && (
-                <div className="pointer-events-none absolute right-0 top-0 h-full w-10 bg-gradient-to-l from-[#2d2d2d] to-transparent" />
+                <div className="pointer-events-none absolute right-0 top-0 h-full w-20 bg-gradient-to-l from-[#080808] to-transparent z-10" />
             )}
             </div>
         </section>
 
-        {/* 차트 요약 */}
-        <section className="mb-4">
-            <div className="rounded-3xl bg-[#2d2d2d]/80 p-6 pb-2">
+        {/* 차트 요약 - 투명 유리 박스 스타일 적용 */}
+        <section className="mb-8">
+            <div className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 p-8 pb-4 shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
             <div className="overflow-x-auto">
                 <div className="min-w-[980px]">
                 {/* 상단 헤더 */}
-                <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-6">
                     <button
                         type="button"
                         onClick={goChart}
-                        aria-label="전체 차트로 이동"
-                        title="전체 차트"
-                        className="px-3 text-xl font-semibold hover:text-[#888] text-[#F6F6F6] whitespace-nowrap transition"
+                        className="px-2 text-2xl font-black tracking-[0.2em] uppercase hover:text-[#AFDEE2] text-white transition-colors opacity-80"
                     >
                         실시간 차트
                     </button>
 
-                    <div className="flex gap-2 shrink-0">
-                        {tabBtn("TOP100", "TOP\u00A0100")}
+                    <div className="flex gap-3 shrink-0">
+                        {tabBtn("TOP100", "TOP 100")}
                         {tabBtn("DAILY", "일일차트")}
                         {tabBtn("AI", "AI 음악")}
                     </div>
@@ -481,29 +471,27 @@ function HomePage() {
                     <button
                     type="button"
                     onClick={goChart}
-                    className="px-4 shrink-0 text-[#F6F6F6] hover:text-[#888] text-xl leading-none"
-                    aria-label="전체 차트로 이동"
-                    title="전체 차트"
+                    className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-all"
                     >
                     <MdOutlineNavigateNext size={30} />
                     </button>
                 </div>
 
-                <div className="border-b border-[#464646]" />
+                <div className="border-b border-white/10 mb-6" />
 
-                {chartLoading && <div className="p-4 text-[#F6F6F6]/70">차트 로딩중...</div>}
-                {chartError && <div className="p-4 text-red-300">{chartError}</div>}
+                {chartLoading && <div className="p-4 text-white/50">차트 로딩중...</div>}
+                {chartError && <div className="p-4 text-red-400/80">{chartError}</div>}
 
                 {/* 리스트 */}
-                <div className="divide-y divide-[#464646] overflow-hidden">
+                <div className="divide-y divide-white/5 overflow-hidden">
                     {previewRows.map((row) => (
                     <div
                         key={row.musicId}
                         className="
                         group w-full text-left grid
                         grid-cols-[60px_70px_1fr_1fr_80px]
-                        items-center px-2 py-2
-                        hover:bg-[#3d3d3d] transition
+                        items-center px-4 py-3
+                        hover:bg-white/[0.08] transition-all duration-300 rounded-2xl
                         "
                     >
                         {/* 순위 / 재생 버튼 */}
@@ -585,44 +573,48 @@ function HomePage() {
             </div>
         </section>
 
-        {/* 인기 공개 플레이리스트 (레이아웃만) */}
-        <section className="mb-6">
-        <div className="rounded-3xl bg-[#2d2d2d]/80 p-6 pb-6">
+        {/* 인기 공개 플레이리스트 (투명 유리 박스 스타일) */}
+        <section className="mb-10">
+        <div className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 p-10 pb-10 shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
             {/* 헤더 */}
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-6">
             <div
-                className="px-3 text-xl font-semibold text-[#AFDEE2] whitespace-nowrap transition"
+                className="px-4 text-2xl font-black tracking-[0.2em] text-white uppercase opacity-80"
             >
                 인기 공개 플레이리스트
             </div>
             </div>
 
-            <div className="mb-4 border-b border-[#464646]" />
+            <div className="mb-8 border-b border-white/10" />
 
             {/* 로딩/에러 상태 */}
-            {playlistsLoading && <div className="p-4 text-[#F6F6F6]/70">플레이리스트 로딩중...</div>}
-            {playlistsError && <div className="p-4 text-red-300">{playlistsError}</div>}
+            {playlistsLoading && <div className="p-8 text-white/50 text-lg">플레이리스트 로딩중...</div>}
+            {playlistsError && <div className="p-8 text-red-400/80 text-lg">{playlistsError}</div>}
 
             {/* 플레이리스트 목록 */}
             {!playlistsLoading && !playlistsError && publicPlaylists.length > 0 && (
-            <HorizontalScroller gradientFromClass="from-[#2d2d2d]">
-            <div className="flex gap-2 min-w-max pr-2">
+            <HorizontalScroller gradientFromClass="from-transparent">
+            <div className="flex gap-8 min-w-max pr-4">
                 {publicPlaylists.map((p) => (
                 <button
                     key={p.playlist_id}
                     type="button"
                     onClick={() => navigate(`/playlist/${p.playlist_id}`)}
-                    className="w-[220px] text-left group shrink-0"
+                    className="w-[260px] text-left group shrink-0"
                 >
                     {/* 커버 */}
-                    <div className="w-[208px] h-[208px] rounded-2xl bg-[#6b6b6b]/40 border border-[#464646] group-hover:bg-[#6b6b6b]/55 transition" />
+                    <div className="w-[260px] h-[260px] rounded-[32px] bg-white/5 border border-white/10 group-hover:bg-white/10 transition-all duration-500 shadow-xl overflow-hidden relative">
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
+                    </div>
 
                     {/* 텍스트 */}
-                    <div className="mt-3 text-sm font-semibold text-[#F6F6F6] truncate">
-                    {p.title}
-                    </div>
-                    <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">
-                    {p.creator_nickname} · {p.item_count}곡 · ♥ {p.like_count}
+                    <div className="mt-5 px-2">
+                        <div className="text-lg font-bold text-[#F6F6F6] truncate group-hover:text-[#AFDEE2] transition-colors">
+                        {p.title}
+                        </div>
+                        <div className="mt-2 text-sm text-[#F6F6F6]/40 font-medium truncate">
+                        {p.creator_nickname} · {p.item_count}곡 · ♥ {p.like_count}
+                        </div>
                     </div>
                 </button>
                 ))}
@@ -632,12 +624,10 @@ function HomePage() {
 
             {/* 데이터 없음 */}
             {!playlistsLoading && !playlistsError && publicPlaylists.length === 0 && (
-                <div className="p-4 text-[#F6F6F6]/50">인기 플레이리스트가 없습니다</div>
+                <div className="p-8 text-[#F6F6F6]/30 text-lg text-center">인기 플레이리스트가 없습니다</div>
             )}
         </div>
         </section>
-
-
         </>
     );
 }

@@ -264,15 +264,15 @@ export default function ChartAI() {
     // ✅ 로딩/에러 UI
     if (loading) {
         return (
-        <section className="whitespace-nowrap rounded-2xl bg-[#2d2d2d]/80 overflow-hidden p-6 text-white">
-            불러오는 중...
+        <section className="whitespace-nowrap rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 overflow-hidden p-10 text-white shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
+            차트 데이터를 불러오는 중...
         </section>
         );
     }
 
     if (errorMsg) {
         return (
-        <section className="whitespace-nowrap rounded-2xl bg-[#2d2d2d]/80 overflow-hidden p-6 text-white">
+        <section className="whitespace-nowrap rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 overflow-hidden p-10 text-white shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
             {errorMsg}
         </section>
         );
@@ -280,22 +280,22 @@ export default function ChartAI() {
 
     return (
         <>
-        <section className="whitespace-nowrap rounded-2xl bg-[#2d2d2d]/80 overflow-hidden">
+        <section className="whitespace-nowrap rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 overflow-hidden shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
             <div className="overflow-x-auto">
             <div className="min-w-[920px]">
                 {/* 상단 헤더 */}
-                <div className="px-8 py-6 border-b border-[#464646]">
+                <div className="px-10 py-8 border-b border-white/10">
                 <div className="flex items-end justify-between gap-4">
-                    <div className="flex items-center gap-6">
-                    <h2 className="text-xl font-semibold text-[#F6F6F6]">실시간 AI 음악 차트</h2>
-                    <div className="text-sm text-[#999999]">
+                    <div className="flex items-center gap-8">
+                    <h2 className="text-2xl font-black tracking-[0.2em] text-white uppercase opacity-90">실시간 AI 음악 차트</h2>
+                    <div className="text-sm font-medium text-white/40 tracking-wider">
                         {chart?.generatedAt ? formatGeneratedAt(chart.generatedAt) : ""}
                     </div>
                     </div>
                 </div>
 
                 {/* 액션 버튼 */}
-                <div className="mt-4 flex flex-nowrap gap-3 overflow-x-auto no-scrollbar">
+                <div className="mt-6 flex flex-nowrap gap-4 overflow-x-auto no-scrollbar">
                     {actions.map((a) => {
                     const disabled = selectedCount === 0;
 
@@ -306,13 +306,13 @@ export default function ChartAI() {
                         onClick={() => handleAction(a.key)}
                         disabled={disabled}
                         className={[
-                            "shrink-0 px-4 py-2 rounded-2xl outline outline-1 outline-offset-[-1px] outline-stone-500",
-                            "text-sm transition flex items-center gap-2",
-                            disabled ? "text-white/30 cursor-not-allowed" : "text-[#F6F6F6] hover:bg-[#f6f6f6]/10",
+                            "shrink-0 px-5 py-2.5 rounded-2xl border border-white/10",
+                            "text-sm font-bold transition-all duration-300 flex items-center gap-2.5",
+                            disabled ? "text-white/20 border-white/5 cursor-not-allowed" : "text-white/80 hover:bg-white/10 hover:text-white hover:border-white/20",
                         ].join(" ")}
                         >
-                        <span className="text-lg">{a.icon}</span>
-                        <span className="whitespace-nowrap">{a.label}</span>
+                        <span className="text-xl">{a.icon}</span>
+                        <span className="whitespace-nowrap tracking-tight">{a.label}</span>
                         </button>
                     );
                     })}
@@ -321,11 +321,11 @@ export default function ChartAI() {
 
                 {/* 테이블 헤더 */}
                 <div>
-                <div className={`grid ${GRID} items-center justify-center py-3 px-3 text-sm text-[#f6f6f6]`}>
+                <div className={`grid ${GRID} items-center justify-center py-4 px-10 text-[13px] font-black tracking-widest text-white/30 uppercase`}>
                     <div className="flex items-center justify-center">
                     <input
                         type="checkbox"
-                        className="accent-[#f6f6f6]"
+                        className="accent-[#AFDEE2] w-4 h-4 cursor-pointer"
                         checked={allChecked}
                         onChange={(e) => toggleAll(e.target.checked)}
                         aria-label="전체 선택"
@@ -333,33 +333,34 @@ export default function ChartAI() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                    <span className="pl-2 whitespace-nowrap border-l border-[#E6E6E6]/20">순위</span>
+                    <span className="pl-2 whitespace-nowrap border-l border-white/10">순위</span>
                     </div>
 
-                    <div className="pl-2 border-l border-[#E6E6E6]/20">곡정보</div>
-                    <div className="pl-2 border-l border-[#E6E6E6]/20">아티스트</div>
-                    <div className="pl-2 border-l border-[#E6E6E6]/20">앨범</div>
+                    <div className="pl-2 border-l border-white/10">곡정보</div>
+                    <div className="pl-2 border-l border-white/10">아티스트</div>
+                    <div className="pl-2 border-l border-white/10">앨범</div>
                 </div>
 
-                <div className="border-b border-[#464646]" />
+                <div className="border-b border-white/10" />
                 </div>
 
                 {/* 리스트 */}
-                <div>
-                <div className="divide-y divide-[#464646]">
+                <div className="px-4 py-4">
+                <div className="space-y-1">
                     {rows.map((row) => (
                     <div
                         key={row.musicId}
                         className={`
-                        group grid ${GRID} items-center px-3 py-2
-                        ${row.rank % 2 === 0 ? "bg-[#2d2d2d]/80" : "bg-[#3b3b3b]/80"}
+                        group grid ${GRID} items-center px-6 py-3 rounded-2xl
+                        transition-all duration-300 hover:bg-white/[0.08]
+                        ${row.rank % 2 === 0 ? "bg-white/[0.02]" : "bg-transparent"}
                         `}
                     >
                         {/* 체크 */}
                         <div className="flex items-center justify-center">
                         <input
                             type="checkbox"
-                            className="accent-[#f6f6f6]"
+                            className="accent-[#AFDEE2] w-4 h-4 cursor-pointer"
                             checked={!!checkedIds[row.musicId]}
                             onChange={() => toggleOne(row.musicId)}
                             aria-label={`${row.rank}위 선택`}
@@ -369,7 +370,7 @@ export default function ChartAI() {
                         {/* 순위 + 변동 + hover 재생 */}
                         <div className="flex items-center gap-3">
                         <div className="relative w-8 flex items-center justify-center">
-                            <span className="ml-2 text-sm text-[#F6F6F6] transition-opacity group-hover:opacity-0">
+                            <span className="text-[15px] font-black text-white/90 transition-opacity group-hover:opacity-0 tabular-nums">
                             {row.rank}
                             </span>
                             <button
@@ -378,64 +379,67 @@ export default function ChartAI() {
                                 e.stopPropagation();
                                 setTrackAndPlay(toTrack(row));
                             }}
-                            className="ml-2 absolute opacity-0 transition-opacity group-hover:opacity-100 text-[#AFDEE2]"
+                            className="absolute opacity-0 transition-all duration-300 group-hover:opacity-100 text-[#AFDEE2] hover:scale-125"
                             aria-label={`${row.musicName} 재생`}
                             title="재생"
                             >
-                            <FaPlay />
+                            <FaPlay size={18} />
                             </button>
                         </div>
 
-                        <div className="pl-1 text-xs font-medium w-10">
+                        <div className="pl-1 text-[11px] font-black w-10">
                             {(() => {
                             const change = row.rankChange;
 
-                            if (change === null || change === 0) return <span className="pl-1 text-[#AAAAAA]">—</span>;
-                            if (change > 0) return <span className="text-red-500">▲ {change}</span>;
-                            if (change < 0) return <span className="text-blue-500">▼ {Math.abs(change)}</span>;
-                            return <span className="pl-1 text-[#AAAAAA]">—</span>;
+                            if (change === null || change === 0) return <span className="text-white/20">—</span>;
+                            if (change > 0) return <span className="text-red-400">▲{change}</span>;
+                            if (change < 0) return <span className="text-blue-400">▼{Math.abs(change)}</span>;
+                            return <span className="text-white/20">—</span>;
                             })()}
                         </div>
                         </div>
 
                         {/* 곡정보 */}
-                        <div className="pl-2 flex items-center gap-4 min-w-0">
-                        {row.albumImage ? (
+                        <div className="flex pl-2 items-center gap-5 min-w-0">
+                        <div className="relative h-14 w-14 rounded-xl bg-white/10 shrink-0 overflow-hidden shadow-lg border border-white/10 group-hover:scale-105 transition-transform duration-500">
+                            {row.albumImage ? (
                             <img
-                            src={row.albumImage}
-                            alt={row.albumName}
-                            className="w-12 h-12 rounded-lg object-cover bg-[#777777] shrink-0"
-                            onError={(e) => {
+                                src={row.albumImage}
+                                alt={row.albumName}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
                                 e.currentTarget.style.display = "none";
                                 const fallback = e.currentTarget.nextElementSibling as HTMLElement;
                                 if (fallback) fallback.style.display = "block";
-                            }}
+                                }}
                             />
-                        ) : null}
-                        <div className={`w-12 h-12 rounded-lg bg-[#777777] shrink-0 ${row.albumImage ? "hidden" : ""}`} />
+                            ) : null}
+                            <div className={`w-full h-full bg-white/5 shrink-0 ${row.albumImage ? "hidden" : ""}`} />
+                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
                         <div className="min-w-0">
-                            <div className="text-sm text-[#F6F6F6] truncate">
+                            <div className="text-[15px] font-bold text-white/95 truncate tracking-tight group-hover:text-[#AFDEE2] transition-colors">
                             {row.musicName}
                             {row.isAi && (
-                                <span className="shrink-0 ml-3 text-xs px-2 py-[1px] rounded-full bg-[#E4524D]/20 text-[#E4524D]">
+                                <span className="shrink-0 ml-3 text-[10px] font-black px-2 py-0.5 rounded-md bg-[#E4524D]/20 text-[#E4524D] border border-[#E4524D]/20 uppercase">
                                 AI
                                 </span>
                             )}
                             </div>
-                            <div className="text-xs text-[#999999] truncate md:hidden">{row.artistName}</div>
+                            <div className="text-[12px] font-medium text-white/40 truncate tracking-wide mt-1 md:hidden">{row.artistName}</div>
                         </div>
                         </div>
 
                         {/* 아티스트 */}
-                        <div className="pl-2 text-sm text-[#F6F6F6] truncate">{row.artistName}</div>
+                        <div className="pl-2 text-[14px] font-semibold text-white/60 truncate group-hover:text-white/80 transition-colors">{row.artistName}</div>
 
                         {/* 앨범 */}
-                        <div className="pl-2 text-sm text-[#F6F6F6] truncate">{row.albumName}</div>
+                        <div className="pl-2 text-[14px] font-semibold text-white/40 truncate group-hover:text-white/60 transition-colors">{row.albumName}</div>
                     </div>
                     ))}
                 </div>
                 </div>
-            </div>
+                </div>
             </div>
         </section>
 

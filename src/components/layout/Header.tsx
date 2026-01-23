@@ -38,7 +38,7 @@ function Header() {
   return (
     <header
       className="
-        h-20 bg-[#1d1d1d] border-b border-[#2d2d2d]
+        relative z-[70] h-20 bg-transparent border-b border-white/10
         flex items-center px-6 gap-4
       "
     >
@@ -153,7 +153,7 @@ function Header() {
           onClick={onLogout}
           className="
             flex items-center justify-center transition
-            text-[#3d3d3d] hover:text-[#f6f6f6]/50 text-sm font-medium
+            text-white/20 hover:text-white/50 text-[13px] font-medium tracking-tight
           "
         >
           로그아웃
