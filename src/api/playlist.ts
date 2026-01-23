@@ -13,6 +13,7 @@ export interface PlaylistItem {
     artist: { name: string };
     album: { title: string; cover_image: string };
     duration?: number; // 필요 시 추가
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any; 
   };
   order: number;

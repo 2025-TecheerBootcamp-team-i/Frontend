@@ -109,6 +109,7 @@ export interface MusicDetailResponse {
     created_at?: string;
   }>;
   created_at: string;
+  tags: string | null;
 }
 
 export async function getMusicDetail(musicId: number): Promise<MusicDetailResponse | null> {

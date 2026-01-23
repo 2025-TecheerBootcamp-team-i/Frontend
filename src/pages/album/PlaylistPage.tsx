@@ -71,6 +71,7 @@ export default function PlaylistDetailPage() {
             setError(null);
             const data = await getPlaylistDetail(playlistId);
             setPlaylist(data);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             console.error("[PlaylistPage] 플레이리스트 로딩 실패:", err);
             const errorMessage = 
@@ -287,7 +288,7 @@ export default function PlaylistDetailPage() {
 
             <div className="absolute inset-0 flex items-end">
                 <div className="px-12 pb-8 flex items-end gap-8 min-w-[1100px] shrink-0">
-                <div className="w-[228px] h-[228px] shrink-0" />
+                <div className="w-[228px] h-[228px] shrink-0 bg-transparent" />
 
                 <div className="flex items-end gap-5">
                     <div className="min-w-0">
@@ -325,7 +326,7 @@ export default function PlaylistDetailPage() {
                         </div>
                     </div>
 
-                   <button
+                <button
                     type="button"
                     onClick={() => {
                         if (!requireLogin("로그인 후 이용 가능합니다.")) return;
@@ -352,6 +353,7 @@ export default function PlaylistDetailPage() {
                 w-[228px] h-[228px]
                 rounded-3xl bg-[#777777]
                 z-20
+                overflow-hidden
                 shadow-xl
             ">
             <div className="grid grid-cols-2 grid-rows-2 w-full h-full">
