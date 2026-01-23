@@ -1257,7 +1257,7 @@ export default function NowPlayingPage() {
                             ) : !chartsReady ? (
                                 <div className="flex-1 flex items-center justify-center text-white/50 text-sm min-h-[150px]">차트 로딩 중...</div>
                             ) : (
-                                <div className="w-full" style={{ height: '300px', minHeight: '300px', minWidth: 0, position: 'relative' }}>
+                                <div className="w-full" style={{ height: '300px', minHeight: '300px', position: 'relative' }}>
                                     <ResponsiveContainer width="100%" height="100%" debounce={50}>
                                         <AreaChart data={playLogs} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                             <defs>

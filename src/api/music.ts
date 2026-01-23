@@ -215,10 +215,8 @@ function getColorByPercentage(percentage: number, minPct: number, maxPct: number
 
 export async function getTagGraph(musicId: number): Promise<TagGraphItem[]> {
   try {
-    // TODO: 임시로 36번 데이터만 사용 (백엔드에 다른 데이터 추가 후 제거)
-    const targetMusicId = 36;
-    console.log("[API] getTagGraph 호출", { musicId, targetMusicId });
-    const res = await axiosInstance.get<any>(`/tracks/${targetMusicId}/tag-graph`);
+    console.log("[API] getTagGraph 호출", { musicId });
+    const res = await axiosInstance.get<any>(`/tracks/${musicId}/tag-graph`);
     console.log("[API] getTagGraph 응답 원본:", res.data);
 
     // API 응답 형식에 따라 데이터 추출
