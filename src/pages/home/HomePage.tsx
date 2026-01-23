@@ -445,26 +445,24 @@ function HomePage() {
             </div>
         </section>
 
-        {/* 차트 요약 - 원격 저장소 크기로 복구 */}
-        <section className="mb-4">
-            <div className="rounded-3xl bg-[#2d2d2d]/80 p-6 pb-2">
+        {/* 차트 요약 - 투명 유리 박스 스타일 적용 */}
+        <section className="mb-8">
+            <div className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 p-8 pb-4 shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
             <div className="overflow-x-auto">
                 <div className="min-w-[980px]">
                 {/* 상단 헤더 */}
-                <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-6">
                     <button
                         type="button"
                         onClick={goChart}
-                        aria-label="전체 차트로 이동"
-                        title="전체 차트"
-                        className="px-3 text-xl font-semibold hover:text-[#888] text-[#F6F6F6] whitespace-nowrap transition"
+                        className="px-2 text-2xl font-black tracking-[0.2em] uppercase hover:text-[#AFDEE2] text-white transition-colors opacity-80"
                     >
                         실시간 차트
                     </button>
 
-                    <div className="flex gap-2 shrink-0">
-                        {tabBtn("TOP100", "TOP\u00A0100")}
+                    <div className="flex gap-3 shrink-0">
+                        {tabBtn("TOP100", "TOP 100")}
                         {tabBtn("DAILY", "일일차트")}
                         {tabBtn("AI", "AI 음악")}
                     </div>
@@ -473,29 +471,27 @@ function HomePage() {
                     <button
                     type="button"
                     onClick={goChart}
-                    className="px-4 shrink-0 text-[#F6F6F6] hover:text-[#888] text-xl leading-none"
-                    aria-label="전체 차트로 이동"
-                    title="전체 차트"
+                    className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-all"
                     >
                     <MdOutlineNavigateNext size={30} />
                     </button>
                 </div>
 
-                <div className="border-b border-[#464646]" />
+                <div className="border-b border-white/10 mb-6" />
 
-                {chartLoading && <div className="p-4 text-[#F6F6F6]/70">차트 로딩중...</div>}
-                {chartError && <div className="p-4 text-red-300">{chartError}</div>}
+                {chartLoading && <div className="p-4 text-white/50">차트 로딩중...</div>}
+                {chartError && <div className="p-4 text-red-400/80">{chartError}</div>}
 
                 {/* 리스트 */}
-                <div className="divide-y divide-[#464646] overflow-hidden">
+                <div className="divide-y divide-white/5 overflow-hidden">
                     {previewRows.map((row) => (
                     <div
                         key={row.musicId}
                         className="
                         group w-full text-left grid
                         grid-cols-[60px_70px_1fr_1fr_80px]
-                        items-center px-2 py-2
-                        hover:bg-[#3d3d3d] transition
+                        items-center px-4 py-3
+                        hover:bg-white/[0.08] transition-all duration-300 rounded-2xl
                         "
                     >
                         {/* 순위 / 재생 버튼 */}
@@ -577,28 +573,28 @@ function HomePage() {
             </div>
         </section>
 
-        {/* 인기 공개 플레이리스트 (레이아웃만) */}
+        {/* 인기 공개 플레이리스트 (투명 유리 박스 스타일) */}
         <section className="mb-10">
-        <div className="rounded-[40px] bg-[#1d1d1d]/40 backdrop-blur-xl border border-white/5 p-10 pb-10 shadow-2xl">
+        <div className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 p-10 pb-10 shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
             {/* 헤더 */}
             <div className="flex items-center justify-between mb-6">
             <div
-                className="px-4 text-3xl font-bold text-[#AFDEE2] whitespace-nowrap transition"
+                className="px-4 text-2xl font-black tracking-[0.2em] text-white uppercase opacity-80"
             >
                 인기 공개 플레이리스트
             </div>
             </div>
 
-            <div className="mb-8 border-b border-white/5" />
+            <div className="mb-8 border-b border-white/10" />
 
             {/* 로딩/에러 상태 */}
-            {playlistsLoading && <div className="p-8 text-[#F6F6F6]/70 text-lg">플레이리스트 로딩중...</div>}
-            {playlistsError && <div className="p-8 text-red-300 text-lg">{playlistsError}</div>}
+            {playlistsLoading && <div className="p-8 text-white/50 text-lg">플레이리스트 로딩중...</div>}
+            {playlistsError && <div className="p-8 text-red-400/80 text-lg">{playlistsError}</div>}
 
             {/* 플레이리스트 목록 */}
             {!playlistsLoading && !playlistsError && publicPlaylists.length > 0 && (
-            <HorizontalScroller gradientFromClass="from-[#1d1d1d]">
-            <div className="flex gap-6 min-w-max pr-4">
+            <HorizontalScroller gradientFromClass="from-transparent">
+            <div className="flex gap-8 min-w-max pr-4">
                 {publicPlaylists.map((p) => (
                 <button
                     key={p.playlist_id}

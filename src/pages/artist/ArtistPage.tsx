@@ -496,7 +496,7 @@ export default function ArtistPage() {
         <div className="w-full min-w-0 overflow-x-auto">
         {/* 상단 */}
         <section className="relative overflow-visible">
-            <div className="relative h-72 bg-[#1D1D1D]/70 border-b border-[#3D3D3D] overflow-hidden">
+            <div className="relative h-72 bg-white/[0.05] backdrop-blur-2xl border-b border-white/10 overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
             {/* 뒤로 */}
             <button
                 type="button"
@@ -592,30 +592,30 @@ export default function ArtistPage() {
         </section>
 
         {/* 아래 컨텐츠 */}
-        <div className="mt-[70px] px-4 space-y-6">
+        <div className="mt-[70px] px-4 space-y-8">
             {/* 곡 카드 */}
-            <section className="rounded-3xl bg-[#2d2d2d]/80 border border-[#2d2d2d] overflow-hidden">
-            <div className="px-6 pt-6 pb-3 flex items-center justify-between">
+            <section className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 overflow-hidden shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
+            <div className="px-8 pt-8 pb-3 flex items-center justify-between">
                 <button
                 onClick={() => navigate(`/artists/${artist.id}/tracks`)}
-                className="px-3 text-xl font-semibold hover:text-[#888] text-[#F6F6F6] whitespace-nowrap transition"
+                className="px-3 text-2xl font-black tracking-[0.15em] hover:text-[#AFDEE2] text-white uppercase opacity-95 whitespace-nowrap transition"
                 >
                 곡
                 </button>
                 <button
                 type="button"
                 onClick={() => navigate(`/artists/${artist.id}/tracks`)}
-                className="px-3 shrink-0 text-[#F6F6F6] hover:text-[#888] text-xl leading-non"
+                className="px-3 shrink-0 text-white/40 hover:text-white transition text-xl leading-non"
                 aria-label="곡 더보기"
                 title="더보기"
                 >
-                <MdOutlineNavigateNext size={28} />
+                <MdOutlineNavigateNext size={32} />
                 </button>
             </div>
 
-            <div className="mx-6 border-b border-[#464646]" />
+            <div className="mx-8 border-b border-white/10" />
 
-            <div className="px-6 pb-3">
+            <div className="px-8 pb-4">
                 {artist.tracks.map((t) => (
                 <div
                     key={t.id}
@@ -628,14 +628,14 @@ export default function ArtistPage() {
                     className={[
                     "w-full text-left",
                     "grid grid-cols-[56px_1fr_90px] min-[1200px]:grid-cols-[56px_1fr_200px_450px] items-center",
-                    "py-2 px-2",
-                    "gap-x-2",
-                    "border-b border-[#464646]",
-                    "hover:bg-white/5 transition",
+                    "py-3 px-3",
+                    "gap-x-4",
+                    "border-b border-white/5",
+                    "hover:bg-white/10 transition rounded-xl",
                     ].join(" ")}
                 >
                     {/* 앨범 이미지 */}
-                    <div className="w-12 h-12 rounded-xl bg-[#6b6b6b]/50 overflow-hidden relative flex-shrink-0">
+                    <div className="w-12 h-12 rounded-xl bg-white/10 overflow-hidden relative flex-shrink-0 shadow-lg border border-white/10">
                     {t.albumImage ? (
                         <>
                         <img
@@ -653,33 +653,33 @@ export default function ArtistPage() {
                             }}
                             loading="lazy"
                         />
-                        <div className="absolute inset-0 bg-[#6b6b6b]/50 animate-pulse z-0" />
+                        <div className="absolute inset-0 bg-white/5 animate-pulse z-0" />
                         </>
                     ) : (
-                        <div className="w-full h-full bg-[#6b6b6b]/50" />
+                        <div className="w-full h-full bg-white/10" />
                     )}
                     </div>
 
                     <div className="min-w-0">
-                    <div className="text-sm font-semibold text-[#F6F6F6] truncate">{t.title}</div>
-                    <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">{artist.name}</div>
+                    <div className="text-base font-bold text-white truncate tracking-tight">{t.title}</div>
+                    <div className="mt-1 text-xs text-white/40 truncate font-medium">{artist.name}</div>
                     </div>
 
                     {/* 바꾸지 말아주세요! */}
-                    <div className="hidden min-[1200px]:block text-sm text-[#F6F6F6]/70 text-right">
+                    <div className="hidden min-[1200px]:block text-sm text-white/50 text-right truncate">
                     {t.album}
                     </div>
-                    <div className="text-sm text-[#F6F6F6]/70 text-right">{t.duration}</div>
+                    <div className="text-sm text-white/30 font-bold tabular-nums text-right">{t.duration}</div>
                 </div>
                 ))}
 
-                <div className="flex justify-center border-[#464646] p-4 text-[#D9D9D9]">
+                <div className="flex justify-center pt-6 pb-2 text-white/40">
                 <button
                     onClick={() => navigate(`/artists/${artist.id}/tracks`)}
                     type="button"
                     aria-label="전체 곡으로 이동"
                     title="전체 곡"
-                    className="hover:text-[#aaaaaa] text-xs transition"
+                    className="hover:text-white text-sm font-medium transition"
                 >
                     더보기
                 </button>
@@ -688,75 +688,68 @@ export default function ArtistPage() {
             </section>
 
             {/* 앨범 카드 */}
-            <section className="rounded-3xl bg-[#2d2d2d]/80 border border-[#2d2d2d] overflow-hidden">
-            <div className="px-6 pt-6 pb-3 flex items-center justify-between">
+            <section className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 overflow-hidden shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
+            <div className="px-8 pt-8 pb-3 flex items-center justify-between">
                 <button
                 onClick={() => navigate(`/artists/${artist.id}/albums`)}
-                className="px-3 text-lg font-semibold hover:text-[#888] text-[#F6F6F6] whitespace-nowrap transition"
+                className="px-3 text-2xl font-black tracking-[0.15em] hover:text-[#AFDEE2] text-white uppercase opacity-95 whitespace-nowrap transition"
                 >
                 앨범
                 </button>
                 <button
                 onClick={() => navigate(`/artists/${artist.id}/albums`)}
                 type="button"
-                className="px-3 shrink-0 text-[#F6F6F6] hover:text-[#888] text-xl leading-non"
+                className="px-3 shrink-0 text-white/40 hover:text-white transition text-xl leading-non"
                 aria-label="앨범 더보기"
                 title="더보기"
                 >
-                <MdOutlineNavigateNext size={28} />
+                <MdOutlineNavigateNext size={32} />
                 </button>
             </div>
 
-            <div className="mx-6 border-b border-[#464646]" />
+            <div className="mx-8 border-b border-white/10" />
 
-            <div className="px-6 pb-6">
-                <HorizontalScroller gradientFromClass="from-[#2d2d2d]/80">
-                <div className="flex gap-5 min-w-max pr-2 pt-2">
+            <div className="px-8 pb-8">
+                <HorizontalScroller gradientFromClass="from-[#080808]">
+                <div className="flex gap-8 min-w-max pr-4 pt-4">
                     {artist.albums.map((al) => (
                     <button
                         key={al.id}
                         type="button"
                         onClick={() => navigate(`/album/${al.id}`)}
-                        className="w-[180px] text-left group shrink-0"
+                        className="w-[200px] text-left group shrink-0"
                     >
-                        <div className="aspect-square rounded-2xl bg-[#6b6b6b]/30 group-hover:bg-[#6b6b6b]/45 transition overflow-hidden relative">
-                        {al.albumImage ? (
-                            <>
-                            <img
-                                src={
-                                al.albumImage.startsWith("http") || al.albumImage.startsWith("//")
-                                    ? al.albumImage
-                                    : API_BASE && al.albumImage.startsWith("/")
-                                    ? `${API_BASE.replace("/api/v1", "")}${al.albumImage}`
-                                    : al.albumImage
-                                }
-                                alt={al.title}
-                                className="w-full h-full object-cover relative z-10"
-                                onError={(e) => {
-                                console.error(`[ArtistPage] ❌ 앨범 이미지 로드 실패:`, {
-                                    title: al.title,
-                                    id: al.id,
-                                    image_url: al.albumImage,
-                                });
-                                (e.target as HTMLImageElement).style.display = "none";
-                                }}
-                                onLoad={() => {
-                                console.log(`[ArtistPage] ✅ 앨범 이미지 로드 성공:`, {
-                                    title: al.title,
-                                    id: al.id,
-                                    image_url: al.albumImage,
-                                });
-                                }}
-                                loading="lazy"
-                            />
-                            <div className="absolute inset-0 bg-[#6b6b6b]/30 animate-pulse z-0" />
-                            </>
-                        ) : (
-                            <div className="w-full h-full bg-[#6b6b6b]/30" />
-                        )}
+                        <div className="aspect-square rounded-[32px] bg-white/5 group-hover:bg-white/10 transition-all duration-500 overflow-hidden relative shadow-xl border border-white/10 group-hover:border-white/20">
+                            <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent animate-pulse" />
+                            {al.albumImage ? (
+                                <>
+                                <img
+                                    src={
+                                    al.albumImage.startsWith("http") || al.albumImage.startsWith("//")
+                                        ? al.albumImage
+                                        : API_BASE && al.albumImage.startsWith("/")
+                                        ? `${API_BASE.replace("/api/v1", "")}${al.albumImage}`
+                                        : al.albumImage
+                                    }
+                                    alt={al.title}
+                                    className="w-full h-full object-cover relative z-10 transition-transform duration-1000 group-hover:scale-110"
+                                    onError={(e) => {
+                                    (e.target as HTMLImageElement).style.display = "none";
+                                    }}
+                                    loading="lazy"
+                                />
+                                </>
+                            ) : (
+                                <div className="w-full h-full bg-white/5" />
+                            )}
                         </div>
-                        <div className="mt-3 text-sm font-semibold text-[#F6F6F6] truncate">
-                        {al.title}
+                        <div className="mt-4 px-1">
+                            <div className="text-base font-bold text-white truncate group-hover:text-[#AFDEE2] transition-colors">
+                            {al.title}
+                            </div>
+                            <div className="mt-1 text-xs font-medium text-white/30">
+                            {al.year}
+                            </div>
                         </div>
                     </button>
                     ))}

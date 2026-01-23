@@ -521,7 +521,7 @@ export default function AlbumDetailPage() {
         <div className="w-full min-w-0 overflow-x-auto">
         {/* 상단 */}
         <section className="relative overflow-visible">
-            <div className="relative h-72 bg-[#1D1D1D]/70 border-b border-[#3D3D3D]/80 overflow-hidden">
+            <div className="relative h-72 bg-white/[0.05] backdrop-blur-2xl border-b border-white/10 overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
             <button
                 type="button"
                 onClick={() => navigate(-1)}
@@ -635,17 +635,17 @@ export default function AlbumDetailPage() {
         </section>
 
         {/* 본문 */}
-        <div className="mt-[70px] px-4 space-y-6">
-            <section className="rounded-3xl bg-[#2d2d2d]/80 border border-[#2d2d2d] overflow-hidden">
-            <div className="px-8 py-6 border-b border-[#464646]">
+        <div className="mt-[70px] px-4 space-y-8">
+            <section className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 overflow-hidden shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
+            <div className="px-8 py-8 border-b border-white/10">
                 <div className="flex items-end justify-between gap-4">
                 <div className="flex items-center gap-6">
-                    <h2 className="text-xl font-semibold text-[#F6F6F6]">곡 전체보기</h2>
-                    <div className="text-sm text-[#999999]">총 {tracks.length}곡</div>
+                    <h2 className="text-xl font-black tracking-[0.15em] text-white uppercase opacity-95">곡 전체보기</h2>
+                    <div className="text-sm text-white/40">총 {tracks.length}곡</div>
                 </div>
                 </div>
 
-                <div className="mt-4 flex flex-nowrap gap-3 overflow-x-auto no-scrollbar">
+                <div className="mt-6 flex flex-nowrap gap-3 overflow-x-auto no-scrollbar">
                 {actions.map((a) => {
                     const disabled =
                     (a.key === "play" ||
@@ -683,11 +683,11 @@ export default function AlbumDetailPage() {
                         disabled={disabled}
                         className={[
                         "shrink-0 px-4 py-2 rounded-2xl",
-                        "outline outline-1 outline-offset-[-1px] outline-stone-500",
+                        "outline outline-1 outline-offset-[-1px] outline-white/20",
                         "text-sm transition flex items-center gap-2",
                         disabled
                             ? "text-white/30 cursor-not-allowed"
-                            : "text-[#F6F6F6] hover:bg-[#f6f6f6]/10",
+                            : "text-white hover:bg-white/10",
                         ].join(" ")}
                     >
                         <span className="text-lg">{a.icon}</span>
@@ -698,33 +698,33 @@ export default function AlbumDetailPage() {
                 </div>
             </div>
 
-            <div className="px-6 pt-4">
-                <div className="grid items-center grid-cols-[28px_56px_1fr_90px] gap-x-4 pb-3 text-xs text-[#F6F6F6]/60">
+            <div className="px-8 pt-4">
+                <div className="grid items-center grid-cols-[28px_56px_1fr_90px] gap-x-6 pb-3 text-[11px] font-black tracking-widest text-white/30 uppercase">
                 <input
                     type="checkbox"
-                    className="accent-[#f6f6f6]"
+                    className="accent-[#AFDEE2]"
                     checked={allChecked}
                     onChange={(e) => toggleAll(e.target.checked)}
                     aria-label="전체 선택"
                 />
-                <div className="col-span-2 border-l px-2 border-[#464646]">곡정보</div>
-                <div className="text-right border-r px-2 border-[#464646]">길이</div>
+                <div className="col-span-2 border-l px-2 border-white/10">곡정보</div>
+                <div className="text-right border-r px-2 border-white/10">길이</div>
                 </div>
             </div>
 
-            <div className="border-b border-[#464646]" />
+            <div className="border-b border-white/10" />
 
-            <div className="pb-6">
+            <div className="pb-6 px-4">
                 {tracks.map((t) => (
                 <div
                     key={t.id}
                     className={[
                     "w-full text-left",
                     "grid grid-cols-[28px_42px_1fr_90px] items-center",
-                    "gap-x-6",
-                    "py-2 px-6",
-                    "border-b border-[#464646]",
-                    "hover:bg-white/5 transition",
+                    "gap-x-10",
+                    "py-3 px-6",
+                    "border-b border-white/5",
+                    "hover:bg-white/10 transition rounded-2xl cursor-pointer group",
                     ].join(" ")}
                     onDoubleClick={async () => {
                         if (!requireLogin("로그인 후 이용 가능합니다.")) return;
@@ -749,7 +749,7 @@ export default function AlbumDetailPage() {
                     >
                     <input
                         type="checkbox"
-                        className="accent-[#f6f6f6]"
+                        className="accent-[#AFDEE2]"
                         checked={!!checkedIds[t.id]}
                         onChange={() => toggleOne(t.id)}
                         aria-label={`${t.title} 선택`}
@@ -757,7 +757,7 @@ export default function AlbumDetailPage() {
                     />
                     </div>
 
-                    <div className="w-12 h-12 rounded-xl bg-[#6b6b6b]/50 overflow-hidden relative">
+                    <div className="w-12 h-12 rounded-xl bg-white/5 overflow-hidden relative shadow-lg border border-white/10 group-hover:border-white/20 transition-colors">
                         {(trackImages[t.id] || album.albumImage) ? (
                             <img
                                 src={
@@ -779,18 +779,18 @@ export default function AlbumDetailPage() {
                                 }}
                             />
                         ) : (
-                            <div className="w-full h-full bg-[#6b6b6b]/50" />
+                            <div className="w-full h-full bg-white/5" />
                         )}
                     </div>
 
                     <div className="min-w-0">
-                    <div className="text-sm font-semibold text-[#F6F6F6] truncate">
+                    <div className="text-base font-bold text-white truncate tracking-tight group-hover:text-[#AFDEE2] transition-colors">
                         {t.title}
                     </div>
-                    <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">{artist.name}</div>
+                    <div className="mt-1 text-xs font-medium text-white/30 truncate">{artist.name}</div>
                     </div>
 
-                    <div className="text-sm text-[#F6F6F6]/70 text-right tabular-nums">
+                    <div className="text-sm text-white/20 font-bold tabular-nums text-right group-hover:text-[#AFDEE2]/40 transition-colors">
                     {t.duration}
                     </div>
                 </div>

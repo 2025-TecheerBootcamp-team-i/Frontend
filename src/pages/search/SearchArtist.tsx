@@ -203,24 +203,25 @@ export default function SearchArtist() {
   }, [API_BASE, q, apiArtists, artistDetails]);
 
   return (
-    <section className="w-full mt-4 rounded-3xl bg-[#2d2d2d]/80 border border-[#464646] px-6 py-8 min-h-[560px]">
+    <section className="w-full mt-4 rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 px-8 py-10 min-h-[560px] shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
       {/* 아티스트 그리드 */}
       {loading && artists.length === 0 ? (
-        <div className="text-center text-[#999] py-12">검색 중...</div>
+        <div className="text-center text-white/20 py-12 uppercase font-light tracking-widest">검색 중...</div>
       ) : error && artists.length === 0 ? (
         <div className="text-center text-red-400 py-12">
           오류가 발생했습니다: {error}
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto no-scrollbar">
           <div
             className="
               grid
-              gap-x-6
+              gap-x-10
               gap-y-12
               justify-between
               [grid-template-columns:repeat(4,220px)]
+              px-4
             "
           >
             {artists.map((a) => (
@@ -230,24 +231,30 @@ export default function SearchArtist() {
                 onClick={() => navigate(`/artists/${a.id}`)}
                 className="
                   group
-                  rounded-2xl
+                  rounded-3xl
                   p-2
                   flex flex-col items-center text-center
-                  transition
+                  transition-all duration-500
+                  hover:-translate-y-2
                 "
               >
-                {/* 썸네일 */}
+                {/* 썸네일 - 유리구슬 효과 적용 */}
                 <div
                   className="
                     w-52 h-52
                     rounded-full
-                    bg-[#2d2d2d]/80
-                    transition
-                    hover:shadow-[0_10px_28px_rgba(0,0,0,0.38)]
+                    bg-white/5
+                    transition-all duration-700
+                    border border-white/20
+                    group-hover:border-white/40
+                    group-hover:shadow-[0_30px_60px_rgba(0,0,0,0.5),0_0_40px_rgba(175,222,226,0.2)]
                     overflow-hidden
                     relative
+                    backdrop-blur-xl
+                    shadow-[inset_0_2px_10px_rgba(255,255,255,0.2),0_10px_20px_rgba(0,0,0,0.3)]
                   "
                 >
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent animate-pulse" />
                   {a.image ? (
                     <>
                       <img
@@ -259,31 +266,34 @@ export default function SearchArtist() {
                             : a.image
                         }
                         alt={a.name}
-                        className="w-full h-full object-cover relative z-10"
+                        className="w-full h-full object-cover relative z-10 transition-transform duration-1000 group-hover:scale-110 opacity-80 group-hover:opacity-100 brightness-95 group-hover:brightness-110"
                         onError={(e) => {
                           if (__DEV__) console.error("[SearchArtist] ❌ 이미지 로드 실패", { name: a.name, id: a.id, image_url: a.image });
                           (e.target as HTMLImageElement).style.display = "none";
                         }}
                         onLoad={(e) => {
-                          if (__DEV__) console.log("[SearchArtist] ✅ 이미지 로드 성공", { name: a.name, id: a.id, image_url: a.image });
                           const img = e.target as HTMLImageElement;
                           const fallback = img.nextElementSibling as HTMLElement;
                           if (fallback) fallback.style.display = "none";
                         }}                        
                         loading="lazy"
                       />
-                      <div className="absolute inset-0 bg-[#777777] animate-pulse z-0" />
+                      
+                      {/* 유리구슬 효과 레이어들 */}
+                      <div className="absolute inset-0 bg-gradient-to-tr from-black/30 via-transparent to-white/20 pointer-events-none z-20" />
+                      <div className="absolute top-[8%] left-[15%] w-[45%] h-[25%] bg-gradient-to-b from-white/50 to-transparent rounded-[100%] rotate-[-15deg] blur-[3px] pointer-events-none opacity-80 group-hover:opacity-100 transition-opacity z-20" />
+                      <div className="absolute bottom-[5%] right-[10%] w-[35%] h-[20%] bg-white/30 blur-[10px] rounded-full pointer-events-none z-20" />
                     </>
                   ) : (
-                    <div className="w-full h-full bg-[#777777]" />
+                    <div className="w-full h-full bg-white/5" />
                   )}
                 </div>
 
                 {/* 텍스트 */}
-                <div className="mt-5 text-base font-semibold text-[#f6f6f6] truncate w-full group-hover:text-[#AFDEE2] transition break-words leading-snug">
+                <div className="mt-6 text-lg font-bold text-white truncate w-full group-hover:text-[#AFDEE2] transition-colors tracking-tight px-2">
                   {a.name}
                 </div>
-                <div className="mt-1 text-sm text-[#f6f6f6]/60">아티스트</div>
+                <div className="mt-1 text-xs font-medium text-white/30 tracking-widest uppercase">아티스트</div>
               </button>
             ))}
           </div>

@@ -44,8 +44,8 @@ function Sidebar({
     <aside
       className="
         w-[355px]
-        bg-[#1d1d1d]
-        border-r border-[#2d2d2d]
+        bg-transparent
+        border-r border-white/5
         p-4
         flex flex-col
         overflow-hidden
@@ -59,13 +59,13 @@ function Sidebar({
         <div
           className="
             w-full
-            bg-gradient-to-tr
-            from-[#3d3d3d]
-            to-[#2d2d2d]
-            rounded-3xl
+            bg-white/[0.05]
+            backdrop-blur-2xl
+            border border-white/10
+            rounded-[32px]
             px-5 py-4
             flex-none
-            shadow-[0_10px_24px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.08)]
+            shadow-[0_20px_50px_rgba(0,0,0,0.3)]
           "
           style={{
             height: "clamp(320px, 42vh, 400px)", // ✅ 화면 크기에 따라 적당히
@@ -162,14 +162,14 @@ function Sidebar({
         <div
           className="
             w-full
-            bg-gradient-to-tr
-            from-[#3d3d3d]
-            to-[#2d2d2d]
-            rounded-3xl
+            bg-white/[0.05]
+            backdrop-blur-2xl
+            border border-white/10
+            rounded-[32px]
             px-5 py-4
             flex flex-col
             min-h-0
-            shadow-[0_10px_24px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.08)]
+            shadow-[0_20px_50px_rgba(0,0,0,0.3)]
             overflow-hidden
           "
           style={{
@@ -192,7 +192,7 @@ function Sidebar({
             </button>
           </div>
 
-          <div className="mb-3 border-b border-[#464646]" />
+          <div className="mb-3 border-b border-white/10" />
 
           <textarea
             maxLength={500}
@@ -204,13 +204,14 @@ function Sidebar({
               h-[110px]
               resize-none
               rounded-2xl
-              bg-[#4D4D4D]
+              bg-white/5
               px-4 py-3
-              placeholder:text-[#777777]
+              placeholder:text-white/20
               text-sm
               text-[#e0e0e0]
               outline-none
-              focus:ring-2 focus:ring-[#666666]
+              focus:ring-2 focus:ring-white/10
+              border border-white/5
             "
           />
 
