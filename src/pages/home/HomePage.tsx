@@ -73,7 +73,7 @@ function HorizontalScroller({
             }}
             className="
                 absolute left-1 top-1/2 -translate-y-1/2 z-10
-                h-9 w-9 rounded-full
+                h-12 w-12 rounded-full
                 bg-[#1d1d1d]/50 text-[#f6f6f6]
                 flex items-center justify-center
                 hover:bg-[#1d1d1d]/70 transition
@@ -81,7 +81,7 @@ function HorizontalScroller({
             "
             aria-label="왼쪽으로 이동"
             >
-            <MdOutlineNavigateNext size={22} />
+            <MdOutlineNavigateNext size={28} />
             </button>
         )}
 
@@ -95,14 +95,14 @@ function HorizontalScroller({
             }}
             className="
                 absolute right-1 top-1/2 -translate-y-1/2 z-10
-                h-9 w-9 rounded-full
+                h-12 w-12 rounded-full
                 bg-[#1d1d1d]/50 text-[#f6f6f6]
                 flex items-center justify-center
                 hover:bg-[#1d1d1d]/70 transition
             "
             aria-label="오른쪽으로 이동"
             >
-            <MdOutlineNavigateNext size={22} />
+            <MdOutlineNavigateNext size={28} />
             </button>
         )}
 
@@ -110,7 +110,7 @@ function HorizontalScroller({
         {canScroll && showRight && (
             <div
             className={[
-                "pointer-events-none absolute right-0 top-0 h-full w-16 bg-gradient-to-l to-transparent",
+                "pointer-events-none absolute right-0 top-0 h-full w-24 bg-gradient-to-l to-transparent",
                 gradientFromClass,
             ].join(" ")}
             />
@@ -118,7 +118,7 @@ function HorizontalScroller({
         {canScroll && showLeft && (
             <div
             className={[
-                "pointer-events-none absolute left-0 top-0 h-full w-16 bg-gradient-to-r to-transparent",
+                "pointer-events-none absolute left-0 top-0 h-full w-24 bg-gradient-to-r to-transparent",
                 gradientFromClass,
             ].join(" ")}
             />
@@ -192,7 +192,7 @@ function HomePage() {
         setPopularLoading(true);
         setPopularError(null);
 
-        const data = await fetchPopularArtists(8);
+        const data = await fetchPopularArtists(10);
         if (!alive) return;
 
         setPopularArtists(data);
@@ -329,7 +329,7 @@ function HomePage() {
         type="button"
         onClick={() => setTab(key)}
         className={[
-            "h-9 px-4 rounded-full text-sm transition whitespace-nowrap",
+            "h-10 px-6 rounded-full text-base font-medium transition whitespace-nowrap",
             active
             ? "bg-[#E4524D] text-[#F6F6F6]"
             : "bg-[#4d4d4d] text-[#F6F6F6] hover:bg-[#5d5d5d]",
@@ -379,11 +379,11 @@ function HomePage() {
     return (
         <>
         {/* 인기 아티스트 */}
-        <section className="mb-2">
+        <section className="mb-8">
             <div className="relative">
             <div
                 ref={scrollRef}
-                className="flex gap-8 overflow-x-auto px-2 py-4 no-scrollbar scroll-smooth"
+                className="flex gap-10 overflow-x-auto px-4 py-6 no-scrollbar scroll-smooth"
             >
                 {popularLoading && <div className="text-[#F6F6F6]/70 px-2">로딩중...</div>}
                 {popularError && <div className="text-red-300 px-2">{popularError}</div>}
@@ -394,17 +394,17 @@ function HomePage() {
                     className="shrink-0 flex flex-col items-center group cursor-pointer"
                     onClick={() => navigate(`/artists/${a.artist_id}`)}
                 >
-                    {/* ✅ 유리구슬 효과 + 원격 저장소의 큰 크기(170px) 적용 */}
+                    {/* ✅ 유리구슬 효과 + 훨씬 큰 크기(200px) 적용 */}
                     <div
                         className="
-                            w-[170px] h-[170px] rounded-full bg-white/[0.05]
+                            w-[200px] h-[200px] rounded-full bg-white/[0.05]
                             transition-all duration-700 ease-out
-                            group-hover:-translate-y-3 group-hover:scale-110 
-                            group-hover:shadow-[0_30px_60px_rgba(0,0,0,0.5),0_0_40px_rgba(175,222,226,0.2)]
+                            group-hover:-translate-y-4 group-hover:scale-110 
+                            group-hover:shadow-[0_40px_80px_rgba(0,0,0,0.6),0_0_50px_rgba(175,222,226,0.25)]
                             border border-white/20 group-hover:border-white/40
                             overflow-hidden relative
-                            backdrop-blur-xl
-                            shadow-[inset_0_2px_10px_rgba(255,255,255,0.2),0_10px_20px_rgba(0,0,0,0.3)]
+                            backdrop-blur-2xl
+                            shadow-[inset_0_2px_15px_rgba(255,255,255,0.2),0_15px_30px_rgba(0,0,0,0.4)]
                         "
                     >
                         {a.image_small_circle ? (
@@ -416,10 +416,10 @@ function HomePage() {
                                 />
                                 
                                 {/* 유리구슬 효과 레이어들 */}
-                                <div className="absolute inset-0 bg-gradient-to-tr from-black/20 via-transparent to-white/10 pointer-events-none" />
-                                <div className="absolute top-[8%] left-[15%] w-[40%] h-[20%] bg-gradient-to-b from-white/40 to-transparent rounded-[100%] rotate-[-15deg] blur-[2px] pointer-events-none opacity-80 group-hover:opacity-100 transition-opacity" />
-                                <div className="absolute bottom-[5%] right-[10%] w-[30%] h-[15%] bg-white/20 blur-[8px] rounded-full pointer-events-none" />
-                                <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+                                <div className="absolute inset-0 bg-gradient-to-tr from-black/30 via-transparent to-white/20 pointer-events-none" />
+                                <div className="absolute top-[8%] left-[15%] w-[45%] h-[25%] bg-gradient-to-b from-white/50 to-transparent rounded-[100%] rotate-[-15deg] blur-[3px] pointer-events-none opacity-80 group-hover:opacity-100 transition-opacity" />
+                                <div className="absolute bottom-[5%] right-[10%] w-[35%] h-[20%] bg-white/30 blur-[10px] rounded-full pointer-events-none" />
+                                <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
                             </>
                         ) : (
                             <div className="w-full h-full flex items-center justify-center text-white/10 animate-pulse bg-white/5">
@@ -428,8 +428,8 @@ function HomePage() {
                         )}
                     </div>
 
-                    <div className="mt-4 w-[170px] text-center font-bold text-sm text-[#F6F6F6] truncate tracking-tight transition-colors group-hover:text-[#AFDEE2]">{a.artist_name}</div>
-                    <div className="mt-1 text-[10px] font-light text-white/20 tracking-widest uppercase">
+                    <div className="mt-6 w-[200px] text-center font-bold text-lg text-[#F6F6F6] truncate tracking-tight transition-colors group-hover:text-[#AFDEE2]">{a.artist_name}</div>
+                    <div className="mt-2 text-xs font-light text-white/30 tracking-widest uppercase">
                         RANK #{a.rank}
                     </div>
                 </div>
@@ -437,33 +437,33 @@ function HomePage() {
             </div>
 
             {showLeft && (
-                <div className="pointer-events-none absolute left-0 top-0 h-full w-10 bg-gradient-to-r from-[#2d2d2d] to-transparent" />
+                <div className="pointer-events-none absolute left-0 top-0 h-full w-20 bg-gradient-to-r from-[#080808] to-transparent z-10" />
             )}
             {showRight && (
-                <div className="pointer-events-none absolute right-0 top-0 h-full w-10 bg-gradient-to-l from-[#2d2d2d] to-transparent" />
+                <div className="pointer-events-none absolute right-0 top-0 h-full w-20 bg-gradient-to-l from-[#080808] to-transparent z-10" />
             )}
             </div>
         </section>
 
         {/* 차트 요약 */}
-        <section className="mb-4">
-            <div className="rounded-3xl bg-[#2d2d2d]/80 p-6 pb-2">
+        <section className="mb-8">
+            <div className="rounded-[40px] bg-[#1d1d1d]/60 backdrop-blur-xl border border-white/5 p-10 pb-4 shadow-2xl">
             <div className="overflow-x-auto">
-                <div className="min-w-[980px]">
+                <div className="min-w-[1000px]">
                 {/* 상단 헤더 */}
-                <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-6">
                     <button
                         type="button"
                         onClick={goChart}
                         aria-label="전체 차트로 이동"
                         title="전체 차트"
-                        className="px-3 text-xl font-semibold hover:text-[#888] text-[#F6F6F6] whitespace-nowrap transition"
+                        className="px-4 text-3xl font-bold hover:text-[#AFDEE2] text-[#F6F6F6] whitespace-nowrap transition"
                     >
                         실시간 차트
                     </button>
 
-                    <div className="flex gap-2 shrink-0">
+                    <div className="flex gap-3 shrink-0">
                         {tabBtn("TOP100", "TOP\u00A0100")}
                         {tabBtn("DAILY", "일간차트")}
                         {tabBtn("AI", "AI 음악")}
@@ -473,34 +473,34 @@ function HomePage() {
                     <button
                     type="button"
                     onClick={goChart}
-                    className="px-4 shrink-0 text-[#F6F6F6] hover:text-[#888] text-xl leading-none"
+                    className="p-2 shrink-0 text-[#F6F6F6] hover:text-[#AFDEE2] transition"
                     aria-label="전체 차트로 이동"
                     title="전체 차트"
                     >
-                    <MdOutlineNavigateNext size={30} />
+                    <MdOutlineNavigateNext size={40} />
                     </button>
                 </div>
 
-                <div className="border-b border-[#464646]" />
+                <div className="border-b border-white/5" />
 
-                {chartLoading && <div className="p-4 text-[#F6F6F6]/70">차트 로딩중...</div>}
-                {chartError && <div className="p-4 text-red-300">{chartError}</div>}
+                {chartLoading && <div className="p-8 text-[#F6F6F6]/70 text-lg">차트 로딩중...</div>}
+                {chartError && <div className="p-8 text-red-300 text-lg">{chartError}</div>}
 
                 {/* 리스트 */}
-                <div className="divide-y divide-[#464646] overflow-hidden">
+                <div className="divide-y divide-white/5 overflow-hidden">
                     {previewRows.map((row) => (
                     <div
                         key={row.musicId}
                         className="
                         group w-full text-left grid
-                        grid-cols-[60px_70px_1fr_1fr_80px]
-                        items-center px-2 py-2
-                        hover:bg-[#3d3d3d] transition
+                        grid-cols-[80px_100px_1fr_1fr_100px]
+                        items-center px-4 py-4
+                        hover:bg-white/5 transition-all duration-300
                         "
                     >
                         {/* 순위 / 재생 버튼 */}
                         <div className="relative flex items-center justify-center">
-                        <span className="text-sm text-[#F6F6F6] transition-opacity group-hover:opacity-0">
+                        <span className="text-xl font-bold text-[#F6F6F6]/40 transition-opacity group-hover:opacity-0">
                             {row.rank}
                         </span>
 
@@ -510,12 +510,12 @@ function HomePage() {
                                 e.stopPropagation();
                                 setTrackAndPlay(toTrack(row));
                             }}
-                            className="absolute opacity-0 transition-opacity group-hover:opacity-100 text-[#AFDEE2]">
+                            className="absolute opacity-0 scale-75 transition-all group-hover:opacity-100 group-hover:scale-125 text-[#AFDEE2]">
                             <FaPlay />
                         </button>
                         </div>
 
-                        <div className="text-center text-xs font-medium">
+                        <div className="text-center text-sm font-semibold">
                         {(() => {
                             const change = row.rankChange;
 
@@ -526,48 +526,52 @@ function HomePage() {
                         })()}
                         </div>
 
-                        <div className="ml-5 flex items-center gap-4 min-w-0 truncate">
+                        <div className="ml-6 flex items-center gap-6 min-w-0 truncate">
                         {row.albumImage ? (
-                            <img 
-                            src={row.albumImage} 
-                            alt={row.albumName}
-                            className="w-12 h-12 rounded-lg object-cover bg-[#D9D9D9] shrink-0"
-                            onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                                const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                                if (fallback) fallback.style.display = 'block';
-                            }}
-                            />
-                        ) : null}
-                        <div className={`w-12 h-12 rounded-lg bg-[#D9D9D9] shrink-0 ${row.albumImage ? 'hidden' : ''}`} />
-                        <div className="text-sm text-[#F6F6F6] whitespace-nowrap">
+                            <div className="w-16 h-16 rounded-xl overflow-hidden shadow-lg shrink-0">
+                                <img 
+                                src={row.albumImage} 
+                                alt={row.albumName}
+                                className="w-full h-full object-cover bg-[#D9D9D9]"
+                                onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                    const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                                    if (fallback) fallback.style.display = 'block';
+                                }}
+                                />
+                                <div className="w-full h-full bg-[#D9D9D9] hidden" />
+                            </div>
+                        ) : (
+                            <div className="w-16 h-16 rounded-xl bg-[#D9D9D9] shrink-0 shadow-lg" />
+                        )}
+                        <div className="text-lg font-semibold text-[#F6F6F6] truncate">
                             {row.musicName}
                             {row.isAi && (
-                                <span className="shrink-0 ml-3 text-xs px-2 py-[1px] rounded-full bg-[#E4524D]/20 text-[#E4524D]">
+                                <span className="shrink-0 ml-4 text-xs px-3 py-1 rounded-full bg-[#E4524D]/20 text-[#E4524D] font-bold">
                                 AI
                                 </span>
                             )}
                         </div>
                         </div>
 
-                        <div className="hidden sm:block text-sm text-[#F6F6F6] whitespace-nowrap">
+                        <div className="hidden sm:block text-base text-[#F6F6F6]/60 truncate">
                         {row.artistName}
                         </div>
 
-                        <div className="text-right pr-6 text-sm text-[#F6F6F6] whitespace-nowrap">
+                        <div className="text-right pr-8 text-base font-medium text-[#F6F6F6]/40 tabular-nums">
                         {formatDuration(row.durationSec)}
                         </div>
                     </div>
                     ))}
                 </div>
 
-                <div className="flex justify-center border-t border-[#464646] p-4 text-[#D9D9D9]">
+                <div className="flex justify-center border-t border-white/5 p-6 text-[#F6F6F6]/40">
                     <button
                     type="button"
                     onClick={goChart}
                     aria-label="전체 차트로 이동"
                     title="전체 차트"
-                    className="hover:text-[#aaaaaa] transition"
+                    className="text-lg font-semibold hover:text-[#AFDEE2] transition"
                     >
                     더보기
                     </button>
@@ -578,43 +582,48 @@ function HomePage() {
         </section>
 
         {/* 인기 공개 플레이리스트 (레이아웃만) */}
-        <section className="mb-6">
-        <div className="rounded-3xl bg-[#2d2d2d]/80 p-6 pb-6">
+        <section className="mb-10">
+        <div className="rounded-[40px] bg-[#1d1d1d]/40 backdrop-blur-xl border border-white/5 p-10 pb-10 shadow-2xl">
             {/* 헤더 */}
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-6">
             <div
-                className="px-3 text-xl font-semibold text-[#AFDEE2] whitespace-nowrap transition"
+                className="px-4 text-3xl font-bold text-[#AFDEE2] whitespace-nowrap transition"
             >
                 인기 공개 플레이리스트
             </div>
             </div>
 
-            <div className="mb-4 border-b border-[#464646]" />
+            <div className="mb-8 border-b border-white/5" />
 
             {/* 로딩/에러 상태 */}
-            {playlistsLoading && <div className="p-4 text-[#F6F6F6]/70">플레이리스트 로딩중...</div>}
-            {playlistsError && <div className="p-4 text-red-300">{playlistsError}</div>}
+            {playlistsLoading && <div className="p-8 text-[#F6F6F6]/70 text-lg">플레이리스트 로딩중...</div>}
+            {playlistsError && <div className="p-8 text-red-300 text-lg">{playlistsError}</div>}
 
             {/* 플레이리스트 목록 */}
             {!playlistsLoading && !playlistsError && publicPlaylists.length > 0 && (
-            <HorizontalScroller gradientFromClass="from-[#2d2d2d]">
-            <div className="flex gap-2 min-w-max pr-2">
+            <HorizontalScroller gradientFromClass="from-[#1d1d1d]">
+            <div className="flex gap-6 min-w-max pr-4">
                 {publicPlaylists.map((p) => (
                 <button
                     key={p.playlist_id}
                     type="button"
                     onClick={() => navigate(`/playlist/${p.playlist_id}`)}
-                    className="w-[220px] text-left group shrink-0"
+                    className="w-[260px] text-left group shrink-0"
                 >
                     {/* 커버 */}
-                    <div className="w-[208px] h-[208px] rounded-2xl bg-[#6b6b6b]/40 border border-[#464646] group-hover:bg-[#6b6b6b]/55 transition" />
+                    <div className="w-[260px] h-[260px] rounded-[32px] bg-white/5 border border-white/10 group-hover:bg-white/10 transition-all duration-500 shadow-xl overflow-hidden relative">
+                        {/* 실제 이미지가 있다면 여기에 추가 가능 */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
+                    </div>
 
                     {/* 텍스트 */}
-                    <div className="mt-3 text-sm font-semibold text-[#F6F6F6] truncate">
-                    {p.title}
-                    </div>
-                    <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">
-                    {p.creator_nickname} · {p.item_count}곡 · ♥ {p.like_count}
+                    <div className="mt-5 px-2">
+                        <div className="text-lg font-bold text-[#F6F6F6] truncate group-hover:text-[#AFDEE2] transition-colors">
+                        {p.title}
+                        </div>
+                        <div className="mt-2 text-sm text-[#F6F6F6]/40 font-medium truncate">
+                        {p.creator_nickname} · {p.item_count}곡 · ♥ {p.like_count}
+                        </div>
                     </div>
                 </button>
                 ))}
@@ -624,7 +633,7 @@ function HomePage() {
 
             {/* 데이터 없음 */}
             {!playlistsLoading && !playlistsError && publicPlaylists.length === 0 && (
-                <div className="p-4 text-[#F6F6F6]/50">인기 플레이리스트가 없습니다</div>
+                <div className="p-8 text-[#F6F6F6]/30 text-lg text-center">인기 플레이리스트가 없습니다</div>
             )}
         </div>
         </section>
