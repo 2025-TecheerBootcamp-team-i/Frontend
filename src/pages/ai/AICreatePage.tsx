@@ -711,24 +711,25 @@ export default function AiCreatePage() {
             <button
               type="button"
               onClick={onPickCover}
-              className="w-72 h-72 rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.25)] bg-[#3d3d3d]/90 hover:bg-[#3d3d3d]/40 transition flex flex-col items-center justify-center overflow-hidden"
+              className="w-72 h-72 rounded-[40px] shadow-[0_20px_50px_rgba(0,0,0,0.4)] bg-white/[0.05] backdrop-blur-2xl border border-white/10 hover:bg-white/[0.1] hover:border-white/20 transition-all duration-500 flex flex-col items-center justify-center overflow-hidden group/cover"
               aria-label="add cover"
             >
               {coverUrl ? (
-                <img src={coverUrl} alt="cover preview" className="h-full w-full object-cover" />
+                <img src={coverUrl} alt="cover preview" className="h-full w-full object-cover transition-transform duration-1000 group-hover/cover:scale-110" />
               ) : (
                 <>
-                  <div className="text-[#f6f6f6]">
-                    <MdAdd size={26} />
+                  <div className="text-white/40 group-hover/cover:text-[#AFDEE2] transition-colors">
+                    <MdAdd size={40} />
                   </div>
-                  <span className="text-sm text-[#f6f6f6]">나만의 커버 사진 추가하기</span>
+                  <span className="mt-4 text-xs font-black tracking-widest text-white/30 uppercase group-hover/cover:text-white/50 transition-colors">커버 사진 추가</span>
                 </>
               )}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover/cover:opacity-100 transition-opacity pointer-events-none" />
             </button>
           </div>
 
           <div>
-            <p className="mt-2 text-[11px] text-center text-[#9d9d9d] leading-relaxed">
+            <p className="mt-4 text-[11px] font-bold tracking-tight text-center text-white/20 uppercase">
               커버 사진을 추가하지 않아도 AI가 자동으로 생성해줍니다.
             </p>
           </div>
@@ -736,7 +737,7 @@ export default function AiCreatePage() {
           {/* 실제 업로드 input */}
           <input ref={fileRef} type="file" accept="image/*" onChange={onCoverChange} className="hidden" />
 
-          {/* 프롬프트 카드 - 플립 애니메이션 */}
+          {/* 프롬프트 카드 - 플립 애니메이션 (투명 유리 스타일 적용) */}
           <div 
             ref={promptCardRef}
             className="mt-10 mx-6 [perspective:1000px] h-[350px]">
@@ -744,47 +745,46 @@ export default function AiCreatePage() {
               className={`relative w-full h-full transition-transform duration-600 ease-in-out [transform-style:preserve-3d] ${
                 isFlipped ? "[transform:rotateY(180deg)]" : ""
               }`}
-              style={{ transition: "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)" }}
+              style={{ transition: "transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)" }}
             >
               {/* 앞면: 사용자 입력 */}
               <div
                 className="
                   absolute inset-0 [backface-visibility:hidden]
-                  rounded-2xl bg-[#3d3d3d]/80 backdrop-blur-xl
-                  border border-[#3d3d3d]
-                  shadow-[0_4px_12px_rgba(0,0,0,0.25)] p-5
+                  rounded-[40px] bg-white/[0.05] backdrop-blur-2xl
+                  border border-white/10
+                  shadow-[0_30px_80px_rgba(0,0,0,0.5)] p-8
                   overflow-hidden
                   
-                  transition-all duration-200
-                  border border-[#3d3d3d]
-                  focus-within:ring-2 focus-within:ring-[#4d4d4d] focus-within:ring-offset-0
-                  focus-within:shadow-[0_8px_20px_rgba(0,0,0,0.35)]
+                  transition-all duration-300
+                  focus-within:border-white/30
+                  focus-within:shadow-[0_40px_100px_rgba(0,0,0,0.6)]
                   "
                 style={{ backfaceVisibility: "hidden" }}
               >
                 <div className="relative flex flex-col items-center justify-center min-h-full">
-                  <div className="absolute top-2 left-2 text-xs text-white/40">
-                    {prompt ? "사용자 입력" : "프롬프트 입력"}
+                  <div className="absolute top-0 left-0 text-[10px] font-black tracking-[0.2em] text-white/20 uppercase">
+                    {prompt ? "User Prompt" : "Input Prompt"}
                   </div>
 
                   {/* Typewriter 애니메이션 표시 영역 */}
                   <div 
                     ref={frontScrollRef}
-                    className="relative w-full flex flex-col items-center justify-center min-h-[250px] max-h-[250px] overflow-y-auto">
+                    className="relative w-full flex flex-col items-center justify-center min-h-[220px] max-h-[220px] overflow-y-auto no-scrollbar">
                     {prompt ? (
                       <div
                         ref={frontContentRef}
                         className="
-                          w-full flex flex-col text-lg
+                          w-full flex flex-col text-lg font-bold
                           items-center justify-center
                           whitespace-pre-wrap break-words
-                          leading-relaxed px-4"
+                          leading-relaxed px-4 text-white/90"
                       >
                         <Typewriter text={prompt} config={typewriterConfig} triggerReplay={0} />
                       </div>
                     ) : (
-                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-[#777777] text-base text-center w-full">
-                        예) 새벽 감성, 로파이 힙합, 한국어 보컬...
+                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white/10 text-base font-bold text-center w-full uppercase tracking-widest leading-loose">
+                        어떤 분위기의 노래를<br />만들고 싶으신가요?
                       </div>
                     )}
                   </div>
@@ -803,11 +803,11 @@ export default function AiCreatePage() {
                       bg-transparent text-lg text-transparent
                       outline-none placeholder:text-transparent
                       font-bold leading-relaxed text-center
-                      overflow-y-auto
+                      overflow-y-auto no-scrollbar
                     "
                     style={
                       {
-                        caretColor: "transparent",
+                        caretColor: "rgba(175, 222, 226, 0.5)",
                         zIndex: 10,
                         pointerEvents: "auto",
                       } as CSSProperties
@@ -816,41 +816,41 @@ export default function AiCreatePage() {
                   />
 
                   {/* 글자 수 표시 */}
-                  <div className="absolute bottom-2 right-2 text-right text-xs text-[#888888] z-20">
-                    {prompt.length}/{maxPrompt}
+                  <div className="absolute bottom-0 right-0 text-right text-[10px] font-black text-white/20 tracking-tighter z-20">
+                    {prompt.length} / {maxPrompt}
                   </div>
                 </div>
               </div>
 
               {/* 뒷면: 변환 결과 */}
               <div
-                className="ai-back-gradient absolute inset-0 [backface-visibility:hidden] rounded-2xl backdrop-blur-xl border border-white/10 shadow-[0_8px_24px_rgba(0,0,0,0.45)] p-5 overflow-hidden [transform:rotateY(180deg)]"
+                className="ai-back-gradient absolute inset-0 [backface-visibility:hidden] rounded-[40px] backdrop-blur-3xl border border-white/20 shadow-[0_40px_100px_rgba(0,0,0,0.7)] p-8 overflow-hidden [transform:rotateY(180deg)]"
                 style={{
                   backfaceVisibility: "hidden",
                   backgroundImage:
-                    "radial-gradient(1200px circle at 10% 20%, rgba(107,115,255,0.35), transparent 45%), radial-gradient(900px circle at 85% 25%, rgba(175,222,226,0.30), transparent 50%), radial-gradient(900px circle at 40% 85%, rgba(255,89,169,0.22), transparent 55%), linear-gradient(135deg, rgba(18,18,18,0.90), rgba(28,28,28,0.92))",
+                    "radial-gradient(1200px circle at 10% 20%, rgba(107,115,255,0.4), transparent 45%), radial-gradient(900px circle at 85% 25%, rgba(175,222,226,0.35), transparent 50%), radial-gradient(900px circle at 40% 85%, rgba(255,89,169,0.25), transparent 55%), linear-gradient(135deg, rgba(10,10,10,0.95), rgba(20,20,20,0.98))",
                   backgroundSize: "200% 200%",
-                  animation: "aiGradientShift 12s ease-in-out infinite",
+                  animation: "aiGradientShift 8s ease-in-out infinite",
                 }}
               >
                 <div className="relative flex flex-col items-center justify-center h-full min-h-0">
-                  <div className="absolute top-2 left-2 text-xs text-white/40">
-                    {isGenerating && !convertedPrompt ? "생성 중..." : convertedPrompt ? "변환 결과" : ""}
+                  <div className="absolute top-0 left-0 text-[10px] font-black tracking-[0.2em] text-white/30 uppercase">
+                    {isGenerating && !convertedPrompt ? "Processing..." : convertedPrompt ? "Enhanced Result" : ""}
                   </div>
 
                   <div
                     ref={backScrollRef}
                     className={[
-                      "relative w-full flex flex-col min-h-[300px] max-h-[320px] overflow-y-auto px-4",
+                      "relative w-full flex flex-col min-h-[250px] max-h-[250px] overflow-y-auto px-4 no-scrollbar",
                       isGenerating && !convertedPrompt
                         ? "items-center justify-center text-center"
-                        : "items-center justify-start pt-[40px]",
+                        : "items-center justify-start pt-[20px]",
                     ].join(" ")}
                   >
                     {displayText ? (
                       <div 
                         ref={backContentRef}
-                        className="whitespace-pre-wrap break-words leading-snug">
+                        className="whitespace-pre-wrap break-words leading-relaxed text-white/90 font-bold">
                         <Typewriter
                           text={displayText}
                           config={typewriterConfig}
@@ -858,8 +858,8 @@ export default function AiCreatePage() {
                         />
                       </div>
                     ) : (
-                      <div className="text-[#AFDEE2]/40 text-2xl text-center">
-                        {isGenerating ? "잠시만 기다려 주세요..." : "변환 결과가 여기에 표시됩니다"}
+                      <div className="text-[#AFDEE2]/20 text-2xl font-black uppercase tracking-tighter text-center">
+                        {isGenerating ? "Creating..." : "Result will appear here"}
                       </div>
                     )}
                   </div>
@@ -870,44 +870,48 @@ export default function AiCreatePage() {
           </div>
 
           {/* make_instrumental 체크박스 */}
-          <label className="mt-4 mx-6 pt-3 border-t border-white/10 flex items-center gap-2 text-xs text-[#f6f6f6] cursor-pointer">
+          <label className="mt-6 mx-10 pt-4 border-t border-white/5 flex items-center gap-3 text-[11px] font-bold text-white/30 cursor-pointer hover:text-white/50 transition-colors uppercase tracking-widest">
             <input
               type="checkbox"
               checked={makeInstrumental}
               onChange={(e) => setMakeInstrumental(e.target.checked)}
               disabled={isGenerating}
-              className="accent-[#AFDEE2] cursor-pointer disabled:cursor-not-allowed"
+              className="accent-[#AFDEE2] w-4 h-4 cursor-pointer disabled:cursor-not-allowed"
             />
-            <span className="text-[#f6f6f6]/50">보컬 없이 연주곡(Instrumental)으로 만들기</span>
+            <span>보컬 없이 연주곡(Instrumental)으로 만들기</span>
           </label>
 
           {/* 버튼들 */}
-          <div className="mt-6 mb-10 flex flex-col items-center gap-3">
+          <div className="mt-8 mb-10 flex flex-col items-center gap-4">
             <button
               type="button"
               disabled={!prompt.trim() || isGenerating}
               onClick={handleCreateSong}
               className="
-                px-4 py-3
+                px-10 py-4
                 rounded-2xl
-                text-sm
+                text-sm font-black tracking-widest uppercase
                 bg-[#AFDEE2]
-                text-[#1f2a2b]
+                text-[#1d1d1d]
                 hover:bg-[#87B2B6]
-                active:scale-[0.97]
-                transition
-                disabled:bg-[#5f7f83]
-                disabled:text-[#cfd8da]
+                hover:scale-105
+                active:scale-[0.95]
+                transition-all duration-300
+                shadow-[0_10px_30px_rgba(175,222,226,0.3)]
+                disabled:bg-white/5
+                disabled:text-white/20
+                disabled:border-white/5
+                disabled:shadow-none
                 disabled:cursor-not-allowed
                 disabled:active:scale-100"
             >
-              <div className="flex gap-2 items-center">
+              <div className="flex gap-3 items-center">
                 {isGenerating ? (
-                  <span className="inline-flex h-4 w-4 items-center justify-center" aria-hidden="true">
-                    <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                  <span className="inline-flex h-5 w-5 items-center justify-center" aria-hidden="true">
+                    <span className="h-5 w-5 rounded-full border-2 border-[#1d1d1d]/30 border-t-[#1d1d1d] animate-spin" />
                   </span>
                 ) : (
-                  <MdMusicNote size={18} />
+                  <MdMusicNote size={20} />
                 )}
                 <span className="whitespace-nowrap">
                   {isGenerating ? "AI 노래 생성 중..." : isCompleted ? "생성 완료" : "AI 노래 생성하기"}
@@ -915,7 +919,7 @@ export default function AiCreatePage() {
               </div>
             </button>
 
-            {errorMessage && <p className="text-center text-xs text-red-400 max-w-[300px]">{errorMessage}</p>}
+            {errorMessage && <p className="text-center text-[11px] font-bold text-red-400/80 max-w-[300px] uppercase tracking-tight">{errorMessage}</p>}
           </div>
         </section>
 
@@ -923,25 +927,25 @@ export default function AiCreatePage() {
         <section
           className="
             relative min-h-0 flex flex-col
-            rounded-2xl bg-[#2d2d2d]/80 bg-gradient-to-tr
-            shadow-[0_4px_12px_rgba(0,0,0,0.25)] border border-[#2d2d2d]
-            overflow-hidden text-[#f6f6f6] mb-4
+            rounded-[40px] bg-white/[0.05] backdrop-blur-2xl
+            shadow-[0_30px_80px_rgba(0,0,0,0.5)] border border-white/10
+            overflow-hidden text-white mb-6 mr-6
           "
         >
-          <div className="px-8 py-6 border-b border-[#464646]">
+          <div className="px-10 py-8 border-b border-white/10">
             {/* 검색바 */}
-            <div className="flex items-center gap-3 rounded-full bg-[#3d3d3d] px-4 py-2 text-[#666666]">
-              <MdSearch />
+            <div className="flex items-center gap-4 rounded-full bg-white/5 border border-white/10 px-6 py-2.5 text-white/30 focus-within:border-white/20 transition-all">
+              <MdSearch size={20} />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="AI 곡 검색하기"
-                className="w-full bg-transparent text-[#f6f6f6] text-sm outline-none placeholder:text-[#666666]"
+                className="w-full bg-transparent text-white text-sm font-bold outline-none placeholder:text-white/20 tracking-tight"
               />
             </div>
 
             {/* 액션 버튼들 */}
-            <div className="mt-4 flex items-center justify-between gap-4 text-[#f6f6f6]">
+            <div className="mt-6 flex items-center justify-between gap-4 text-white">
               <div className="flex flex-nowrap gap-3">
                 <PillButton icon={<MdMusicNote />} label="재생" onClick={() => handleAction("play")} disabled={selectedCount === 0} />
                 <PillButton icon={<IoShuffle />} label="셔플" onClick={() => handleAction("shuffle")} disabled={selectedCount === 0} />
@@ -953,14 +957,14 @@ export default function AiCreatePage() {
                 type="button"
                 onClick={() => navigate("/my/ai-songs")}
                 className="
-                  shrink-0 flex items-center text-sm font-semibold
-                  text-[#F6F6F6]/80 hover:text-white transition
+                  shrink-0 flex items-center text-sm font-black tracking-widest uppercase
+                  text-white/40 hover:text-[#AFDEE2] transition-all
                 "
                 aria-label="나의 AI 생성곡 목록으로 이동"
                 title="나의 AI 생성곡 목록"
               >
                 나의 AI 생성곡
-                <MdOutlineNavigateNext size={24} className="translate-y-[1px] opacity-80 group-hover:opacity-100 transition" />
+                <MdOutlineNavigateNext size={24} className="ml-1 opacity-60" />
               </button>
             </div>
           </div>
@@ -971,75 +975,80 @@ export default function AiCreatePage() {
             onScroll={(e) => {
               setShowScrollTop(e.currentTarget.scrollTop > 300);
             }}
-            className="mt-0 flex-1 min-h-0 overflow-y-auto">
-            <div className="grid items-center grid-cols-[40px_minmax(0,1fr)_84px_140px] px-4 py-3 text-[12px] text-white/55">
-              <input
-                ref={selectAllRef}
-                type="checkbox"
-                checked={allChecked}
-                onChange={toggleAllVisible}
-                aria-label="select all"
-                className="ml-2 accent-[#f6f6f6]"
-              />
+            className="mt-0 flex-1 min-h-0 overflow-y-auto no-scrollbar">
+            <div className="grid items-center grid-cols-[60px_minmax(0,1fr)_100px_160px] px-8 py-4 text-[11px] font-black tracking-widest text-white/30 uppercase">
+              <div className="flex justify-center">
+                <input
+                  ref={selectAllRef}
+                  type="checkbox"
+                  checked={allChecked}
+                  onChange={toggleAllVisible}
+                  aria-label="select all"
+                  className="accent-[#AFDEE2] w-4 h-4 cursor-pointer"
+                />
+              </div>
 
-              <div className="pl-2 border-l border-[#E6E6E6]/20 text-[#f6f6f6]">곡정보</div>
-              <div className="pl-2 border-l border-[#E6E6E6]/20 text-[#f6f6f6]">길이</div>
-              <div className="pr-2 border-r border-[#E6E6E6]/20 text-[#f6f6f6] text-right">생성 일시</div>
+              <div className="pl-4 border-l border-white/10 text-white/40">곡정보</div>
+              <div className="pl-4 border-l border-white/10 text-white/40 text-center">길이</div>
+              <div className="pl-4 border-l border-white/10 text-white/40 text-right pr-4">생성 일시</div>
             </div>
 
-            <div className="border-b border-[#464646]" />
+            <div className="border-b border-white/10" />
 
             {listLoading ? (
-              <div className="px-8 py-10 text-center text-sm text-[#f6f6f6] whitespace-normal">불러오는 중...</div>
+              <div className="px-8 py-20 text-center text-sm font-black tracking-widest text-white/20 uppercase whitespace-normal">로딩 중...</div>
             ) : (
-              <>
-                <div className="divide-y divide-[#464646]">
+              <div className="px-4 py-4">
+                <div className="space-y-1">
                   {filtered.map((r, idx) => (
                     <div
                       key={r.musicId}
                       className={[
-                        "grid items-center grid-cols-[40px_minmax(0,1fr)_84px_140px] px-4 py-2 transition group",
-                        idx % 2 === 0 ? "bg-[#2d2d2d]/80" : "bg-[#3b3b3b]/80",
-                        "hover:bg-white/5",
+                        "grid items-center grid-cols-[60px_minmax(0,1fr)_100px_160px] px-4 py-3 transition-all duration-300 group rounded-2xl",
+                        idx % 2 === 0 ? "bg-white/[0.02]" : "bg-transparent",
+                        "hover:bg-white/[0.08]",
                       ].join(" ")}
                     >
-                      <input
-                        type="checkbox"
-                        checked={selected.has(r.musicId)}
-                        onChange={() => toggleOne(r.musicId)}
-                        aria-label={`select ${r.title}`}
-                        className="ml-2 accent-[#f6f6f6]"
-                      />
+                      <div className="flex justify-center">
+                        <input
+                          type="checkbox"
+                          checked={selected.has(r.musicId)}
+                          onChange={() => toggleOne(r.musicId)}
+                          aria-label={`select ${r.title}`}
+                          className="accent-[#AFDEE2] w-4 h-4 cursor-pointer"
+                        />
+                      </div>
 
-                      <div className="pl-2 border-l border-[#E6E6E6]/20 min-w-0 flex items-center gap-3">
-                        <div className="relative h-12 w-12 rounded-xl bg-white/20 shrink-0 overflow-hidden">
-                          {r.coverUrl ? <img src={r.coverUrl} alt={r.title} className="h-full w-full object-cover" /> : null}
+                      <div className="pl-4 border-l border-white/5 min-w-0 flex items-center gap-4">
+                        <div className="relative h-14 w-14 rounded-xl bg-white/10 shrink-0 overflow-hidden shadow-lg border border-white/10 group-hover:scale-105 transition-transform duration-500">
+                          {r.coverUrl ? <img src={r.coverUrl} alt={r.title} className="h-full w-full object-cover" /> : <div className="w-full h-full bg-gradient-to-br from-white/5 to-transparent" />}
+                          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                         <div className="min-w-0">
                           <button
                             type="button"
                             onClick={() => goToAlSongPage(r.musicId)}
-                            className="block w-full truncate text-left text-[12px] text-[#f6f6f6] hover:underline underline-offset-2"
+                            className="block w-full truncate text-left text-[14px] font-bold text-white/95 tracking-tight group-hover:text-[#AFDEE2] transition-colors"
                           >
                             {r.title}
                           </button>
-                          <div className="truncate text-[12px] text-[#999999]">{r.desc}</div>
+                          <div className="truncate text-[11px] font-medium text-white/30 tracking-wide mt-0.5">{r.desc}</div>
                         </div>
                       </div>
 
-                      <div className="pl-2 border-l border-[#E6E6E6]/20 text-left text-xs text-[#f6f6f6]">{r.duration}</div>
+                      <div className="pl-4 border-l border-white/5 text-center text-[12px] font-black text-white/40 tabular-nums">{r.duration}</div>
 
-                      <div className="pr-2 border-r border-[#E6E6E6]/20 text-right text-xs text-[#f6f6f6]">{r.createdAt}</div>
+                      <div className="pl-4 border-l border-white/5 text-right text-[12px] font-bold text-white/20 tabular-nums pr-4">{r.createdAt}</div>
                     </div>
                   ))}
                 </div>
 
                 {filtered.length === 0 && (
-                  <div className="px-8 py-10 text-center text-sm text-[#f6f6f6] whitespace-normal">
-                    {query}에 대한 검색 결과가 없습니다.
+                  <div className="px-8 py-20 text-center text-sm font-black tracking-widest text-white/20 uppercase whitespace-normal">
+                    검색 결과가 없습니다.
                   </div>
                 )}
-              </>
+              </div>
             )}
           </div>
 

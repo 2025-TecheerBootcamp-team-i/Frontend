@@ -1,6 +1,5 @@
 import axios from "axios";
 import { useMemo, useState, useEffect, useCallback } from "react";
-import type { DragEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { MdQueueMusic, MdClose, MdDelete, MdDragIndicator, MdPlayArrow, MdPause, MdSkipNext, MdSkipPrevious, MdShuffle, MdRepeat, MdFavorite, MdAutoAwesome} from "react-icons/md";
 import { RiDashboardFill } from "react-icons/ri";
@@ -9,6 +8,33 @@ import { usePlayer } from "../../player/PlayerContext";
 
 import { getBestAlbumCover } from "../../api/album";
 import { likecount, likeTrack, deleteTrack } from "../../api/LikedSong";
+
+// ✅ NowPlayingPage.tsx 상단 (import 아래) — 1번만 주입되는 이퀄라이저 CSS
+let __npEqStyleInjected = false;
+function ensureNowPlayingEqStyle() {
+    if (__npEqStyleInjected) return;
+    __npEqStyleInjected = true;
+
+    const style = document.createElement("style");
+    style.setAttribute("data-nowplaying-eq", "true");
+    style.innerHTML = `
+        @keyframes np-eq-calm {
+            0%   { transform: scaleY(0.22); opacity: .45; }
+            25%  { transform: scaleY(0.38); opacity: .60; }
+            50%  { transform: scaleY(0.30); opacity: .52; }
+            75%  { transform: scaleY(0.48); opacity: .65; }
+            100% { transform: scaleY(0.22); opacity: .45; }
+            }
+
+            .np-eq-bar {
+            transform-origin: bottom;
+            will-change: transform, opacity;
+            }
+
+    `;
+    document.head.appendChild(style);
+}
+
 
 type LyricLine = { t: number; text: string; timestamp?: string | null };
 
@@ -30,44 +56,47 @@ type AlbumTrack = { music_id?: number | null; music_name?: string | null };
 type AlbumDetailResponse = { tracks?: AlbumTrack[] };
 
 export default function NowPlayingPage() {
+    ensureNowPlayingEqStyle();
+  
     const navigate = useNavigate();
-
+  
+    // ✅ 먼저 PlayerContext에서 isPlaying을 꺼내야 함 (순서 중요)
     const {
-        current,
-        queue,
-        history,
-        progress,
-        duration,
-        isPlaying,
-        toggle,
-        seek,
-        removeFromQueue,
-        moveQueueItem,
-        shuffleQueue,
-        nextTrack,
-        previousTrack,
-        repeatMode,
-        toggleRepeat,
-        setTrackAndPlay,
+      current,
+      isPlaying,
+      toggle,
+      shuffleQueue,
+      nextTrack,
+      previousTrack,
+      repeatMode,
+      toggleRepeat,
     } = usePlayer();
-
+  
     const hasTrack = !!current;
-
+  
+    // ✅ 재생 재시작 시 애니메이션 리셋용
+    const [playSeq, setPlaySeq] = useState(0);
+  
+    useEffect(() => {
+      // 곡이 있고 + 재생 시작될 때만 playSeq 증가
+      if (hasTrack && isPlaying) setPlaySeq((v) => v + 1);
+    }, [hasTrack, isPlaying, current?.id]);
+  
     const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
-
+  
     // 이미지 URL 처리 함수
     const processImageUrl = useCallback((url: string | null | undefined): string | null => {
-        if (!url) return null;
-
-        const base = import.meta.env.VITE_API_BASE_URL as string | undefined;
-
-        if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("//")) {
+      if (!url) return null;
+  
+      const base = import.meta.env.VITE_API_BASE_URL as string | undefined;
+  
+      if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("//")) {
         return url;
-        }
-        if (base && url.startsWith("/")) {
+      }
+      if (base && url.startsWith("/")) {
         return `${base.replace("/api/v1", "")}${url}`;
-        }
-        return url;
+      }
+      return url;
     }, []);
 
     // 메인 앨범 이미지 (image_large_square 우선, 없으면 coverUrl)
@@ -99,14 +128,6 @@ export default function NowPlayingPage() {
             cancelled = true;
         };
     }, [current]);
-
-    // ✅ 전체 배경에 사용할 블러용 이미지 URL
-    // - 메인 앨범 이미지가 있을 때만 사용
-    // - processImageUrl로 절대 경로 변환
-    const blurredBackgroundImage = useMemo(() => {
-        if (!mainAlbumImage) return null;
-        return processImageUrl(mainAlbumImage);
-    }, [mainAlbumImage, processImageUrl]);
 
     // ✅ 가사 패널 (bottom sheet)
     const [lyricsOpen, setLyricsOpen] = useState(false);
@@ -311,7 +332,7 @@ export default function NowPlayingPage() {
         return () => controller.abort();
     }, [current, API_BASE]);
 
-    // ✅ 좌/우 패널 상태
+    // ✅ 좌 패널 상태
     const [leftOpen, setLeftOpen] = useState(false); // 분석 대시보드
     const [rightOpen, setRightOpen] = useState(false); // 재생목록
 
@@ -402,9 +423,6 @@ export default function NowPlayingPage() {
 
     const shownLikeCount = Number.isFinite(likeCount) ? likeCount : 0;
 
-    const [tab, setTab] = useState<"queue" | "history">("queue");
-    const list = useMemo(() => (tab === "queue" ? queue : history), [tab, queue, history]);
-
     // ✅ push 레이아웃
     const LEFT_W = 400;
     const RIGHT_W = 340;
@@ -414,676 +432,186 @@ export default function NowPlayingPage() {
 
     const toggleLeft = () => {
         setLeftOpen((v) => {
-        const next = !v;
-        if (next) setRightOpen(false);
-        return next;
+            const next = !v;
+            if (next) setRightOpen(false);
+            return next;
         });
     };
 
     const toggleRight = () => {
         setRightOpen((v) => {
-        const next = !v;
-        if (next) setLeftOpen(false);
-        return next;
+            const next = !v;
+            if (next) setLeftOpen(false);
+            return next;
         });
-    };
-
-    // ✅ 드래그앤드롭(핸들만 드래그)
-    const [dragIndex, setDragIndex] = useState<number | null>(null);
-    const [overIndex, setOverIndex] = useState<number | null>(null);
-
-    const handleDragStart = (index: number) => (e: DragEvent<HTMLElement>) => {
-        setDragIndex(index);
-        setOverIndex(index);
-        e.dataTransfer.effectAllowed = "move";
-        e.dataTransfer.setData("text/plain", String(index));
-    };
-
-    const handleDragEnter = (index: number, isQueue: boolean) => () => {
-        if (!isQueue) return;
-        if (dragIndex === null) return;
-        setOverIndex(index);
-    };
-
-    const handleDragOver = (index: number, isQueue: boolean) => (e: DragEvent<HTMLElement>) => {
-        if (!isQueue) return;
-        e.preventDefault();
-        e.dataTransfer.dropEffect = "move";
-        setOverIndex(index);
-    };
-
-    const handleDrop = (index: number, isQueue: boolean) => (e: DragEvent<HTMLElement>) => {
-        if (!isQueue) return;
-        e.preventDefault();
-
-        const from = dragIndex ?? Number(e.dataTransfer.getData("text/plain"));
-        const to = index;
-
-        if (Number.isFinite(from) && from !== to) {
-        moveQueueItem(from, to);
-        }
-
-        setDragIndex(null);
-        setOverIndex(null);
-    };
-
-    const handleDragEnd = () => {
-        setDragIndex(null);
-        setOverIndex(null);
     };
 
     const handleStartStation = () => {
         if (!current) return;
-
-        // 예:
-        // 1. 현재 곡 기반 추천 API 호출
-        // 2. 결과를 queue에 replace
-        // 3. play
     };
 
     return (
         <div className="relative h-full w-full text-[#F6F6F6] overflow-hidden">
-        {/* ✅ 앨범 이미지를 이용한 전체 배경 블러
-            - 확대 화면 전체를 앨범 이미지로 채우고
-            - 강한 블러 + 살짝 어둡게 처리해서 가독성 확보 */}
-        {hasTrack && blurredBackgroundImage ? (
-            <>
-            {/* 실제 이미지 블러 배경 */}
-            <div
-                className="pointer-events-none absolute inset-0 bg-center bg-cover"
-                style={{
-                backgroundImage: `url(${blurredBackgroundImage})`,
-                filter: "blur(40px)",
-                transform: "scale(1.15)",
-                }}
-            />
-            {/* 위에 반투명 어두운 오버레이 */}
-            <div className="pointer-events-none absolute inset-0 bg-black/60" />
-            </>
-        ) : (
-            // 앨범 이미지가 없을 때 기본 배경
-            <div className="pointer-events-none absolute inset-0 bg-[#2d2d2d]" />
-        )}
         
-        {/* 좌측 대시보드 */}
-        <aside
-            className={[
-                "absolute left-0 top-0 h-full bg-[#2f2f2f] border-r border-[#3d3d3d]",
-                "transition-transform duration-300 ease-out z-10",
-            ].join(" ")}
-            style={{
-                width: LEFT_W,
-                transform: leftOpen ? "translateX(0)" : `translateX(-${LEFT_W}px)`,
-            }}
-            >
-            <div className="mt-12 h-16 px-4 flex items-center justify-between border-b border-[#3d3d3d]">
-                <div className="px-4 text-sm font-semibold text-white/80">분석 대시보드</div>
-                <button
-                type="button"
-                onClick={toggleLeft}
-                className="rounded-full p-2 hover:bg-white/10 transition"
-                aria-label="대시보드 닫기"
-                >
-                <MdClose size={18} />
-                </button>
-            </div>
-
-            <div className="p-4 space-y-3">
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <div className="text-sm text-white/80 font-semibold">현재 곡 분석</div>
-                <div className="mt-2 text-xs text-white/55">BPM / Mood / Energy 같은 카드</div>
-                </div>
-
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <div className="text-sm text-white/80 font-semibold">최근 청취 패턴</div>
-                <div className="mt-2 text-xs text-white/55">그래프/요약</div>
-                </div>
-            </div>
-        </aside>
-
-        {/* 우측 재생목록 */}
-        <aside
-            className="absolute right-0 top-0 h-full bg-[#2f2f2f] border-l border-[#3d3d3d] transition-transform duration-300 ease-out flex flex-col z-10"
-            style={{
-                width: RIGHT_W,
-                transform: rightOpen ? "translateX(0)" : `translateX(${RIGHT_W}px)`,
-            }}
-            >
-            <div className="mt-12 h-16 px-4 flex items-center justify-between border-b border-[#3d3d3d]">
-                <div className="px-4 text-sm font-semibold text-white/80">재생목록</div>
-                <button
-                type="button"
-                onClick={toggleRight}
-                className="p-2 rounded-full hover:bg-white/10 transition"
-                aria-label="재생목록 닫기"
-                >
-                <MdClose size={18} />
-                </button>
-            </div>
-
-            <div className="flex-1 min-h-0 px-4 pt-4 flex flex-col">
-                {/* 탭 */}
-                <div className="grid grid-cols-2 rounded-xl overflow-hidden border border-white/10 bg-white/5">
-                <button
-                    type="button"
-                    onClick={() => setTab("queue")}
-                    className={[
-                    "py-2.5 text-sm transition",
-                    tab === "queue" ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5",
-                    ].join(" ")}
-                >
-                    재생 대기
-                </button>
-                <button
-                    type="button"
-                    onClick={() => setTab("history")}
-                    className={[
-                    "py-2.5 text-sm transition",
-                    tab === "history" ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/5",
-                    ].join(" ")}
-                >
-                    재생 기록
-                </button>
-                </div>
-
-                <div className="mt-4 border-t border-white/10 flex-shrink-0" />
-
-                {/* 리스트 */}
-                <div className="mt-2 pb-6 flex-1 min-h-0 overflow-y-auto">
-                {list.length === 0 ? (
-                    <div className="mt-10 text-sm text-white/45 text-center">
-                    {tab === "queue" ? "재생 대기 목록이 비어있어요" : "재생 기록이 없어요"}
-                    </div>
-                ) : (
-                    <div className="divide-y divide-white/10 rounded-2xl overflow-hidden border border-white/10 bg-white/5">
-                    {list.map((t, i) => {
-                        const isQueue = tab === "queue";
-
-                        return (
-                        <div
-                            key={t.id}
-                            onDragEnter={handleDragEnter(i, isQueue)}
-                            onDragOver={handleDragOver(i, isQueue)}
-                            onDrop={handleDrop(i, isQueue)}
-                            onDoubleClick={() => {
-                                if (isQueue) {
-                                    setTrackAndPlay(t);
-                                }
-                            }}
-                            className={[
-                            "w-full transition",
-                            "hover:bg-white/5",
-                            isQueue ? "select-none cursor-pointer" : "",
-                            overIndex === i && dragIndex !== null && dragIndex !== i
-                                ? "bg-white/10 outline outline-1 outline-white/15"
-                                : "",
-                            dragIndex === i ? "opacity-60" : "",
-                            ].join(" ")}
-                        >
-                            <div className="grid grid-cols-[28px_44px_1fr_auto] items-center gap-3 px-3 py-3">
-                            <div className="flex items-center justify-center text-white/40">
-                                {isQueue ? (
-                                <span
-                                    role="button"
-                                    tabIndex={0}
-                                    draggable
-                                    onDragStart={handleDragStart(i)}
-                                    onDragEnd={handleDragEnd}
-                                    onMouseDown={(ev) => ev.stopPropagation()}
-                                    onClick={(ev) => ev.stopPropagation()}
-                                    className="cursor-grab active:cursor-grabbing"
-                                    aria-label="드래그로 순서 변경"
-                                    title="드래그로 순서 변경"
-                                >
-                                    <MdDragIndicator size={20} />
-                                </span>
-                                ) : null}
-                            </div>
-
-                            {/* 앨범 이미지 */}
-                            <div className="h-10 w-10 rounded-xl bg-white/20 border border-white/10 overflow-hidden relative flex-shrink-0">
-                                {t.coverUrl ? (
-                                <>
-                                    <img
-                                    src={processImageUrl(t.coverUrl) || undefined}
-                                    alt={t.title}
-                                    className="w-full h-full object-cover relative z-10"
-                                    onError={(ev) => {
-                                        (ev.currentTarget as HTMLImageElement).style.display = "none";
-                                    }}
-                                    loading="lazy"
-                                    />
-                                    <div className="absolute inset-0 bg-white/20 animate-pulse z-0" />
-                                </>
-                                ) : (
-                                <div className="w-full h-full bg-white/20" />
-                                )}
-                            </div>
-
-                            <div className="min-w-0">
-                                <div className="text-sm font-semibold truncate">{t.title}</div>
-                                <div className="text-xs text-white/60 truncate">{t.artist}</div>
-                            </div>
-
-                            {/* 큐 탭에서만 삭제 */}
-                            {isQueue ? (
-                                <button
-                                type="button"
-                                onClick={(ev) => {
-                                    ev.stopPropagation();
-                                    removeFromQueue(t.id);
-                                }}
-                                className="p-1.5 rounded-lg hover:bg-white/10 transition"
-                                aria-label="대기 목록에서 삭제"
-                                title="대기 목록에서 삭제"
-                                >
-                                <MdDelete size={18} className="text-white/75" />
-                                </button>
-                            ) : null}
-                            </div>
-                        </div>
-                        );
-                    })}
-                    </div>
-                )}
-                </div>
-            </div>
-        </aside>
-
-        {/* 상단 바 */}
-        <div className="relative z-10 h-16 px-6 flex items-center justify-between">
-            {/* 좌측 */}
-            <div className="min-w-0">
-            <button
-                type="button"
-                onClick={toggleLeft}
-                className={[
-                "p-2 rounded-full transition hover:bg-white/10",
-                leftOpen ? "text-[#AFDEE2]" : "text-[#F6F6F6]",
-                ].join(" ")}
-                aria-label="분석 대시보드 토글"
-                title="분석 대시보드"
-            >
-                <RiDashboardFill size={18} />
-            </button>
-            </div>
-
-            {/* 우측 */}
-            <div className="flex items-center gap-2">
-            {/* 좋아요 */}
-            <button
-                type="button"
-                onClick={(ev) => {
-                ev.stopPropagation();
-                console.log("LIKE CLICK", { musicId, current });
-                toggleLike();
-                }}
-                className={[
-                "h-11 rounded-2xl",
-                "flex items-center gap-2",
-                "transition relative",
-                likeLoading ? "opacity-60 cursor-not-allowed" : "",
-                liked ? "text-[#AFDEE2]" : "text-[#F6F6F6]/80",
-                ].join(" ")}
-                aria-label="좋아요"
-                title="좋아요"
-            >
-                <MdFavorite size={22} className={liked ? "text-[#AFDEE2]" : "text-[#F6F6F6]/70"} />
-                <span className="text-sm tabular-nums">{shownLikeCount.toLocaleString()}</span>
-            </button>
-
-            {/* 더보기 */}
-            <button
-                type="button"
-                onClick={handleStartStation}
-                className="p-2 ml-1 rounded-full hover:bg-white/10 transition"
-                aria-label="스테이션 생성"
-                title="스테이션 생성"
-            >
-                <MdAutoAwesome size={20} className={"text-[#f6f6f6]/80"}/>
-            </button>
-
-            {/* 화면 다시 줄이기 */}
-            <button
-                type="button"
-                onClick={() => navigate(-1)}
-                className="p-2 rounded-full hover:bg-white/10 transition"
-                aria-label="뒤로 가기"
-                title="뒤로 가기"
-            >
-                <GrContract size={18} className={"text-[#f6f6f6]/80"} />
-            </button>
-            </div>
-        </div>
-
         {/* 본문 */}
-        <div className="h-[calc(100%-4rem)] relative">
-            {/* 중앙 메인 */}
+        <div className="h-full relative">
+            {/* 좌측 사이드 버튼 (Dashboard) - 두 번째 사진 위치 */}
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 z-20">
+                <button
+                    type="button"
+                    onClick={toggleLeft}
+                    className={[
+                        "w-10 h-24 rounded-r-2xl bg-white/[0.03] backdrop-blur-md border border-white/5 border-l-0 flex items-center justify-center transition-all hover:bg-white/[0.08] shadow-lg group",
+                        leftOpen ? "text-[#AFDEE2]" : "text-white/30 hover:text-white"
+                    ].join(" ")}
+                    aria-label="분석 대시보드 토글"
+                >
+                    <RiDashboardFill size={20} />
+                </button>
+            </div>
+
+            {/* 우측 사이드 버튼 (Queue) - 두 번째 사진 위치 */}
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 z-20">
+                <button
+                    type="button"
+                    onClick={toggleRight}
+                    className={[
+                        "w-10 h-24 rounded-l-2xl bg-white/[0.03] backdrop-blur-md border border-white/5 border-r-0 flex items-center justify-center transition-all hover:bg-white/[0.08] shadow-lg group",
+                        rightOpen ? "text-[#AFDEE2]" : "text-white/30 hover:text-white"
+                    ].join(" ")}
+                    aria-label="재생목록 토글"
+                >
+                    <MdQueueMusic size={22} />
+                </button>
+            </div>
+
+            {/* 상단 우측 버튼 세트 (Like, Station, Contract) - 두 번째 사진 위치 */}
+            <div className="absolute right-8 top-6 z-20 flex items-center gap-5">
+                <button
+                    type="button"
+                    onClick={(ev) => { ev.stopPropagation(); toggleLike(); }}
+                    className={[
+                        "flex items-center gap-2 transition hover:opacity-80",
+                        liked ? "text-[#AFDEE2]" : "text-white/60"
+                    ].join(" ")}
+                    title="좋아요"
+                >
+                    <MdFavorite size={24} />
+                    <span className="text-sm font-bold tabular-nums">{shownLikeCount.toLocaleString()}</span>
+                </button>
+
+                <button 
+                    type="button" 
+                    onClick={handleStartStation} 
+                    className="text-white/60 hover:text-white transition" 
+                    title="스테이션 시작"
+                >
+                    <MdAutoAwesome size={24}/>
+                </button>
+
+                <button 
+                    type="button" 
+                    onClick={() => navigate(-1)} 
+                    className="text-white/60 hover:text-white transition" 
+                    title="축소하기"
+                >
+                    <GrContract size={20} />
+                </button>
+            </div>
+
             <div
             className="h-full transition-all duration-300 ease-out"
             style={{ marginLeft: leftShift, marginRight: rightShift }}
             >
-            <div className="h-full">
-                {/* 중앙 영역 배경을 투명하게 유지해서 전체 블러 배경이 그대로 보이도록 처리 */}
-                <div className="h-full pt-4 overflow-hidden">
-                <div className="h-full flex flex-col items-center justify-center px-6">
-                    <div className="w-full max-w-[860px] flex flex-col items-center gap-4">
-                    {/* 앨범아트 */}
-                    <div className="w-[360px] aspect-square rounded-3xl bg-white/25 overflow-hidden relative">
-                        {hasTrack && mainAlbumImage ? (
-                        <>
-                            <img
-                            src={processImageUrl(mainAlbumImage) || undefined}
-                            alt={current.title}
-                            className="w-full h-full object-cover relative z-10"
-                            onError={(ev) => {
-                                console.error(`[NowPlayingPage] ❌ 메인 앨범 이미지 로드 실패:`, {
-                                title: current.title,
-                                image_url: mainAlbumImage,
-                                });
-                                (ev.currentTarget as HTMLImageElement).style.display = "none";
-                            }}
-                            loading="lazy"
-                            />
-                            <div className="absolute inset-0 bg-white/25 animate-pulse z-0" />
-                        </>
-                        ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                            <span className="text-white/60 text-sm">사진</span>
-                        </div>
-                        )}
-                    </div>
-
-                    <div className="min-w-0 text-center">
-                        <div className="text-lg font-semibold text-[#F6F6F6] truncate">
-                        {hasTrack ? current.title : "재생 중인 곡이 없어요"}
-                        </div>
-                        <div className="mt-1 text-sm text-white/60 truncate">
-                        {hasTrack ? current.artist : "—"}
-                        </div>
-                    </div>
-
-                    {/* 가사 */}
-                    <button
-                        type="button"
-                        onClick={() => {
-                        setLyricsOpen(true);
-                        setLeftOpen(false);
-                        setRightOpen(false);
-                        }}
-                        className={["w-[520px]", "transition text-center relative", "hover:opacity-80"].join(
-                        " "
-                        )}
-                    >
-                        <div className="mt-4 text-sm text-[#f6f6f6]/80">전체 가사 보기</div>
-                    </button>
-                    </div>
-                </div>
-                </div>
-            </div>
-            </div>
-
-
-            {/* 손잡이 */}
-            {!leftOpen && (
-            <button
-                type="button"
-                onClick={toggleLeft}
-                className="absolute left-0 top-1/2 -translate-y-1/2 translate-x-0
-                    h-24 w-10 rounded-r-2xl bg-white/10 hover:bg-white/15 border border-white/10
-                    flex items-center justify-center transition"
-                aria-label="대시보드 열기"
-                title="대시보드 열기"
-            >
-                <RiDashboardFill size={18} />
-            </button>
-            )}
-
-            {!rightOpen && (
-            <button
-                type="button"
-                onClick={toggleRight}
-                className="absolute right-0 top-1/2 -translate-y-1/2
-                    h-24 w-10 rounded-l-2xl bg-white/10 hover:bg-white/15 border border-white/10
-                    flex items-center justify-center transition"
-                aria-label="재생목록 열기"
-                title="재생목록 열기"
-            >
-                <MdQueueMusic size={18} />
-            </button>
-            )}
-        </div>
-
-        {/* Lyrics Bottom Sheet */}
-        <div
-            className={[
-            "absolute inset-0 z-50",
-            lyricsOpen ? "pointer-events-auto" : "pointer-events-none",
-            ].join(" ")}
-        >
-            <div
-            onClick={() => setLyricsOpen(false)}
-            className={[
-                "absolute inset-0 transition-opacity duration-300",
-                lyricsOpen ? "opacity-100 bg-black/55" : "opacity-0",
-            ].join(" ")}
-            />
-
-            <div
-            className={[
-                "fixed left-0 right-0 bottom-0",
-                "transition-transform duration-300 ease-out",
-                lyricsOpen ? "translate-y-0" : "translate-y-full",
-            ].join(" ")}
-            >
-            <div className="mx-auto w-[820px] max-w-[95vw] rounded-t-3xl bg-[#2f2f2f] border border-white/10 overflow-hidden shadow-2xl">
-                <div className="relative">
-                <div className="pt-3 pb-2 flex items-center justify-center">
-                    <div className="h-[4px] w-14 rounded-full bg-white/25" />
-                </div>
-
-                <div className="h-12 px-5 flex items-center justify-between border-b border-white/10">
-                    <div className="min-w-0">
-                    <div className="text-sm font-semibold text-white/85 truncate">가사</div>
-                    <div className="text-xs text-white/50 truncate">
-                        {hasTrack ? `${current.title} · ${current.artist}` : "—"}
-                    </div>
-                    </div>
-
-                    <button
-                    type="button"
-                    onClick={() => setLyricsOpen(false)}
-                    className="p-2 rounded-full hover:bg-white/10 transition"
-                    aria-label="가사 닫기"
-                    >
-                    <MdClose size={18} />
-                    </button>
-                </div>
-                </div>
-
-                <div className="h-[52vh] px-6 py-5 overflow-y-auto">
-                {lyricsLoading ? (
-                    <div className="flex items-center justify-center h-full">
-                    <div className="text-sm text-white/60">가사를 불러오는 중...</div>
-                    </div>
-                ) : lyricsError ? (
-                    <div className="flex items-center justify-center h-full">
-                    <div className="text-sm text-white/60">{lyricsError}</div>
-                    </div>
-                ) : lyrics.length === 0 ? (
-                    <div className="flex items-center justify-center h-full">
-                    <div className="text-sm text-white/60">가사가 없습니다.</div>
-                    </div>
-                ) : (
-                    <div className="space-y-3">
-                        {lyrics.map((line, i) => (
-                            <div
-                                key={`${line.t}-${i}`}
-                                className="text-lg leading-8 text-white/80"
-                            >
-                                {line.text}
+            <div className="h-full flex flex-col items-center justify-center px-6 pb-20">
+                <div className="w-full max-w-[860px] flex flex-col items-center gap-6">
+                    <div className="relative">
+                        {hasTrack && (
+                            <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" style={{ width: 820, height: 240, opacity: 0.75, zIndex: 0 }}>
+                                <div className="w-full h-full flex items-end justify-center gap-[10px]">
+                                    {Array.from({ length: 26 }).map((_, i) => {
+                                        const eqActive = hasTrack && isPlaying;
+                                        const dur = 1.6 + (i % 7) * 0.18;
+                                        const delay = (i % 11) * 0.07;
+                                        return (
+                                            <div key={`${playSeq}-${i}`} className="np-eq-bar rounded-full" style={{ width: 12, height: 60 + (i % 6) * 28, background: "rgba(255,255,255,0.28)", animation: eqActive ? `np-eq-calm ${dur}s ease-in-out infinite` : "none", animationDelay: `${delay}s`, transform: eqActive ? undefined : "scaleY(0.22)", opacity: eqActive ? 0.55 : 0.25, transition: "transform 0.25s ease, opacity 0.25s ease" }} />
+                                        );
+                                    })}
+                                </div>
                             </div>
-                        ))}
+                        )}
+                        <div className="w-[380px] aspect-square rounded-[40px] bg-white/10 overflow-hidden relative z-10 shadow-[0_40px_100px_rgba(0,0,0,0.6)] border border-white/10">
+                            {hasTrack && mainAlbumImage ? (
+                                <img src={processImageUrl(mainAlbumImage)!} alt={current.title} className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-white/5"><span className="text-white/20 font-black tracking-tighter text-4xl uppercase">No Cover</span></div>
+                            )}
+                        </div>
                     </div>
-                )}
+
+                    <div className="min-w-0 text-center space-y-2 mt-4">
+                        <div className="text-3xl font-black text-white truncate tracking-tight drop-shadow-xl">{hasTrack ? current.title : "재생 중인 곡이 없어요"}</div>
+                        <div className="text-lg font-medium text-white/40 truncate tracking-wide">{hasTrack ? current.artist : "—"}</div>
+                    </div>
+
+                    <button type="button" onClick={() => setLyricsOpen(true)} className="mt-8 px-6 py-2.5 rounded-full bg-white/5 border border-white/5 text-sm font-bold text-white/60 hover:text-white hover:bg-white/10 transition-all">전체 가사 보기</button>
                 </div>
-
-                {/* 하단 플레이어 컨트롤 */}
-                <div className="border-t border-white/10 bg-[#2d2d2d] px-6 py-4">
-                <div className="flex flex-col items-center gap-3">
-                    {/* 컨트롤 버튼들 */}
-                    <div className="flex items-center gap-4">
-                    {/* 셔플 */}
-                    <button
-                        type="button"
-                        onClick={shuffleQueue}
-                        disabled={!hasTrack}
-                        className={[
-                        "transition",
-                        hasTrack ? "text-white/60 hover:text-white" : "text-white/30 cursor-not-allowed",
-                        ].join(" ")}
-                        aria-label="셔플"
-                        title="재생 대기 곡들 셔플"
-                    >
-                        <MdShuffle size={20} />
-                    </button>
-
-                    {/* 이전 곡 */}
-                    <button
-                        type="button"
-                        onClick={previousTrack}
-                        disabled={!hasTrack}
-                        className={[
-                        "transition",
-                        hasTrack ? "text-white/60 hover:text-white" : "text-white/30 cursor-not-allowed",
-                        ].join(" ")}
-                        aria-label="이전 곡"
-                        title="이전 곡"
-                    >
-                        <MdSkipPrevious size={24} />
-                    </button>
-
-                    {/* 재생 / 일시정지 */}
-                    <button
-                        type="button"
-                        onClick={toggle}
-                        disabled={!hasTrack}
-                        className={[
-                        "h-10 w-10 rounded-full flex items-center justify-center transition",
-                        hasTrack ? "bg-[#E4524D] text-white hover:brightness-110" : "bg-white/10 text-white/40 cursor-not-allowed",
-                        ].join(" ")}
-                        aria-label={isPlaying ? "일시정지" : "재생"}
-                        title={isPlaying ? "일시정지" : "재생"}
-                    >
-                        {isPlaying ? <MdPause size={24} /> : <MdPlayArrow size={24} />}
-                    </button>
-
-                    {/* 다음 곡 */}
-                    <button
-                        type="button"
-                        onClick={nextTrack}
-                        disabled={!hasTrack}
-                        className={[
-                        "transition",
-                        hasTrack ? "text-white/60 hover:text-white" : "text-white/30 cursor-not-allowed",
-                        ].join(" ")}
-                        aria-label="다음 곡"
-                        title="다음 곡"
-                    >
-                        <MdSkipNext size={24} />
-                    </button>
-
-                    {/* 반복 */}
-                    <button
-                        type="button"
-                        onClick={toggleRepeat}
-                        disabled={!hasTrack}
-                        className={[
-                        "transition",
-                        hasTrack
-                            ? repeatMode === "one"
-                            ? "text-[#AFDEE2]"
-                            : "text-white/60 hover:text-white"
-                            : "text-white/30 cursor-not-allowed",
-                        ].join(" ")}
-                        aria-label="반복"
-                        title={repeatMode === "one" ? "한 곡 반복" : "반복 끄기"}
-                    >
-                        <MdRepeat size={20} />
-                    </button>
-                    </div>
-
-                    {/* 진행 바 */}
-                    <div className="w-full flex items-center gap-3">
-                    <span className="text-xs text-white/60 tabular-nums min-w-[40px] text-right">
-                        {(() => {
-                        const p = Number.isFinite(progress) ? progress : 0;
-                        const m = Math.floor(p / 60);
-                        const s = Math.floor(p % 60);
-                        return `${m}:${s.toString().padStart(2, "0")}`;
-                        })()}
-                    </span>
-
-                    <div
-                        className="flex-1 h-1 bg-white/10 rounded-full relative cursor-pointer"
-                        onClick={(e) => {
-                        if (!hasTrack || duration <= 0) return;
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        const x = e.clientX - rect.left;
-                        const ratio = Math.max(0, Math.min(1, x / rect.width));
-                        seek(ratio * duration);
-                        }}
-                        onPointerDown={(e) => {
-                        if (!hasTrack || duration <= 0) return;
-                        e.preventDefault();
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        const setSeek = (clientX: number) => {
-                            const x = clientX - rect.left;
-                            const ratio = Math.max(0, Math.min(1, x / rect.width));
-                            seek(ratio * duration);
-                        };
-                        setSeek(e.clientX);
-                        e.currentTarget.setPointerCapture(e.pointerId);
-
-                        const onMove = (ev: PointerEvent) => setSeek(ev.clientX);
-                        const onUp = () => {
-                            window.removeEventListener("pointermove", onMove);
-                            window.removeEventListener("pointerup", onUp);
-                        };
-
-                        window.addEventListener("pointermove", onMove);
-                        window.addEventListener("pointerup", onUp);
-                        }}
-                    >
-                        <div
-                        className="h-full bg-[#E4524D] rounded-full transition-all"
-                        style={{
-                            width: `${duration > 0 ? Math.min(100, (progress / duration) * 100) : 0}%`,
-                        }}
-                        />
-                        <div
-                        className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-[#E4524D] transition-all"
-                        style={{
-                            left: `${duration > 0 ? Math.min(100, (progress / duration) * 100) : 0}%`,
-                        }}
-                        />
-                    </div>
-
-                    <span className="text-xs text-white/60 tabular-nums min-w-[40px]">
-                        {(() => {
-                        const d = Number.isFinite(duration) ? duration : 0;
-                        const m = Math.floor(d / 60);
-                        const s = Math.floor(d % 60);
-                        return `${m}:${s.toString().padStart(2, "0")}`;
-                        })()}
-                    </span>
-                    </div>
-                </div>
-                </div>
-                {/* /하단 플레이어 */}
             </div>
             </div>
+
+            {/* 기존 하단/사이드 토글 버튼들은 숨김 (사이드 버튼으로 대체됨) */}
         </div>
+
+        {/* Lyrics Full Screen Overlay - 투명하게 꽉 차게 수정 */}
+        <div className={["absolute inset-0 z-50 transition-all duration-500 flex flex-col", lyricsOpen ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"].join(" ")}>
+            {/* 배경 블러 처리 (메인 배경과 동일한 느낌 유지) */}
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-[80px]" onClick={() => setLyricsOpen(false)} />
+            
+            <div className="relative flex-1 flex flex-col h-full">
+                {/* 헤더 */}
+                <div className="h-20 px-10 flex items-center justify-between border-b border-white/5">
+                    <div className="min-w-0">
+                        <div className="text-lg font-bold text-white/90 truncate">가사</div>
+                        <div className="text-sm text-white/50 truncate">{hasTrack ? `${current.title} · ${current.artist}` : "—"}</div>
+                    </div>
+                    <button onClick={() => setLyricsOpen(false)} className="p-3 rounded-full hover:bg-white/10 transition text-white/60 hover:text-white"><MdClose size={28} /></button>
+                </div>
+
+                {/* 가사 본문 - 중앙 정렬 및 폰트 크기 확대 */}
+                <div className="flex-1 overflow-y-auto px-10 py-20 no-scrollbar">
+                    {lyricsLoading ? (
+                        <div className="flex items-center justify-center h-full text-white/40">가사를 불러오는 중...</div>
+                    ) : lyricsError ? (
+                        <div className="flex items-center justify-center h-full text-white/40">{lyricsError}</div>
+                    ) : lyrics.length === 0 ? (
+                        <div className="flex items-center justify-center h-full text-white/40">가사가 없습니다.</div>
+                    ) : (
+                        <div className="max-w-3xl mx-auto space-y-10 text-center">
+                            {lyrics.map((line, i) => (
+                                <div key={`${line.t}-${i}`} className="text-3xl font-bold text-white/80 hover:text-white transition-colors cursor-default leading-relaxed">
+                                    {line.text}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* 하단 컨트롤 바 - 투명하게 배치 */}
+                <div className="p-10 bg-gradient-to-t from-black/40 to-transparent">
+                    <div className="max-w-4xl mx-auto flex flex-col items-center gap-8">
+                        <div className="flex items-center gap-10">
+                            <button onClick={shuffleQueue} className="text-white/40 hover:text-white transition"><MdShuffle size={24} /></button>
+                            <button onClick={previousTrack} className="text-white/60 hover:text-white transition"><MdSkipPrevious size={36} /></button>
+                            <button onClick={toggle} className="h-16 w-16 rounded-full bg-[#E4524D] text-white flex items-center justify-center hover:scale-105 transition shadow-xl">
+                                {isPlaying ? <MdPause size={36} /> : <MdPlayArrow size={36} className="ml-1" />}
+                            </button>
+                            <button onClick={nextTrack} className="text-white/60 hover:text-white transition"><MdSkipNext size={36} /></button>
+                            <button onClick={toggleRepeat} className={repeatMode === "one" ? "text-[#AFDEE2]" : "text-white/40 hover:text-white transition"}><MdRepeat size={24} /></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
+    </div>
     );
 }

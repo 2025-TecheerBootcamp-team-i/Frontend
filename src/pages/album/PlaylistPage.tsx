@@ -1,19 +1,23 @@
-import axios from "axios"
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-
+import {
+    getPlaylistDetail,
+    likePlaylist,
+    unlikePlaylist,
+    deletePlaylistItems,
+    type PlaylistDetail,
+    type PlaylistItem,
+} from "../../api/playlist";
 import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
-import { fetchLikedTracks, type LikedTrack } from "../../api/LikedSong";
 import { requireLogin } from "../../api/auth";
+import { getCurrentUserId } from "../../utils/auth";
+import { isSystemPlaylist } from "../../api/playlist";
 
 import { IoChevronBack, IoPlayCircle, IoShuffle } from "react-icons/io5";
 import { MdDelete, MdFavorite } from "react-icons/md";
 import { FaPlay } from "react-icons/fa6";
 import { FiEdit3 } from "react-icons/fi";
-
-// 라우팅 분기점
-const LIKED_SYSTEM_ID = "liked";
 
 const actions = [
     { key: "play", label: "재생", icon: <IoPlayCircle size={18} /> },
@@ -21,36 +25,8 @@ const actions = [
     { key: "delete", label: "지우기", icon: <MdDelete size={18} /> },
 ] as const;
 
-type TrackRow = {
-  id: string;
-  title: string;
-  artist: string;
-  album: string;
-  duration: string;
-  albumImage?: string | null;
-};
-
-type PlaylistView = {
-  id: string;
-  title: string;
-  owner: string;
-  isPublic: boolean;
-  likeCount: number;
-  tracks: TrackRow[];
-  isLiked?: boolean;
-};
-
-const toSeconds = (duration: string) => {
-    const [m, s] = duration.split(":").map((v) => Number(v));
-    if (!Number.isFinite(m) || !Number.isFinite(s)) return 0;
-    return m * 60 + s;
-};
-
-const formatMmss = (sec: number) => {
-  const safe = Number.isFinite(sec) && sec > 0 ? Math.floor(sec) : 0;
-  const m = Math.floor(safe / 60);
-  const s = safe % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
+const toSeconds = (duration?: number) => {
+    return duration ?? 0;
 };
 
 const formatTotal = (sec: number) => {
@@ -62,143 +38,62 @@ const formatTotal = (sec: number) => {
     return `${s}초`;
 };
 
-
-// ✅ utils/auth 의존 없이 user_id 가져오기 (프로젝트 저장 키에 맞게 조정)
-const getStoredUserId = (): number | null => {
-  const userRaw = localStorage.getItem("user");
-  if (!userRaw) return null;
-
-  try {
-    const user = JSON.parse(userRaw) as { id?: number | string };
-    const n = Number(user.id);
-    return Number.isFinite(n) && n > 0 ? n : null;
-  } catch {
-    return null;
-  }
+type PendingPlay = {
+    key: "play" | "shuffle";
+    tracks: PlayerTrack[];
 };
 
-// ✅ (TODO) 일반 플레이리스트 상세 API (엔드포인트 확정되면 여기만 구현하면 됨)
-async function fetchPlaylistDetailApi(_playlistId: string): Promise<PlaylistView> {
-
-  throw new Error("플레이리스트 상세 API가 아직 연결되지 않았습니다.");
-}
-
-// ✅ (TODO) 플레이리스트 좋아요 토글 API
-async function togglePlaylistLikeApi(_playlistId: string): Promise<{ isLiked: boolean; likeCount: number }> {
-  throw new Error("플레이리스트 좋아요 API가 아직 연결되지 않았습니다.");
-}
-
-// ✅ (TODO) 플레이리스트에서 곡 삭제 API
-async function deletePlaylistItemsApi(_playlistId: string, _trackIds: string[]): Promise<void> {
-  throw new Error("플레이리스트 곡 삭제 API가 아직 연결되지 않았습니다.");
-}
 
 export default function PlaylistDetailPage() {
     const { playlistId } = useParams();
     const { playTracks, enqueueTracks } = usePlayer();
     const navigate = useNavigate();
 
-    const isLikedSystem = playlistId === LIKED_SYSTEM_ID;
-
-    // store 변경(emit)에도 반응하게 playlist를 state로 들고 sync
-    const [playlist, setPlaylist] = useState<PlaylistView | null>(null)
+    const [playlist, setPlaylist] = useState<PlaylistDetail | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (!playlistId) return;
-
-        let cancelled = false;
-
-        (async () => {
-        try {
-            setLoading(true);
-            setError(null);
-
-            if (isLikedSystem) {
-            if (!requireLogin("로그인 후 이용 가능합니다.")) {
-                throw new Error("로그인 후 이용 가능합니다.");
-            }
-
-            const userId = getStoredUserId();
-            if (!userId) {
-                 setPlaylist({
-                id: LIKED_SYSTEM_ID,
-                title: "나의 좋아요 목록",
-                owner: "내 컬렉션",
-                isPublic: false,
-                likeCount: 0,
-                tracks: [],
-                isLiked: true,
-            });
-            setError("user_id를 찾을 수 없어요. 로그인 후 user_id 저장을 확인해주세요.");
-            return;
-            }
+    const currentUserId = getCurrentUserId();
     
-        const likedTracks: LikedTrack[] = await fetchLikedTracks(userId);
-
-          // ✅ 기존 UI가 기대하는 TrackRow로 정규화
-          const tracks: TrackRow[] = likedTracks.map((t) => ({
-            id: String(t.music_id),
-            title: t.music_name,
-            artist: t.artist_name,
-            album: "",
-            duration: formatMmss(t.duration),
-            albumImage: t.album_image ?? null,
-          }));
-
-          const likedPlaylist: PlaylistView = {
-            id: LIKED_SYSTEM_ID,
-            title: "나의 좋아요 목록",
-            owner: "내 컬렉션",
-            isPublic: false,
-            likeCount: 0,
-            tracks,
-            isLiked: true,
-          };
-
-          if (!cancelled) setPlaylist(likedPlaylist);
-          return;
-        }
-
-        // ✅ 일반 플레이리스트: 실제 API로 교체 (목업 없음)
-        const pl = await fetchPlaylistDetailApi(playlistId);
-        if (!cancelled) setPlaylist(pl);
-      } catch (e) {
-        if (cancelled) return;
-
-        console.error("[PlaylistPage] 로딩 실패:", e);
-        if (axios.isAxiosError(e)) {
-          console.error("status:", e.response?.status);
-          console.error("data:", e.response?.data);
-          console.error("url:", e.config?.baseURL, e.config?.url);
-        }
-
-        setPlaylist(null);
-        setError(e instanceof Error ? e.message : "불러오지 못했어요.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [playlistId, isLikedSystem]);
-
-    const [checkedIds, setCheckedIds] = useState<Record<string, boolean>>({});
-
-    useEffect(() => {
-        setCheckedIds({});
-        }, [playlistId]);
-
-    type PendingPlay = {
-        key: "play" | "shuffle";
-        tracks: PlayerTrack[];
-    };
+    // ✅ Hook을 컴포넌트 최상단에 선언 (early return 이전)
+    const [localLiked, setLocalLiked] = useState(false);
+    const [localLikeCount, setLocalLikeCount] = useState(0);
+    const [checkedIds, setCheckedIds] = useState<Record<number, boolean>>({});
 
     const [playConfirmOpen, setPlayConfirmOpen] = useState(false);
     const [pendingPlay, setPendingPlay] = useState<PendingPlay | null>(null);
+
+    // 플레이리스트 상세 정보 로드
+    const fetchPlaylistDetail = async () => {
+        if (!playlistId) return;
+
+        try {
+            setLoading(true);
+            setError(null);
+            const data = await getPlaylistDetail(playlistId);
+            setPlaylist(data);
+        } catch (err: any) {
+            console.error("[PlaylistPage] 플레이리스트 로딩 실패:", err);
+            const errorMessage = 
+                err?.response?.status === 404 
+                    ? "플레이리스트를 찾을 수 없습니다" 
+                    : "플레이리스트를 불러올 수 없습니다";
+            setError(errorMessage);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchPlaylistDetail();
+    }, [playlistId]);
+    
+    // ✅ playlist 로드되면 좋아요 상태 업데이트
+    useEffect(() => {
+        if (playlist) {
+            setLocalLiked(playlist.is_liked);
+            setLocalLikeCount(playlist.like_count);
+        }
+    }, [playlist]);
 
     const runPendingPlay = (mode: "replace" | "enqueue") => {
             if (!requireLogin("로그인 후 이용 가능합니다.")) return;
@@ -218,99 +113,133 @@ export default function PlaylistDetailPage() {
             setPlayConfirmOpen(false);
     };
 
-    // 플레이리스트 커버 사진 4등분
-    const tracks = playlist?.tracks ?? [];
+
+    const tracks = playlist?.items ?? [];
     const coverUrls = tracks
-        .map((t) => t.albumImage)
+        .map((t) => t.music.album.cover_image)
         .filter((v): v is string => typeof v === "string" && v.length > 0)
         .slice(0, 4);
-    //
 
-    type PlaylistTrack = (typeof tracks)[number];
 
-    const toPlayerTrack = (t: PlaylistTrack): PlayerTrack => ({
-    id: t.id,
-    title: t.title,
-    artist: t.artist,
-    album: t.album,
-    duration: t.duration,
-    audioUrl: "/audio/sample.mp3",
+    const toPlayerTrack = (t: PlaylistItem): PlayerTrack => ({
+        id: String(t.item_id),
+        musicId: t.music.music_id,
+        title: t.music.title,
+        artist: t.music.artist.name,
+        coverUrl: t.music.album.cover_image,
+        audioUrl: "/audio/sample.mp3",
+        duration: t.music.duration ? `${Math.floor(t.music.duration / 60)}:${String(t.music.duration % 60).padStart(2, "0")}` : "0:00",
     });
 
-    // ✅ 체크된 곡만
+    // 체크된 곡만
     const checkedTracks = tracks
-    .filter((t) => !!checkedIds[t.id])
-    .map(toPlayerTrack);
+        .filter((t) => !!checkedIds[t.item_id])
+        .map(toPlayerTrack);
 
     const selectedCount = checkedTracks.length;
 
-    const deleteSelected = () => {
-            if (!requireLogin("로그인 후 이용 가능합니다.")) return;
+    const deleteSelected = async () => {
+        if (!requireLogin("로그인 후 이용 가능합니다.")) return;
+        if (!playlist) return;
+        if (selectedCount === 0) return;
 
-            if (!playlist) return;
-            if (selectedCount === 0) return;
-        
-            const ok = confirm(`${selectedCount}곡을 이 플레이리스트에서 삭제할까요?`);
-            if (!ok) return;
-            
-            const checkedSet = new Set(checkedTracks.map((t) => t.id)); // PlayerTrack ids
-            const nextTracks = tracks.filter((t) => !checkedSet.has(t.id));
-        
-            setPlaylist((prev) => (prev ? { ...prev, tracks: nextTracks } : prev));
-            // ✅ 체크 초기화
+        const ok = confirm(`${selectedCount}곡을 이 플레이리스트에서 삭제할까요?`);
+        if (!ok) return;
+
+        try {
+            const itemIds = tracks
+                .filter((t) => !!checkedIds[t.item_id])
+                .map((t) => t.item_id);
+
+            await deletePlaylistItems(playlist.playlist_id, itemIds);
             setCheckedIds({});
+            
+            // 플레이리스트 새로고침
+            await fetchPlaylistDetail();
+        } catch (error) {
+            console.error("곡 삭제 실패:", error);
+        }
     };
 
-    const totalSeconds = tracks.reduce((acc, t) => acc + toSeconds(t.duration), 0);
+
+
+    const totalSeconds = tracks.reduce((acc, t) => acc + toSeconds(t.music.duration), 0);
     const totalPlaytime = formatTotal(totalSeconds);
 
-    if (!playlist) {
+    // 로딩 중
+    if (loading) {
         return (
-        <div className="w-full min-w-0 px-6 py-5 text-white">
-            <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="mb-6 text-[#aaa] hover:text-white transition"
-            aria-label="뒤로가기"
-            >
-            <IoChevronBack size={24} />
-            </button>
+            <div className="w-full min-w-0 px-6 py-5 text-white">
+                <div className="p-4 text-[#F6F6F6]/70">로딩중...</div>
+            </div>
+        );
+    }
 
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-            <div className="text-xl font-semibold">플레이리스트를 찾을 수 없어요.</div>
-            <div className="mt-2 text-sm text-[#aaa]">
-                요청한 ID: <span className="text-white">{playlistId ?? "(없음)"}</span>
+    // 오류 또는 데이터 없음
+    if (error || !playlist) {
+        return (
+            <div className="w-full min-w-0 px-6 py-5 text-white">
+                <button
+                    type="button"
+                    onClick={() => navigate(-1)}
+                    className="mb-6 text-[#aaa] hover:text-white transition"
+                    aria-label="뒤로가기"
+                >
+                    <IoChevronBack size={24} />
+                </button>
+
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+                    <div className="text-xl font-semibold">플레이리스트를 찾을 수 없어요.</div>
+                    <div className="mt-2 text-sm text-[#aaa]">
+                        {error || `요청한 ID: ${playlistId ?? "(없음)"}`}
+                    </div>
+                </div>
             </div>
-            </div>
-        </div>
         );
     }
     
-    const allChecked = tracks.length > 0 && tracks.every((t) => checkedIds[t.id]);
+    const allChecked = tracks.length > 0 && tracks.every((t) => checkedIds[t.item_id]);
 
     const toggleAll = (next: boolean) => {
-        const obj: Record<string, boolean> = {};
-        tracks.forEach((t) => (obj[t.id] = next));
+        const obj: Record<number, boolean> = {};
+        tracks.forEach((t) => (obj[t.item_id] = next));
         setCheckedIds(obj);
     };
 
-    const toggleOne = (id: string) =>
+    const toggleOne = (id: number) =>
         setCheckedIds((prev) => ({ ...prev, [id]: !prev[id] }));
 
+    // 시스템 플레이리스트 판별
+    const isSystemPl = isSystemPlaylist(playlist.title);
+    
+    // 편집 버튼 표시 조건
+    const canEdit = currentUserId !== null && 
+                    playlist.user_id === currentUserId && 
+                    !isSystemPl;
 
-    // ✅ 플리 좋아요(일반 플리만): API 붙이면 여기서 상태 업데이트
-    const liked = !!playlist.isLiked;
-    const shownLikeCount = playlist.likeCount;
-
+    // 좋아요 토글
     const toggleLike = async () => {
         if (!requireLogin("로그인 후 이용 가능합니다.")) return;
-        if (isLikedSystem) return; // ✅ 좋아요 시스템은 플리 좋아요 대상 아님
+
+        // 낙관적 UI 업데이트
+        const wasLiked = localLiked;
+        setLocalLiked(!wasLiked);
+        setLocalLikeCount((prev) => wasLiked ? prev - 1 : prev + 1);
 
         try {
-        const next = await togglePlaylistLikeApi(playlist.id);
-        setPlaylist((prev) => (prev ? { ...prev, isLiked: next.isLiked, likeCount: next.likeCount } : prev));
-        } catch (e) {
-        console.error("[PlaylistPage] 플리 좋아요 토글 실패:", e);
+            if (wasLiked) {
+                await unlikePlaylist(playlist.playlist_id);
+            } else {
+                await likePlaylist(playlist.playlist_id);
+            }
+            
+            // API 응답 후 플레이리스트 새로고침
+            await fetchPlaylistDetail();
+        } catch (error) {
+            console.error("좋아요 토글 실패:", error);
+            // 실패 시 원래 상태로 복구
+            setLocalLiked(wasLiked);
+            setLocalLikeCount(playlist.like_count);
         }
     };
 
@@ -329,13 +258,24 @@ export default function PlaylistDetailPage() {
                 <IoChevronBack size={22} />
             </button>
 
-             {/* 편집 버튼 */}
+             {/* 시스템 플레이리스트 하트 표시 (오른쪽 상단) */}
+            {isSystemPl && (
+                <div 
+                    className="absolute right-4 top-5 z-10 w-11 h-11 rounded-full bg-white/10 flex items-center justify-center"
+                    title="나의 좋아요 목록"
+                >
+                    <MdFavorite size={24} className="text-[#E4524D]" />
+                </div>
+            )}
+
+            {/* 편집 버튼 (조건부 표시) */}
+            {canEdit && (
             <button
                 type="button"
                 onClick={() => {
                     if (!requireLogin("로그인 후 이용 가능합니다.")) return;
-                    navigate(`/playlist/${playlist.id}/edit`)}
-                }
+                    navigate(`/playlist/${playlist.playlist_id}/edit`);
+                }}
                 className="absolute right-4 top-5 z-10 px-4 py-2 rounded-2xl bg-white/10 text-[#F6F6F6] hover:bg-white/15 transition flex items-center gap-2"
                 aria-label="플레이리스트 편집"
                 title="편집"
@@ -343,6 +283,7 @@ export default function PlaylistDetailPage() {
                 <FiEdit3 size={16} />
                 <span className="text-sm font-semibold">편집</span>
             </button>
+            )}
 
             <div className="absolute inset-0 flex items-end">
                 <div className="px-12 pb-8 flex items-end gap-8 min-w-[1100px] shrink-0">
@@ -350,28 +291,38 @@ export default function PlaylistDetailPage() {
 
                 <div className="flex items-end gap-5">
                     <div className="min-w-0">
-                   {/* ✅ 좋아요 (플리 좋아요 토글) */} 
-                    {playlist.isPublic && 
-                    ( <button 
-                        type="button" 
-                        onClick={toggleLike} 
-                        className={[ "h-11 rounded-2xl", "flex items-center gap-2", "transition", liked ? "text-[#AFDEE2]" : "text-[#F6F6F6]/80", ].join(" ")} 
-                        aria-label="좋아요" 
-                        title="좋아요" 
-                        > <MdFavorite size={22} 
-                            className={liked ? "text-[#AFDEE2]" : "text-[#F6F6F6]/70"} 
-                            /> <span className="text-sm tabular-nums"> 
-                            {shownLikeCount.toLocaleString()} </span>
-                    </button> )}
+                        {/* 좋아요 (플리 좋아요 토글) - 공개이면서 내가 만들지 않은 플레이리스트에만 표시 */} 
+                        {playlist.visibility === "public" && currentUserId !== playlist.user_id && (
+                            <button 
+                                type="button" 
+                                onClick={toggleLike} 
+                                className={[
+                                    "h-11 rounded-2xl",
+                                    "flex items-center gap-2",
+                                    "transition",
+                                    localLiked ? "text-[#AFDEE2]" : "text-[#F6F6F6]/80",
+                                ].join(" ")} 
+                                aria-label="좋아요" 
+                                title="좋아요" 
+                            >
+                                <MdFavorite 
+                                    size={22} 
+                                    className={localLiked ? "text-[#AFDEE2]" : "text-[#F6F6F6]/70"} 
+                                />
+                                <span className="text-sm tabular-nums">
+                                    {localLikeCount.toLocaleString()}
+                                </span>
+                            </button>
+                        )}
 
-                    <div className="text-3xl font-extrabold text-[#F6F6F6] leading-none truncate">
-                        {playlist.title}
-                    </div>
+                        <div className="text-3xl font-extrabold text-[#F6F6F6] leading-none truncate">
+                            {playlist.title}
+                        </div>
 
-                    <div className="mt-2 text-sm text-[#F6F6F6]/60 truncate">
-                        {playlist.owner} · {playlist.isPublic ? "공개" : "비공개"} ·{" "}
-                        {tracks.length}곡 · {totalPlaytime}
-                    </div>
+                        <div className="mt-2 text-sm text-[#F6F6F6]/60 truncate">
+                            {playlist.creator_nickname} · {playlist.visibility === "public" ? "공개" : "비공개"} ·{" "}
+                            {tracks.length}곡 · {totalPlaytime}
+                        </div>
                     </div>
 
                    <button
@@ -441,7 +392,7 @@ export default function PlaylistDetailPage() {
                 </div>
 
             <div className="mt-4 flex flex-nowrap gap-3 overflow-x-auto no-scrollbar">
-                {actions.filter((a) => !(isLikedSystem && a.key === "delete")).map((a) => {
+                {actions.filter((a) => !(isSystemPl && a.key === "delete")).map((a) => {
                     const disabled =
                     (a.key === "play" || a.key === "shuffle"|| a.key === "delete") && selectedCount === 0;
 
@@ -529,43 +480,45 @@ export default function PlaylistDetailPage() {
             <div className="pb-6">
                 {tracks.map((t) => (
                 <div
-                    key={t.id}
+                    key={t.item_id}
                     className="w-full text-left grid grid-cols-[28px_42px_1fr_90px] items-center gap-x-5 py-2 px-6 border-b border-[#464646] hover:bg-white/5 transition"
                 >
                     <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-                    <input
-                        type="checkbox"
-                        className="accent-[#f6f6f6]"
-                        checked={!!checkedIds[t.id]}
-                        onChange={() => toggleOne(t.id)}
-                        aria-label={`${t.title} 선택`}
-                        onClick={(e) => e.stopPropagation()}
-                    />
+                        <input
+                            type="checkbox"
+                            className="accent-[#f6f6f6]"
+                            checked={!!checkedIds[t.item_id]}
+                            onChange={() => toggleOne(t.item_id)}
+                            aria-label={`${t.music.title} 선택`}
+                            onClick={(e) => e.stopPropagation()}
+                        />
                     </div>
 
-                    <div className="w-12 h-12 rounded-xl bg-[#6b6b6b]/50 border border-[#464646]">
-                        {t.albumImage ? (
-                            <img
-                            src={t.albumImage}
-                            alt={`${t.title} cover`}
-                            className="w-full h-full rounded-xl object-cover"
-                            loading="lazy"
-                            onError={(e) => {
-                                // 이미지 깨질 때 fallback (선택)
-                                (e.currentTarget as HTMLImageElement).style.display = "none";
-                            }}
+                    <div className="w-12 h-12 rounded-xl bg-[#6b6b6b]/50 border border-[#464646] overflow-hidden">
+                        {t.music.album.cover_image && (
+                            <img 
+                                src={t.music.album.cover_image} 
+                                alt={t.music.album.title}
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                                onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                                }}
                             />
-                        ) : null}
-                    </div>
-                    <div className="min-w-0">
-                    <div className="text-sm font-semibold text-[#F6F6F6] truncate">{t.title}</div>
-                    <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">
-                        {t.artist}
-                        {t.album ? ` · ${t.album}` : ""}
-                    </div>
+                        )}
                     </div>
 
-                    <div className="mr-1 text-sm text-[#F6F6F6]/70 text-right tabular-nums">{t.duration}</div>
+
+                    <div className="min-w-0">
+                        <div className="text-sm font-semibold text-[#F6F6F6] truncate">{t.music.title}</div>
+                        <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">
+                            {t.music.artist.name} · {t.music.album.title}
+                        </div>
+                    </div>
+
+                    <div className="mr-1 text-sm text-[#F6F6F6]/70 text-right tabular-nums">
+                        {t.music.duration ? `${Math.floor(t.music.duration / 60)}:${String(t.music.duration % 60).padStart(2, "0")}` : "0:00"}
+                    </div>
                 </div>
                 ))}
 

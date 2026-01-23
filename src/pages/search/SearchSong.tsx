@@ -11,11 +11,11 @@ import type { PlayerTrack } from "../../player/PlayerContext";
 import { requireLogin } from "../../api/auth";
 
 import {
-  fetchMyPlaylists,
+  listMyPlaylists,
   addPlaylistItems,
   type PlaylistSummary,
-} from "../../api/SearchSongAPI";
-import {likeTrack} from "../../api/LikedSong"
+} from "../../api/playlist";
+import { likeTrack } from "../../api/LikedSong";
 
 
 /* ===================== 타입 ===================== */
@@ -477,11 +477,13 @@ export default function SearchSong() {
         setAddTargetsLoading(true);
         setAddTargetsError(null);
 
-        const list = await fetchMyPlaylists();
-        console.log("playlists:", list);
+        // 내 플레이리스트만 가져오기 (시스템 플레이리스트 제외)
+        const data = await listMyPlaylists();
         if (cancelled) return;
 
-        setAddTargets(list);
+        // 시스템 플레이리스트 제외
+        const filtered = data.filter((p) => p.visibility !== "system");
+        setAddTargets(filtered);
       } catch (e) {
         console.error("[SearchSong] 플레이리스트 목록 불러오기 실패:", e);
         if (cancelled) return;
@@ -634,31 +636,31 @@ if (fail === 0) {
   /* ===================== JSX ===================== */
 
   return (
-    <section className="mt-4 rounded-3xl bg-[#2d2d2d]/80 border border-[#464646] overflow-hidden">
+    <section className="mt-4 rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 overflow-hidden shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
       {/* 헤더 */}
-      <div className="px-6 pt-5 pb-4 border-b border-[#464646] overflow-x-auto whitespace-nowrap">
+      <div className="px-8 pt-8 pb-4 border-b border-white/10 overflow-x-auto whitespace-nowrap no-scrollbar">
         <div className="flex items-end justify-between">
-          <div className="flex items-center gap-4">
-            <h2 className="text-lg font-semibold text-[#F6F6F6]">곡</h2>
+          <div className="flex items-center gap-6">
+            <h2 className="text-xl font-black tracking-[0.15em] text-white uppercase opacity-95">곡</h2>
             {loading ? (
-              <div className="text-sm text-[#999]">검색 중...</div>
+              <div className="text-sm text-white/40">검색 중...</div>
             ) : error ? (
               <div className="text-sm text-red-400">오류: {error}</div>
             ) : (
-            <div className="text-sm text-[#999]">총 {songs.length}곡</div>
+            <div className="text-sm text-white/40">총 {songs.length}곡</div>
             )}
           </div>
         </div>
 
-        <div className="mt-4 flex gap-3">
+        <div className="mt-6 flex gap-3">
           <button
             type="button"
             onClick={toggleExcludeAi}
             className={[
-              "shrink-0 px-4 py-2 rounded-2xl text-sm flex items-center gap-2 outline outline-1",
+              "shrink-0 px-4 py-2 rounded-2xl text-sm flex items-center gap-2 outline outline-1 outline-offset-[-1px]",
               excludeAi
                 ? "outline-[#AFDEE2] text-[#AFDEE2]"
-                : "outline-[#f6f6f6] text-[#f6f6f6]",
+                : "outline-white/20 text-white/60 hover:text-white hover:bg-white/10 transition",
             ].join(" ")}
           >
             <FaCheckCircle size={18} />
@@ -672,10 +674,10 @@ if (fail === 0) {
               disabled={selectedCount === 0}
               onClick={() => handleAction(a.key)}
               className={[
-                "px-4 py-2 rounded-2xl outline outline-1 text-sm flex items-center gap-2",
+                "px-4 py-2 rounded-2xl outline outline-1 outline-offset-[-1px] text-sm flex items-center gap-2 transition",
                 selectedCount === 0
-                  ? "text-white/30 cursor-not-allowed"
-                  : "text-[#F6F6F6] hover:bg-white/10",
+                  ? "outline-white/10 text-white/20 cursor-not-allowed"
+                  : "outline-white/20 text-white hover:bg-white/10",
               ].join(" ")}
             >
               {a.icon}
@@ -686,48 +688,48 @@ if (fail === 0) {
       </div>
 
       {/* 리스트 헤더 */}
-      <div className="px-6 pt-4 border-b border-[#464646]">
-        <div className="px-4 grid grid-cols-[28px_56px_1fr_90px] gap-x-4 pb-3 text-xs text-[#F6F6F6]/60">
+      <div className="px-8 pt-4 border-b border-white/10">
+        <div className="px-4 grid grid-cols-[28px_56px_1fr_90px] gap-x-6 pb-3 text-[11px] font-black tracking-widest text-white/30 uppercase">
           <input
             ref={selectAllRef}
             type="checkbox"
-            className="accent-[#f6f6f6]"
+            className="accent-[#AFDEE2]"
             checked={allChecked}
             onChange={(e) => toggleAll(e.target.checked)}
           />
-          <div className="col-span-2 px-2 border-l border-[#464646]">곡정보</div>
-          <div className="text-right px-2 border-r border-[#464646]">길이</div>
+          <div className="col-span-2 px-2 border-l border-white/10">곡정보</div>
+          <div className="text-right px-2 border-r border-white/10">길이</div>
         </div>
       </div>
 
       {/* 리스트 */}
-      <div className="px-4 divide-y divide-[#464646]">
+      <div className="px-4 divide-y divide-white/10">
         {loading && songs.length === 0 ? (
-          <div className="px-6 py-12 text-center text-[#999]">검색 중...</div>
+          <div className="px-6 py-12 text-center text-white/20">검색 중...</div>
         ) : error && songs.length === 0 ? (
           <div className="px-6 py-12 text-center text-red-400">
             오류가 발생했습니다: {error}
           </div>
         ) : songs.length === 0 ? (
-          <div className="px-6 py-12 text-center text-[#999]">
-            {q ? "" : "검색어를 입력해주세요."}
+          <div className="px-6 py-12 text-center text-white/20 uppercase font-light tracking-widest">
+            {q ? "검색 결과 없음" : "검색어를 입력해주세요"}
           </div>
         ) : (
           songs.map((s) => (
           <div
             key={s.id}
-            className="grid grid-cols-[28px_56px_1fr_90px] items-center gap-x-3 px-6 py-2 hover:bg-white/5"
+            className="grid grid-cols-[28px_56px_1fr_90px] items-center gap-x-6 px-8 py-3 hover:bg-white/10 transition rounded-xl cursor-pointer group"
             onDoubleClick={() => handleRowDoubleClick(s)}
           >
             <input
               type="checkbox"
-              className="accent-[#f6f6f6]"
+              className="accent-[#AFDEE2]"
               checked={!!checkedIds[s.id]}
               onChange={() => toggleOne(s.id)}
             />
 
             {/* 앨범 이미지 */}
-            <div className="ml-2 w-12 h-12 rounded-xl bg-[#6b6b6b]/50 overflow-hidden relative flex-shrink-0">
+            <div className="ml-2 w-12 h-12 rounded-xl bg-white/5 overflow-hidden relative flex-shrink-0 shadow-lg border border-white/10 group-hover:border-white/20 transition-colors">
               {(() => {
                 // API에서 가져온 곡인지 확인하고 앨범 이미지 찾기
                 const apiSong = apiSongs.find((as) => as.id === s.id);
@@ -763,13 +765,6 @@ if (fail === 0) {
                       }}
                       
                       onLoad={(e) => {
-                        if (__DEV__) {
-                          console.log("[SearchSong] ✅ 곡 앨범 이미지 로드 성공:", {
-                            song: s.title,
-                            album_id: apiSong?.albumId,
-                            image_url: albumImage,
-                          });
-                        }
                         const img = e.target as HTMLImageElement;
                         const fallback = img.nextElementSibling as HTMLElement;
                         if (fallback) fallback.style.display = "none";
@@ -777,27 +772,27 @@ if (fail === 0) {
                       
                       loading="lazy"
                     />
-                    <div className="absolute inset-0 bg-[#6b6b6b]/50 animate-pulse z-0" />
+                    <div className="absolute inset-0 bg-white/5 animate-pulse z-0" />
                   </>
                 ) : (
-                  <div className="w-full h-full bg-[#6b6b6b]/50" />
+                  <div className="w-full h-full bg-white/5" />
                 );
               })()}
             </div>
 
             <div className="min-w-0">
-              <div className="text-sm text-[#F6F6F6] truncate">
+              <div className="text-base font-bold text-white truncate tracking-tight group-hover:text-[#AFDEE2] transition-colors">
                 {s.title}
                 {s.isAi && (
-                  <span className="ml-2 text-xs px-2 py-[1px] rounded-full bg-[#E4524D]/20 text-[#E4524D]">
+                  <span className="ml-2 text-[10px] px-2 py-[1px] rounded-full bg-[#E4524D]/20 text-[#E4524D] font-black uppercase">
                     AI
                   </span>
                 )}
               </div>
-              <div className="text-xs text-[#999] truncate">{s.artist}</div>
+              <div className="text-xs text-white/30 truncate font-medium mt-1">{s.artist}</div>
             </div>
 
-            <div className="mr-1 text-sm text-[#F6F6F6]/70 text-right">{s.duration}</div>
+            <div className="mr-1 text-sm text-white/20 font-bold tabular-nums text-right group-hover:text-[#AFDEE2]/40 transition-colors">{s.duration}</div>
           </div>
           ))
         )}
@@ -846,17 +841,14 @@ if (fail === 0) {
                       ) : (
                       addTargets.map((p) => (
                         <button
-                        key={p.id}
+                        key={p.playlist_id}
                         type="button"
-                        onClick={() => {
-                          console.log("[SearchSong] 선택한 플레이리스트:", p);
-                          addSelectedToPlaylist(p.id);
-                        }}
+                        onClick={() => addSelectedToPlaylist(p.playlist_id.toString())}
                         className="w-full text-left px-6 py-4 hover:bg-white/5 transition border-b border-[#464646]"
                         >
                         <div className="text-sm font-semibold text-[#F6F6F6] truncate">{p.title}</div>
                         <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">
-                            {p.owner} · {p.isPublic ? "공개" : "비공개"}
+                            {p.creator_nickname} · {p.visibility === "public" ? "공개" : "비공개"}
                         </div>
                         </button>
                     ))

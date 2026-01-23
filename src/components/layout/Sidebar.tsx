@@ -44,8 +44,8 @@ function Sidebar({
     <aside
       className="
         w-[355px]
-        bg-[#1d1d1d]
-        border-r border-[#2d2d2d]
+        bg-transparent
+        border-r border-white/5
         p-4
         flex flex-col
         overflow-hidden
@@ -59,13 +59,13 @@ function Sidebar({
         <div
           className="
             w-full
-            bg-gradient-to-tr
-            from-[#3d3d3d]
-            to-[#2d2d2d]
-            rounded-3xl
-            px-5 py-4
+            bg-white/[0.05]
+            backdrop-blur-2xl
+            border border-white/10
+            rounded-[40px]
+            px-6 py-4
             flex-none
-            shadow-[0_10px_24px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.08)]
+            shadow-[0_20px_50px_rgba(0,0,0,0.3)]
           "
           style={{
             height: "clamp(320px, 42vh, 400px)", // ✅ 화면 크기에 따라 적당히
@@ -74,20 +74,20 @@ function Sidebar({
           <div className="flex items-center justify-between">
             <button
               onClick={() => navigate("/mypage")}
-              className="hover:text-[#888] transition font-semibold text-lg text-[#F6F6F6]"
+              className="hover:text-[#f6f6f6]/50 transition font-semibold text-lg text-[#F6F6F6]"
             >
               마이페이지
             </button>
 
             <button
               onClick={() => navigate("/mypage")}
-              className="hover:text-[#888] transition mb-2 text-[#F6F6F6]"
+              className="hover:text-[#f6f6f6]/50 transition mb-2 text-[#F6F6F6]"
             >
               <MdOutlineNavigateNext size={30} />
             </button>
           </div>
 
-          <div className="mb-3 border-b border-[#464646]" />
+          <div className="mb-3 border-b border-white/[0.10]" />
 
           <div className="flex gap-4">
             <div className="w-24 h-24 bg-[#777777] rounded-2xl overflow-hidden">
@@ -106,16 +106,16 @@ function Sidebar({
             <button
               type="button"
               onClick={() => navigate("/my-playlists")}
-              className="mt-3 hover:text-[#888] transition font-normal text-base mb-2 text-[#F6F6F6]"
+              className="mt-3 hover:text-[#f6f6f6]/50 transition font-normal text-base mb-2 text-[#F6F6F6]"
             >
               나의 플레이리스트
             </button>
 
-            <div className="mb-3 border-b border-[#464646]" />
+            <div className="mb-2 border-b border-white/[0.10]" />
 
-            <div className="overflow-x-auto overflow-y-hidden">
-              <div className="flex gap-3">
-                {playlists.slice(0, 2).map((p) => (
+            <div className="p-1 overflow-x-auto overflow-y-hidden">
+              <div className="flex gap-3 overflow-visible">
+                {playlists.map((p) => (
                   <button
                     onClick={() => navigate(`/playlist/${p.id}`)}
                     key={p.id}
@@ -124,7 +124,8 @@ function Sidebar({
                       shrink-0
                       w-[clamp(80px,11vh,100px)]
                       h-[clamp(80px,11vh,100px)]
-                      rounded-xl overflow-hidden bg-[#777777] hover:scale-[1.03] hover:shadow transition"
+                      rounded-xl overflow-hidden bg-[#777777] hover:scale-[1.03] hover:shadow transition
+                      z-10 relative hover:z-30 origin-center"
                     title={p.title}
                   >
                     {p.coverUrl ? (
@@ -141,9 +142,10 @@ function Sidebar({
                   onClick={onCreatePlaylist}
                   type="button"
                   className="
-                    w-10
+                    shrink-0
+                    w-[clamp(80px,11vh,100px)]
                     h-[clamp(80px,11vh,100px)]
-                    bg-[#777777] rounded-xl hover:bg-zinc-400 transition text-[#3D3D3D]"
+                    bg-[#777777] rounded-xl hover:bg-[#777777]/50 transition text-[#3d3d3d] flex items-center justify-center text-xl"
                   aria-label="플레이리스트 추가"
                   title="플레이리스트 추가"
                 >
@@ -154,20 +156,20 @@ function Sidebar({
           </div>
         </div>
 
-        <div className="border-b border-[#3D3D3D]" />
+        <div className="border-b border-white/[0.10]" />
 
         {/* AI 음악: 남는 공간 먹되, 너무 커지지 않게 clamp */}
         <div
           className="
             w-full
-            bg-gradient-to-tr
-            from-[#3d3d3d]
-            to-[#2d2d2d]
-            rounded-3xl
-            px-5 py-4
+            bg-white/[0.05]
+            backdrop-blur-2xl
+            border border-white/10
+            rounded-[40px]
+            px-6 py-4
             flex flex-col
             min-h-0
-            shadow-[0_10px_24px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.08)]
+            shadow-[0_20px_50px_rgba(0,0,0,0.3)]
             overflow-hidden
           "
           style={{
@@ -177,20 +179,20 @@ function Sidebar({
           <div className="flex items-center justify-between">
             <button
               onClick={() => navigate("/ai")}
-              className="hover:text-[#888] transition font-semibold text-lg mb-2 text-[#F6F6F6]"
+              className="mt-1 hover:text-[#f6f6f6]/50 transition font-semibold text-lg mb-2 text-[#F6F6F6]"
             >
               AI 음악 만들기
             </button>
 
             <button
               onClick={() => navigate("/ai")}
-              className="hover:text-[#888] transition mb-2 text-[#F6F6F6]"
+              className="mt-1 hover:text-[#f6f6f6]/50 transition mb-2 text-[#F6F6F6]"
             >
               <MdOutlineNavigateNext size={30} />
             </button>
           </div>
 
-          <div className="mb-3 border-b border-[#464646]" />
+          <div className="mb-3 border-b border-white/10" />
 
           <textarea
             maxLength={500}
@@ -202,13 +204,14 @@ function Sidebar({
               h-[110px]
               resize-none
               rounded-2xl
-              bg-[#4D4D4D]
+              bg-white/5
               px-4 py-3
-              placeholder:text-[#777777]
+              placeholder:text-white/20
               text-sm
               text-[#e0e0e0]
               outline-none
-              focus:ring-2 focus:ring-[#666666]
+              focus:ring-2 focus:ring-white/10
+              border border-white/5
             "
           />
 
@@ -222,6 +225,7 @@ function Sidebar({
               onClick={handleGenerate}
               disabled={!prompt.trim()}
               className="
+                mt-1
                 px-3 py-1.5
                 rounded-xl
                 text-xs

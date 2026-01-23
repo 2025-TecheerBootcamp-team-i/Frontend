@@ -72,6 +72,9 @@ export default function LoginPage() {
         })
       );
 
+      // ✅ 로그인 이벤트 발생 (PlaylistContext가 플레이리스트를 로드하도록)
+      window.dispatchEvent(new Event("login"));
+
       alert(`환영합니다, ${response.nickname}님!`);
       navigate("/home");
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

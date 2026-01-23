@@ -1,11 +1,7 @@
-
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-import { fetchLikedTracks, type LikedTrack } from "../../api/LikedSong";
-import { getCurrentUserId } from "../../utils/auth";
-
-const LIKED_SYSTEM_ID = "liked";
+import { usePlaylists } from "../../contexts/PlaylistContext";
+import { listLikedAlbums, type LikedAlbumSummary } from "../../api/album";
 
 type PlaylistItem = {
     id: string;
@@ -17,178 +13,51 @@ type PlaylistItem = {
     coverUrls?: string[];
 };
 
-// MyPlaylistPage.tsx와 동일한 방식: 좋아요 곡 -> 앨범이미지 4장 만들기
-function buildCoverUrlsFromLikedTracks(tracks: LikedTrack[], limit = 4): string[] {
-  const urls = tracks
-    .map((t) => t.album_image)
-    .filter((v): v is string => typeof v === "string" && v.length > 0);
-
-    // 같은 앨범 이미지 중복 제거 후 최대 limit개
-  return Array.from(new Set(urls)).slice(0, limit);
-}
-
-/** 좋아요 및 공개여부 앨범 API 응답 타입(백엔드 스펙에 맞춰 수정) */
-type LikedAlbumApi = {
-  album_id: string | number;
-  album_name: string;
-  artist_name: string;
-  album_image?: string | null;
-};
-
-/** 좋아요 및 공개여부 플레이리스트 API 응답 타입(백엔드 스펙에 맞춰 수정 필요) */
-type LikedPlaylistApi = {
-  playlist_id: string | number;
-  playlist_name: string;
-  owner_name: string;
-  cover_url?: string | null;
-};
-
-/** TODO: 실제 “좋아요 앨범 목록” API로 교체 */
-async function fetchLikedAlbumsApi(_userId: string): Promise<LikedAlbumApi[]> {
-  // 예시)
-  // return await fetchLikedAlbums(userId);
-  return [];
-}
-
-/** TODO: 실제 “좋아요 플레이리스트 목록” API로 교체 */
-async function fetchLikedPlaylistsApi(_userId: string): Promise<LikedPlaylistApi[]> {
-  // 예시)
-  // return await fetchLikedPlaylists(userId);
-  return [];
-}
-
-/** API 응답 -> 화면 카드 모델로 변환(어댑터) */
-function mapLikedAlbumsToItems(albums: LikedAlbumApi[]): PlaylistItem[] {
-  return albums.map((a) => ({
-    id: String(a.album_id),
-    title: a.album_name,
-    owner: a.artist_name,
-    liked: true,
-    kind: "album",
-    coverUrl: a.album_image ?? null,
-  }));
-}
-
-function mapLikedPlaylistsToItems(playlists: LikedPlaylistApi[]): PlaylistItem[] {
-  return playlists.map((p) => ({
-    id: String(p.playlist_id),
-    title: p.playlist_name,
-    owner: p.owner_name,
-    liked: true,
-    kind: "playlist",
-    coverUrl: p.cover_url ?? null,
-  }));
-}
-
 export default function MyPlaylistsLiked() {
     const navigate = useNavigate();
-    
-    // 좋아요 누른 곡 플리
-    const [likedTracks, setLikedTracks] = useState<LikedTrack[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const { likedPlaylists } = usePlaylists();
 
-    // 좋아요 누른 앨범 및 플리(실제 API 필요)
-    const [collectionItems, setCollectionItems] = useState<PlaylistItem[]>([]);
-    const [collectionsLoading, setCollectionsLoading] = useState(false);
-    const [collectionsError, setCollectionsError] = useState<string | null>(null);
+    // 좋아요한 앨범 목록
+    const [likedAlbums, setLikedAlbums] = useState<LikedAlbumSummary[]>([]);
 
-     /** ✅ (추가) likedTracks -> 4등분용 coverUrls 생성 */
-    const likedCoverUrls = useMemo(
-      () => buildCoverUrlsFromLikedTracks(likedTracks, 4),
-      [likedTracks]
-    );
+    // 좋아요한 앨범 가져오기
+    useEffect(() => {
+        const fetchAlbums = async () => {
+            try {
+                const albums = await listLikedAlbums();
+                setLikedAlbums(albums);
+            } catch (error) {
+                console.error("좋아요한 앨범 로딩 실패:", error);
+                setLikedAlbums([]);
+            }
+        };
 
-    const refresh = useCallback(async () => {
-      setLoading(true);
-
-      const userId = getCurrentUserId();
-      if (!userId) {
-        setLoading(false);
-        setError("user_id를 찾을 수 없어요. 로그인 후 user_id 저장을 확인해주세요.");
-        setLikedTracks([]);
-        return;
-      }
-
-      try {
-        setError(null);
-
-        const list = await fetchLikedTracks(userId);
-        setLikedTracks(Array.isArray(list) ? list : []);
-      } catch (e) {
-        console.error("[MyPlaylistsLiked] 좋아요 목록 불러오기 실패:", e);
-      
-        setError("좋아요 목록을 불러오지 못했어요.");
-        setLikedTracks([]);
-      } finally {
-        setLoading(false);
-      }
+        fetchAlbums();
     }, []);
 
-     /** ✅ (옵션) 좋아요 앨범/플리도 나중에 API 붙이면 여기만 채우면 됨 */
-  const refreshCollections = useCallback(async () => {
-    setCollectionsLoading(true);
+    // Context에서 받은 좋아요 플레이리스트 + API 앨범 데이터
+    const items = useMemo((): PlaylistItem[] => {
+        // 1. 좋아요한 앨범 (실제 API에서)
+        const likedAlbumItems: PlaylistItem[] = likedAlbums.map((album) => ({
+            id: String(album.album_id),
+            title: album.title,
+            owner: album.artist_name,
+            liked: true,
+            kind: "album" as const,
+        }));
 
-    const userId = getCurrentUserId();
-    if (!userId) {
-      setCollectionsLoading(false);
-      setCollectionsError("user_id를 찾을 수 없어요.");
-      setCollectionItems([]);
-      return;
-    }
+        // 2. 좋아요한 다른 사람의 플레이리스트
+        const playlistItems: PlaylistItem[] = likedPlaylists.map((p) => ({
+            id: p.id,
+            title: p.title,
+            owner: p.creator_nickname,
+            liked: true,
+            kind: "playlist" as const,
+        }));
 
-    try {
-      setCollectionsError(null);
+        return [...likedAlbumItems, ...playlistItems];
+    }, [likedAlbums, likedPlaylists]);
 
-      const [albums, playlists] = await Promise.all([
-        fetchLikedAlbumsApi(String(userId)),
-        fetchLikedPlaylistsApi(String(userId)),
-      ]);
-
-      setCollectionItems([
-        ...mapLikedAlbumsToItems(albums),
-        ...mapLikedPlaylistsToItems(playlists),
-      ]);
-    } catch (e) {
-      console.error("[MyPlaylistsLiked] 좋아요 목록(앨범/플리) 불러오기 실패:", e);
-      setCollectionsError("좋아요 목록(앨범/플리)을 불러오지 못했어요.");
-      setCollectionItems([]);
-    } finally {
-      setCollectionsLoading(false);
-    }
-  }, []);
-
-
-   // 페이지로 돌아왔을 때 최신화
-  useEffect(() => {
-    refresh();
-    refreshCollections();
-
-    const onFocus = () => {
-      refresh();
-      refreshCollections();
-    }
-
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
-    }, [refresh, refreshCollections]);
-
-  // 화면에 보여줄 카드 목록
-  const items: PlaylistItem[] = useMemo(() => {
-    const count = likedTracks.length;
-
-    return [
-      {
-        id: LIKED_SYSTEM_ID,
-        title: "나의 좋아요 목록",
-        owner: loading ? "불러오는 중..." : error ? "불러오기 실패" : `총 ${count}곡`,
-        liked: true,
-        kind: "system",
-        coverUrls: likedCoverUrls,
-        coverUrl: likedCoverUrls[0] ?? null,
-      },
-    ];
-  }, [likedTracks, likedCoverUrls, loading, error]);
 
     const gridClass = useMemo(
         () => `
@@ -202,17 +71,17 @@ export default function MyPlaylistsLiked() {
     );
 
     return (
-        <section className="rounded-3xl bg-[#2d2d2d]/80 border border-[#464646]">
+        <section className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
         {/* 헤더 */}
-        <div className="px-8 pt-6 pb-2 flex items-center justify-between">
-            <div className="text-lg font-semibold text-[#F6F6F6]">좋아요</div>
-            <div className="w-9 h-9 rounded-full border border-[#464646] bg-[#3f3f3f] text-[#F6F6F6] grid place-items-center text-xl">
+        <div className="px-10 pt-8 pb-4 flex items-center justify-between">
+            <div className="text-xl font-black tracking-[0.2em] text-white uppercase opacity-80">좋아요 목록</div>
+            <div className="w-10 h-10 rounded-full border border-white/10 bg-white/5 text-[#AFDEE2] grid place-items-center text-xl shadow-inner">
             ♥
             </div>
         </div>
 
-        <div className="mb-4 mx-4 border-b border-[#464646]" />
-        <div className="px-6 pb-8 overflow-x-auto">
+        <div className="mx-10 border-b border-white/10 mb-10" />
+        <div className="px-10 pb-10 overflow-x-auto">
             <div className={gridClass}>
             {items.map((it) => (
                 <button
@@ -221,52 +90,35 @@ export default function MyPlaylistsLiked() {
                 onClick={() => navigate(`/playlist/${it.id}`)}
                 className="w-[220px] text-left group"
                 >
-                <div className="relative aspect-square rounded-2xl overflow-hidden bg-[#6b6b6b]/40 border border-[#464646] group-hover:bg-[#6b6b6b]/55 transition">
-                  {it.coverUrls?.length ? (
-                    <div className="absolute inset-0 grid grid-cols-2 grid-rows-2">
-                      {Array.from({ length: 4 }).map((_, idx) => {
-                        const src = it.coverUrls?.[idx];
-                        return src ? (
-                          <img
-                            key={idx}
-                            src={src}
-                            alt={`${it.title} cover ${idx + 1}`}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                            decoding="async"
-                            onError={(e) => {
-                              (e.currentTarget as HTMLImageElement).style.display = "none";
-                            }}
-                          />
-                        ) : (
-                          <div key={idx} className="w-full h-full bg-[#3a3a3a]/40" />
-                        );
-                      })}
-                    </div>
-                ) : it.coverUrl ? (
+                <div className="relative aspect-square rounded-[32px] bg-white/5 border border-white/10 group-hover:bg-white/10 transition-all duration-500 shadow-xl overflow-hidden">
+                    {it.coverUrl ? (
                         <img
                         src={it.coverUrl}
                         alt={it.title}
-                        className="absolute inset-0 w-full h-full rounded-2xl object-cover opacity-90"
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                         loading="lazy"
                         />
                     ) : (
-                        <div className="absolute inset-0 bg-[#6b6b6b]/20" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
                     )}
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
 
                     {it.liked && (
-                  <div className="absolute top-2 right-3 text-xl drop-shadow text-[#E4524D]">
-                    ♥
-                  </div>
-                )}
+                      <div className={[
+                          "absolute top-4 right-5 text-2xl drop-shadow-lg transition-transform duration-500 group-hover:scale-125",
+                          it.kind === "system" ? "text-[#E4524D]" : "text-[#AFDEE2]"].join(" ")}
+                      >♥
+                      </div>
+                    )}
               </div>
 
-              <div className="mt-3 text-sm font-semibold text-[#F6F6F6] truncate">
-                {it.title}
-              </div>
-
-              <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">
-                {it.owner}
+              <div className="mt-5 px-2">
+                <div className="text-[15px] font-bold text-white/95 truncate tracking-tight group-hover:text-[#AFDEE2] transition-colors">
+                    {it.title}
+                </div>
+                <div className="mt-1.5 text-[11px] font-black text-white/20 uppercase tracking-widest">
+                    {it.owner}
+                </div>
               </div>
             </button>
           ))}

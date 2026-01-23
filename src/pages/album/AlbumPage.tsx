@@ -18,10 +18,9 @@ import {
     subscribePlaylists,
     LIKED_SYSTEM_ID,
     getUserPlaylists,
-    isAlbumLiked,
-    getAlbumLikeCount,
-    toggleAlbumLike,
 } from "../../mocks/playlistMock";
+
+import { likeAlbum, unlikeAlbum, listLikedAlbums } from "../../api/album";
 
 type Track = { id: string; title: string; album: string; duration: string; albumImage?: string | null };
 type Album = { id: string; title: string; year: string; albumImage?: string | null };
@@ -42,6 +41,7 @@ type ApiAlbumDetail = {
     total_duration: number;
     total_duration_formatted: string;
     like_count: number;
+    is_liked?: boolean; // ✅ 백엔드에서 제공하면 사용, 없으면 프론트엔드에서 확인
     tracks: {
         music_id: number;
         music_name: string;
@@ -101,6 +101,7 @@ export default function AlbumDetailPage() {
 
     // API로 가져온 앨범 데이터 (있으면 우선 사용)
     const [apiFound, setApiFound] = useState<Found>(null);
+    const [apiAlbum, setApiAlbum] = useState<ApiAlbumDetail | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -134,6 +135,9 @@ export default function AlbumDetailPage() {
                 }
 
                 const data: ApiAlbumDetail = await res.json();
+
+                // API 응답 원본 저장
+                setApiAlbum(data);
 
                 // API 응답을 기존 Found 구조로 변환
                 const artist: ArtistData = {
@@ -217,29 +221,44 @@ export default function AlbumDetailPage() {
     // ✅ found가 null이어도 hooks는 항상 같은 순서
     const [checkedIds, setCheckedIds] = useState<Record<string, boolean>>({});
 
-    // ✅ 앨범 좋아요 초기 카운트(없으면 fallback으로 사용)
-    const INITIAL_LIKE_COUNT = 0;
+    // ✅ 앨범 좋아요 상태 (백엔드 API 응답에서 가져옴)
+    const [albumLiked, setAlbumLiked] = useState(false);
+    const [albumLikeCount, setAlbumLikeCount] = useState(0);
 
-    // ✅ 앨범 좋아요/카운트 store (playlistMock)
-    const [albumLiked, setAlbumLiked] = useState(() =>
-        albumId ? isAlbumLiked(albumId) : false
-    );
-
-    const [albumLikeCount, setAlbumLikeCount] = useState(() =>
-        albumId ? getAlbumLikeCount(albumId, INITIAL_LIKE_COUNT) : INITIAL_LIKE_COUNT
-    );
-
+    // 앨범 데이터 로드 시 좋아요 상태 업데이트
     useEffect(() => {
-        if (!albumId) return;
-
-        const sync = () => {
-        setAlbumLiked(isAlbumLiked(albumId));
-        setAlbumLikeCount(getAlbumLikeCount(albumId, INITIAL_LIKE_COUNT));
-        };
-
-        sync();
-        return subscribePlaylists(sync); // ✅ albumLike도 emit()이므로 playlist 구독으로 충분
-    }, [albumId]);
+        if (!apiAlbum) return;
+        
+        console.log("[AlbumPage] 앨범 데이터 로드:", {
+            album_id: apiAlbum.album_id,
+            album_name: apiAlbum.album_name,
+            like_count: apiAlbum.like_count,
+            is_liked: apiAlbum.is_liked
+        });
+        
+        // 항상 좋아요한 앨범 목록에서 정확한 like_count 가져오기
+        (async () => {
+            try {
+                const likedAlbums = await listLikedAlbums();
+                const likedAlbum = likedAlbums.find(album => album.album_id === apiAlbum.album_id);
+                
+                if (likedAlbum) {
+                    // 좋아요한 앨범이면 목록의 like_count 사용 (정확)
+                    setAlbumLiked(true);
+                    setAlbumLikeCount(likedAlbum.like_count);
+                } else {
+                    // 좋아요하지 않았으면 백엔드 응답 사용
+                    setAlbumLiked(apiAlbum.is_liked ?? false);
+                    setAlbumLikeCount(apiAlbum.like_count);
+                }
+            } catch (error) {
+                console.error("[AlbumPage] 좋아요 상태 확인 실패:", error);
+                // 에러 시 백엔드 응답 사용
+                setAlbumLiked(apiAlbum.is_liked ?? false);
+                setAlbumLikeCount(apiAlbum.like_count);
+            }
+        })();
+    }, [apiAlbum]);
 
     const tracks = effective?.tracks ?? [];
     const totalSeconds = tracks.reduce((acc, t) => acc + toSeconds(t.duration), 0);
@@ -585,13 +604,32 @@ export default function AlbumDetailPage() {
 
                 <div className="flex items-end gap-5">
                     <div className="min-w-0">
-                    {/* ✅ 헤더 좋아요 = "앨범 좋아요" 토글 (카드 생성 X) */}
+                    {/* ✅ 헤더 좋아요 = "앨범 좋아요" 토글 */}
                     <button
                         type="button"
-                        onClick={() => {
+                        onClick={async () => {
                         if (!requireLogin("로그인 후 이용 가능합니다.")) return;
-                        if (!albumId) return;
-                        toggleAlbumLike(albumId, INITIAL_LIKE_COUNT);
+                        if (!apiAlbum) return;
+
+                        // 낙관적 UI 업데이트
+                        const wasLiked = albumLiked;
+                        setAlbumLiked(!wasLiked);
+                        setAlbumLikeCount((prev) => wasLiked ? prev - 1 : prev + 1);
+
+                        try {
+                            if (wasLiked) {
+                                const response = await unlikeAlbum(apiAlbum.album_id);
+                                setAlbumLikeCount(response.like_count);
+                            } else {
+                                const response = await likeAlbum(apiAlbum.album_id);
+                                setAlbumLikeCount(response.like_count);
+                            }
+                        } catch (error) {
+                            console.error("앨범 좋아요 토글 실패:", error);
+                            // 실패 시 원래 상태로 복구
+                            setAlbumLiked(wasLiked);
+                            setAlbumLikeCount(apiAlbum.like_count);
+                        }
                         }}
                         className={[
                         "h-11 rounded-2xl",
@@ -663,17 +701,17 @@ export default function AlbumDetailPage() {
         </section>
 
         {/* 본문 */}
-        <div className="mt-[70px] px-4 space-y-6">
-            <section className="rounded-3xl bg-[#2d2d2d]/80 border border-[#2d2d2d] overflow-hidden">
-            <div className="px-8 py-6 border-b border-[#464646]">
+        <div className="mt-[70px] px-4 space-y-8">
+            <section className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 overflow-hidden shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
+            <div className="px-8 py-8 border-b border-white/10">
                 <div className="flex items-end justify-between gap-4">
                 <div className="flex items-center gap-6">
-                    <h2 className="text-xl font-semibold text-[#F6F6F6]">곡 전체보기</h2>
-                    <div className="text-sm text-[#999999]">총 {tracks.length}곡</div>
+                    <h2 className="text-xl font-black tracking-[0.15em] text-white uppercase opacity-95">곡 전체보기</h2>
+                    <div className="text-sm text-white/40">총 {tracks.length}곡</div>
                 </div>
                 </div>
 
-                <div className="mt-4 flex flex-nowrap gap-3 overflow-x-auto no-scrollbar">
+                <div className="mt-6 flex flex-nowrap gap-3 overflow-x-auto no-scrollbar">
                 {actions.map((a) => {
                     const disabled =
                     (a.key === "play" ||
@@ -711,11 +749,11 @@ export default function AlbumDetailPage() {
                         disabled={disabled}
                         className={[
                         "shrink-0 px-4 py-2 rounded-2xl",
-                        "outline outline-1 outline-offset-[-1px] outline-stone-500",
+                        "outline outline-1 outline-offset-[-1px] outline-white/20",
                         "text-sm transition flex items-center gap-2",
                         disabled
                             ? "text-white/30 cursor-not-allowed"
-                            : "text-[#F6F6F6] hover:bg-[#f6f6f6]/10",
+                            : "text-white hover:bg-white/10",
                         ].join(" ")}
                     >
                         <span className="text-lg">{a.icon}</span>
@@ -726,33 +764,33 @@ export default function AlbumDetailPage() {
                 </div>
             </div>
 
-            <div className="px-6 pt-4">
-                <div className="grid items-center grid-cols-[28px_56px_1fr_90px] gap-x-4 pb-3 text-xs text-[#F6F6F6]/60">
+            <div className="px-8 pt-4">
+                <div className="grid items-center grid-cols-[28px_56px_1fr_90px] gap-x-6 pb-3 text-[11px] font-black tracking-widest text-white/30 uppercase">
                 <input
                     type="checkbox"
-                    className="accent-[#f6f6f6]"
+                    className="accent-[#AFDEE2]"
                     checked={allChecked}
                     onChange={(e) => toggleAll(e.target.checked)}
                     aria-label="전체 선택"
                 />
-                <div className="col-span-2 border-l px-2 border-[#464646]">곡정보</div>
-                <div className="text-right border-r px-2 border-[#464646]">길이</div>
+                <div className="col-span-2 border-l px-2 border-white/10">곡정보</div>
+                <div className="text-right border-r px-2 border-white/10">길이</div>
                 </div>
             </div>
 
-            <div className="border-b border-[#464646]" />
+            <div className="border-b border-white/10" />
 
-            <div className="pb-6">
+            <div className="pb-6 px-4">
                 {tracks.map((t) => (
                 <div
                     key={t.id}
                     className={[
                     "w-full text-left",
                     "grid grid-cols-[28px_42px_1fr_90px] items-center",
-                    "gap-x-6",
-                    "py-2 px-6",
-                    "border-b border-[#464646]",
-                    "hover:bg-white/5 transition",
+                    "gap-x-10",
+                    "py-3 px-6",
+                    "border-b border-white/5",
+                    "hover:bg-white/10 transition rounded-2xl cursor-pointer group",
                     ].join(" ")}
                     onDoubleClick={async () => {
                         if (!requireLogin("로그인 후 이용 가능합니다.")) return;
@@ -777,7 +815,7 @@ export default function AlbumDetailPage() {
                     >
                     <input
                         type="checkbox"
-                        className="accent-[#f6f6f6]"
+                        className="accent-[#AFDEE2]"
                         checked={!!checkedIds[t.id]}
                         onChange={() => toggleOne(t.id)}
                         aria-label={`${t.title} 선택`}
@@ -785,7 +823,7 @@ export default function AlbumDetailPage() {
                     />
                     </div>
 
-                    <div className="w-12 h-12 rounded-xl bg-[#6b6b6b]/50 overflow-hidden relative">
+                    <div className="w-12 h-12 rounded-xl bg-white/5 overflow-hidden relative shadow-lg border border-white/10 group-hover:border-white/20 transition-colors">
                         {(trackImages[t.id] || album.albumImage) ? (
                             <img
                                 src={
@@ -807,18 +845,18 @@ export default function AlbumDetailPage() {
                                 }}
                             />
                         ) : (
-                            <div className="w-full h-full bg-[#6b6b6b]/50" />
+                            <div className="w-full h-full bg-white/5" />
                         )}
                     </div>
 
                     <div className="min-w-0">
-                    <div className="text-sm font-semibold text-[#F6F6F6] truncate">
+                    <div className="text-base font-bold text-white truncate tracking-tight group-hover:text-[#AFDEE2] transition-colors">
                         {t.title}
                     </div>
-                    <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">{artist.name}</div>
+                    <div className="mt-1 text-xs font-medium text-white/30 truncate">{artist.name}</div>
                     </div>
 
-                    <div className="text-sm text-[#F6F6F6]/70 text-right tabular-nums">
+                    <div className="text-sm text-white/20 font-bold tabular-nums text-right group-hover:text-[#AFDEE2]/40 transition-colors">
                     {t.duration}
                     </div>
                 </div>
