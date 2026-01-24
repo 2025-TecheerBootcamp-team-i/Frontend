@@ -8,8 +8,8 @@
                 [
                 "px-4 py-2 rounded-full text-base transition whitespace-nowrap",
                 isActive
-                    ? "bg-[#E4524D] text-[#F6F6F6]"
-                    : "bg-[#4d4d4d] text-[#F6F6F6] hover:bg-[#5d5d5d]",
+                    ? "bg-[#E4524D]/80 text-[#F6F6F6]"
+                    : "bg-white/20 text-[#F6F6F6] hover:bg-white/[0.08]",
                 ].join(" ")
             }
             >
@@ -31,7 +31,7 @@
                 </div>
 
                 {/* optional: 아래 구분선 */}
-                <div className="mt-4 border-b border-[#464646]" />
+                <div className="mt-4 border-b border-white/10" />
             </div>
 
             {/* ✅ 아래(Outlet)만 스크롤 */}

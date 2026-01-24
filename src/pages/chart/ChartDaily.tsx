@@ -46,7 +46,6 @@ export default function ChartDaily() {
     const GRID = "grid-cols-[44px_90px_1.2fr_1fr_200px]";
 
     // ✅ PlayerContext
-    // NOTE: enqueueTracks가 PlayerContext에 없으면 추가/노출 필요
     const { setTrackAndPlay, playTracks, enqueueTracks } = usePlayer();
 
     // ✅ API 상태
@@ -67,7 +66,6 @@ export default function ChartDaily() {
 
     // ✅ diff(순위 변동)
     const prevRankByIdRef = useRef<Record<string, number>>({});
-    // const [diffById, setDiffById] = useState<Record<string, number>>({});
 
     useEffect(() => {
         let alive = true;
@@ -77,10 +75,9 @@ export default function ChartDaily() {
         setErrorMsg(null);
 
         try {
-            const data = await fetchChart("daily"); // ✅ daily 호출
+            const data = await fetchChart("daily");
             if (!alive) return;
 
-            // ✅ diff 계산(이전 스냅샷 대비)
             const prev = prevRankByIdRef.current;
             const nextDiff: Record<string, number> = {};
 
@@ -90,10 +87,8 @@ export default function ChartDaily() {
             nextDiff[id] = typeof prevRank === "number" ? prevRank - item.rank : 0;
             }
 
-            // setDiffById(nextDiff);
             setChart(data);
 
-            // ✅ 이번 순위를 다음 비교용으로 저장
             const nextPrev: Record<string, number> = {};
             for (const item of data.items) {
             nextPrev[String(item.musicId)] = item.rank;
@@ -109,7 +104,6 @@ export default function ChartDaily() {
         }
         };
 
-        // ✅ 일일 차트는 최초 1회만 로드 (하루마다 갱신)
         load();
 
         return () => {
@@ -221,7 +215,7 @@ export default function ChartDaily() {
 
     // ✅ (추가) 재생 방식 선택 모달용 상태
     type PendingPlay = {
-        key: ActionKey; // "play" | "shuffle"
+        key: ActionKey;
         tracks: PlayerTrack[];
     };
 
@@ -249,7 +243,6 @@ export default function ChartDaily() {
         if (!requireLogin("로그인 후 이용 가능합니다.")) return;
         if (selectedCount === 0) return;
 
-        // ✅ play/shuffle → 모달로 선택
         if (key === "play" || key === "shuffle") {
         setPendingPlay({ key, tracks: checkedTracks });
         setPlayConfirmOpen(true);
@@ -263,7 +256,7 @@ export default function ChartDaily() {
     // ✅ 로딩/에러 UI
     if (loading) {
         return (
-        <section className="whitespace-nowrap rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 overflow-hidden p-10 text-white shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
+        <section className="whitespace-nowrap rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 overflow-hidden p-10 text-[#f6f6f6] shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
             차트 데이터를 불러오는 중...
         </section>
         );
@@ -281,19 +274,19 @@ export default function ChartDaily() {
         <section className="whitespace-nowrap rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 overflow-hidden shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
         <div className="overflow-x-auto">
             <div className="min-w-[920px]">
-            {/* 상단 헤더 */}
-            <div className="px-10 py-8 border-b border-white/10">
-                <div className="flex items-end justify-between gap-4">
-                <div className="flex items-center gap-8">
-                    <h2 className="text-2xl font-black tracking-[0.2em] text-white uppercase opacity-90">실시간 일일 차트</h2>
-                    <div className="text-sm font-medium text-white/40 tracking-wider">
+            {/* ✅ 상단 헤더 (Top100 스타일) */}
+            <div className="px-8 py-6 border-b border-white/10">
+                <div className="flex pt-2 items-end justify-between gap-4">
+                <div className="flex items-center gap-6">
+                    <h2 className="text-2xl px-2 font-semibold text-[#f6f6f6]">실시간 일일 차트</h2>
+                    <div className="text-sm text-[#f6f6f6]/40 tracking-wider">
                     {chart?.generatedAt ? formatGeneratedAt(chart.generatedAt) : ""}
                     </div>
                 </div>
                 </div>
 
-                {/* 액션 버튼 */}
-                <div className="mt-6 flex flex-nowrap gap-4 overflow-x-auto no-scrollbar">
+                {/* ✅ 액션 버튼 (Top100 스타일) */}
+                <div className="px-2 mt-4 flex flex-nowrap gap-3">
                 {actions.map((a) => {
                     const disabled = selectedCount === 0;
 
@@ -304,9 +297,11 @@ export default function ChartDaily() {
                         onClick={() => handleAction(a.key)}
                         disabled={disabled}
                         className={[
-                        "shrink-0 px-5 py-2.5 rounded-2xl border border-white/10",
-                        "text-sm font-bold transition-all duration-300 flex items-center gap-2.5",
-                        disabled ? "text-white/20 border-white/5 cursor-not-allowed" : "text-white/80 hover:bg-white/10 hover:text-white hover:border-white/20",
+                        "shrink-0 px-4 py-2 rounded-2xl border border-[#f6f6f6]/10",
+                        "text-sm font-bold transition-all flex items-center gap-2.5",
+                        disabled
+                            ? "text-[#f6f6f6]/20 border-[#f6f6f6]/5 cursor-not-allowed"
+                            : "text-[#f6f6f6]/80 hover:bg-[#f6f6f6]/10 hover:text-[#f6f6f6] hover:border-[#f6f6f6]/20",
                         ].join(" ")}
                     >
                         <span className="text-xl">{a.icon}</span>
@@ -317,14 +312,13 @@ export default function ChartDaily() {
                 </div>
             </div>
 
-            {/* 테이블 헤더 */}
+            {/* ✅ 테이블 헤더 (Top100 스타일) */}
             <div>
-                <div className={`grid ${GRID} items-center justify-center py-4 px-10 text-[13px] font-black tracking-widest text-white/30 uppercase`}>
-                {/* 전체선택 */}
+                <div className={`grid ${GRID} items-center justify-center py-3 px-4 text-sm text-[#f6f6f6]/30`}>
                 <div className="flex items-center justify-center">
                     <input
                     type="checkbox"
-                    className="accent-[#AFDEE2] w-4 h-4 cursor-pointer"
+                    className="accent-[#f6f6f6] cursor-pointer"
                     checked={allChecked}
                     onChange={(e) => toggleAll(e.target.checked)}
                     aria-label="전체 선택"
@@ -343,14 +337,14 @@ export default function ChartDaily() {
                 <div className="border-b border-white/10" />
             </div>
 
-            {/* 리스트 */}
-            <div className="px-4 py-4">
-                <div className="space-y-1">
+            {/* ✅ 리스트 (Top100 스타일: divide-y, 패딩/라운드 제거) */}
+            <div>
+                <div className="divide-y divide-white/10">
                 {rows.map((row) => (
                     <div
                     key={row.musicId}
                     className={`
-                        group grid ${GRID} items-center px-6 py-3 rounded-2xl
+                        group grid ${GRID} items-center px-4 py-2
                         transition-all duration-300 hover:bg-white/[0.08]
                         ${row.rank % 2 === 0 ? "bg-white/[0.02]" : "bg-transparent"}
                     `}
@@ -359,17 +353,17 @@ export default function ChartDaily() {
                     <div className="flex items-center justify-center">
                         <input
                         type="checkbox"
-                        className="accent-[#AFDEE2] w-4 h-4 cursor-pointer"
+                        className="accent-[#f6f6f6] cursor-pointer"
                         checked={!!checkedIds[String(row.musicId)]}
                         onChange={() => toggleOne(String(row.musicId))}
                         aria-label={`${row.rank}위 선택`}
                         />
                     </div>
 
-                    {/* 순위 + 변동 + hover 재생 */}
+                    {/* 순위 + 변동 + hover 재생 (Top100 스타일) */}
                     <div className="flex items-center gap-3">
                         <div className="relative w-8 flex items-center justify-center">
-                        <span className="text-[15px] font-black text-white/90 transition-opacity group-hover:opacity-0 tabular-nums">
+                        <span className="ml-1 text-[15px] text-[#f6f6f6]/90 transition-opacity group-hover:opacity-0 tabular-nums">
                             {row.rank}
                         </span>
                         <button
@@ -378,19 +372,18 @@ export default function ChartDaily() {
                             e.stopPropagation();
                             setTrackAndPlay(toTrack(row));
                             }}
-                            className="absolute opacity-0 transition-all duration-300 group-hover:opacity-100 text-[#AFDEE2] hover:scale-125"
-                            aria-label={`${row.musicName} 재생`}
+                            className="ml-1 absolute opacity-0 transition-all duration-300 group-hover:opacity-100 text-[#AFDEE2]"
+                            aria-label={`${row.musicName}재생`}
                             title="재생"
                         >
-                            <FaPlay size={18} />
+                            <FaPlay />
                         </button>
                         </div>
 
-                        <div className="pl-1 text-[11px] font-black w-10">
+                        <div className="ml-2 text-xs font-medium w-10">
                         {(() => {
                             const change = row.rankChange;
-
-                            if (change === null || change === 0) return <span className="text-white/20">—</span>;
+                            if (change === null || change === 0) return <span className="ml-1 text-white/20">—</span>;
                             if (change > 0) return <span className="text-red-400">▲{change}</span>;
                             if (change < 0) return <span className="text-blue-400">▼{Math.abs(change)}</span>;
                             return <span className="text-white/20">—</span>;
@@ -398,42 +391,49 @@ export default function ChartDaily() {
                         </div>
                     </div>
 
-                    {/* 곡정보 */}
-                    <div className="flex pl-2 items-center gap-5 min-w-0">
-                        <div className="relative h-14 w-14 rounded-xl bg-white/10 shrink-0 overflow-hidden shadow-lg border border-white/10 group-hover:scale-105 transition-transform duration-500">
-                            {row.albumImage ? (
+                    {/* 곡정보(커버+제목) (Top100 스타일) */}
+                    <div className="flex pl-2 items-center gap-4 min-w-0">
+                        <div className="relative h-14 w-14 rounded-lg bg-white/10 shrink-0 overflow-hidden group-hover:scale-105 transition-transform duration-500">
+                        {row.albumImage ? (
                             <img
-                                src={row.albumImage}
-                                alt={row.albumName}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
+                            src={row.albumImage}
+                            alt={row.albumName}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
                                 e.currentTarget.style.display = "none";
                                 const fallback = e.currentTarget.nextElementSibling as HTMLElement;
                                 if (fallback) fallback.style.display = "block";
-                                }}
+                            }}
                             />
-                            ) : null}
-                            <div className={`w-full h-full bg-white/5 shrink-0 ${row.albumImage ? "hidden" : ""}`} />
-                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        ) : null}
+                        <div className={`w-full h-full bg-white/5 shrink-0 ${row.albumImage ? "hidden" : ""}`} />
+                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
+
                         <div className="min-w-0">
-                        <div className="text-[15px] font-bold text-white/95 truncate tracking-tight group-hover:text-[#AFDEE2] transition-colors">
+                        <div className="text-sm text-[#f6f6f6]/95 truncate group-hover:text-[#AFDEE2] transition-colors">
                             {row.musicName}
                             {row.isAi && (
-                            <span className="shrink-0 ml-3 text-[10px] font-black px-2 py-0.5 rounded-md bg-[#E4524D]/20 text-[#E4524D] border border-[#E4524D]/20 uppercase">
+                            <span className="shrink-0 ml-3 text-[10px] font-black px-2 py-0.5 rounded-full bg-[#E4524D]/20 text-[#E4524D] border border-[#E4524D]/20 uppercase">
                                 AI
                             </span>
                             )}
                         </div>
-                        <div className="text-[12px] font-medium text-white/40 truncate tracking-wide mt-1 md:hidden">{row.artistName}</div>
+                        <div className="text-[12px] font-medium text-white/40 truncate tracking-wide mt-1 md:hidden">
+                            {row.artistName}
+                        </div>
                         </div>
                     </div>
 
                     {/* 아티스트 */}
-                    <div className="pl-2 text-[14px] font-semibold text-white/60 truncate group-hover:text-white/80 transition-colors">{row.artistName}</div>
+                    <div className="pl-2 text-sm text-[#f6f6f6]/60 truncate group-hover:text-white/80 transition-colors">
+                        {row.artistName}
+                    </div>
 
                     {/* 앨범 */}
-                    <div className="pl-2 text-[14px] font-semibold text-white/40 truncate group-hover:text-white/60 transition-colors">{row.albumName}</div>
+                    <div className="pl-2 text-sm text-[#f6f6f6]/40 truncate group-hover:text-white/60 transition-colors">
+                        {row.albumName}
+                    </div>
                     </div>
                 ))}
                 </div>
@@ -441,7 +441,7 @@ export default function ChartDaily() {
             </div>
         </div>
 
-        {/* ✅ 담기 모달 */}
+        {/* ✅ 담기 모달 (그대로) */}
         {addOpen && (
             <div className="fixed inset-0 z-[999] whitespace-normal">
             <button
@@ -507,7 +507,7 @@ export default function ChartDaily() {
             </div>
         )}
 
-        {/* ✅ 재생 방식 선택 모달 */}
+        {/* ✅ 재생 방식 선택 모달 (그대로) */}
         {playConfirmOpen && pendingPlay && (
             <div className="fixed inset-0 z-[999] whitespace-normal">
             <button
@@ -537,8 +537,7 @@ export default function ChartDaily() {
                 </div>
 
                 <div className="px-6 py-4 text-sm text-[#F6F6F6]/70">
-                    선택한 {pendingPlay.tracks.length}곡을 {pendingPlay.key === "shuffle" ? "셔플로 " : ""}어떻게
-                    재생할까요?
+                    선택한 {pendingPlay.tracks.length}곡을 {pendingPlay.key === "shuffle" ? "셔플로 " : ""}어떻게 재생할까요?
                 </div>
 
                 <div className="px-6 pb-6 grid grid-cols-1 gap-3">

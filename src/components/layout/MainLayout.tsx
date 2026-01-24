@@ -20,26 +20,37 @@ function MainLayout() {
     const { current } = usePlayer();
     const [bgColors, setBgColors] = useState<string[]>([]);
 
-    // 앨범 커버 URL 처리 로직
+    // ✅ 앨범 커버 URL 처리 로직
     const coverUrl = useMemo(() => {
         if (!current?.coverUrl) return null;
         const url = current.coverUrl;
         const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
+
         if (url.startsWith("http") || url.startsWith("//")) return url;
-        if (API_BASE && url.startsWith("/")) return `${API_BASE.replace("/api/v1", "")}${url}`;
+        if (API_BASE && url.startsWith("/"))
+        return `${API_BASE.replace("/api/v1", "")}${url}`;
         return url;
     }, [current?.coverUrl]);
 
-    // 색상 추출
+    // ✅ 색상 추출: coverUrl 있을 때만 실행 (effect 안에서 동기 setState 제거)
     useEffect(() => {
-        if (coverUrl) {
-            extractPastelColors(coverUrl, 3).then(colors => setBgColors(colors));
-        } else {
-            setBgColors([]);
-        }
+        if (!coverUrl) return;
+
+        let cancelled = false;
+
+        extractPastelColors(coverUrl, 3).then((colors) => {
+        if (!cancelled) setBgColors(colors);
+        });
+
+        return () => {
+        cancelled = true;
+        };
     }, [coverUrl]);
 
-    // Context의 플레이리스트를 Sidebar 형식으로 변환
+    // ✅ coverUrl 없을 땐 그냥 빈 배열로 취급 (setBgColors([]) 안 함)
+    const effectiveBgColors = coverUrl ? bgColors : [];
+
+    // ✅ Context의 플레이리스트를 Sidebar 형식으로 변환
     const playlists: Playlist[] = myPlaylists.map((p) => ({
         id: p.id,
         title: p.title,
@@ -53,44 +64,45 @@ function MainLayout() {
 
     return (
         <div className="relative h-screen overflow-hidden flex flex-col bg-[#080808]">
-        {/* ✅ Ambient Background - 로직만 통합, 스타일은 원격의 느낌 유지 */}
+        {/* ✅ Ambient Background */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            {bgColors.length > 0 ? (
-                <>
-                    <div 
-                        className="absolute inset-[-20%] opacity-60 blur-[120px] animate-ambient"
-                        style={{ 
-                            background: `radial-gradient(circle at 25% 25%, ${bgColors[0]}, transparent 60%),
-                                         radial-gradient(circle at 75% 75%, ${bgColors[1]}, transparent 60%),
-                                         radial-gradient(circle at 50% 50%, ${bgColors[2]}, transparent 70%)`,
-                        }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/30 to-[#080808]/95" />
-                </>
-            ) : (
+            {effectiveBgColors.length > 0 ? (
+            <>
                 <div
-                    className="
-                    absolute inset-0
-                    bg-[linear-gradient(180deg,#1d1d1d_30%,#5D5D5D_100%)]
-                    bg-[length:200%_200%]
-                    animate-bgGradient
-                    "
+                className="absolute inset-[-20%] opacity-60 blur-[120px] animate-ambient"
+                style={{
+                    background: `radial-gradient(circle at 25% 25%, ${effectiveBgColors[0]}, transparent 60%),
+                                radial-gradient(circle at 75% 75%, ${effectiveBgColors[1]}, transparent 60%),
+                                radial-gradient(circle at 50% 50%, ${effectiveBgColors[2]}, transparent 70%)`,
+                }}
                 />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/30 to-[#080808]/95" />
+            </>
+            ) : (
+            <div
+                className="
+                absolute inset-0
+                bg-[linear-gradient(180deg,#1d1d1d_30%,#5D5D5D_100%)]
+                bg-[length:200%_200%]
+                animate-bgGradient
+                "
+            />
             )}
         </div>
 
         <div className="relative z-10 h-full flex flex-col">
             <Header />
             <div className="flex flex-1 min-h-0 overflow-hidden">
-                <Sidebar playlists={playlists} onCreatePlaylist={handleCreatePlaylist} />
-                <main
-                    className="flex-1 min-h-0 overflow-auto p-4 pt-3"
-                    style={{ paddingBottom: PLAYER_H }}
-                >
-                    <Outlet context= {{playlists}} />
-                </main>
+            <Sidebar playlists={playlists} onCreatePlaylist={handleCreatePlaylist} />
+            <main
+                className="flex-1 min-h-0 overflow-auto p-4 pt-3"
+                style={{ paddingBottom: PLAYER_H }}
+            >
+                <Outlet context={{ playlists }} />
+            </main>
             </div>
         </div>
+
         <Player height={PLAYER_H} />
         </div>
     );
