@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+// src/pages/search/SearchSong.tsx
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import axios from "axios";
+import { createPortal } from "react-dom";
 
 import { IoPlayCircle, IoShuffle } from "react-icons/io5";
 import { MdPlaylistAdd, MdFavorite } from "react-icons/md";
@@ -10,19 +12,14 @@ import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
 import { requireLogin } from "../../api/auth";
 
-import {
-  listMyPlaylists,
-  addPlaylistItems,
-  type PlaylistSummary,
-} from "../../api/playlist";
+import { listMyPlaylists, addPlaylistItems, type PlaylistSummary } from "../../api/playlist";
 import { likeTrack } from "../../api/LikedSong";
-
 
 /* ===================== 타입 ===================== */
 
 type Song = {
   id: string;
-  musicId?: number; // 실제 재생에 사용할 음악 ID
+  musicId?: number;
   title: string;
   artist: string;
   album: string;
@@ -32,10 +29,9 @@ type Song = {
   artistId?: number | null;
 };
 
-// API 응답 타입
 type ApiSearchResult = {
   itunes_id: number;
-  music_id: number; // 실제 재생에 사용할 음악 ID
+  music_id: number;
   music_name: string;
   artist_name: string;
   artist_id: number | null;
@@ -47,13 +43,12 @@ type ApiSearchResult = {
   album_image: string | null;
 };
 
-// 아티스트별 앨범 API 응답 타입
 type ArtistAlbum = {
   id: string;
   title: string;
   year: string;
   album_image: string | null;
-  image_large_square: string | null; // ✅ RDS에 저장된 이미지 (우선 사용)
+  image_large_square: string | null;
 };
 
 type ApiSearchResponse = {
@@ -74,6 +69,86 @@ const actions = [
 
 type ActionKey = (typeof actions)[number]["key"];
 
+/* =====================
+  Modal (Portal)
+===================== */
+
+function ModalPortal({ children }: { children: React.ReactNode }) {
+  if (typeof document === "undefined") return null;
+  return createPortal(children, document.body);
+}
+
+function useLockBodyScroll(open: boolean) {
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+}
+
+function useEscToClose(open: boolean, onClose: () => void) {
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, onClose]);
+}
+
+function BaseModal({
+  open,
+  title,
+  onClose,
+  maxWidthClass = "max-w-[420px]",
+  children,
+}: {
+  open: boolean;
+  title: string;
+  onClose: () => void;
+  maxWidthClass?: string;
+  children: React.ReactNode;
+}) {
+  useEscToClose(open, onClose);
+  useLockBodyScroll(open);
+
+  if (!open) return null;
+
+  return (
+    <ModalPortal>
+      <div className="fixed inset-0 z-[99999] whitespace-normal">
+        <button type="button" className="absolute inset-0 bg-black/50" onClick={onClose} aria-label="닫기" />
+        <div className="absolute inset-0 grid place-items-center p-6">
+          <div
+            className={`w-full ${maxWidthClass} rounded-3xl bg-[#2d2d2d] border border-[#464646] shadow-2xl overflow-hidden`}
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label={title}
+          >
+            <div className="px-6 py-4 flex items-center justify-between border-b border-[#464646]">
+              <div className="text-base font-semibold text-[#F6F6F6]">{title}</div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="text-[#F6F6F6]/70 hover:text-white transition"
+                aria-label="닫기"
+              >
+                ✕
+              </button>
+            </div>
+            {children}
+          </div>
+        </div>
+      </div>
+    </ModalPortal>
+  );
+}
+
 /* ===================== 컴포넌트 ===================== */
 
 export default function SearchSong() {
@@ -93,11 +168,16 @@ export default function SearchSong() {
 
   // 앨범 정보 상태
   const [albums, setAlbums] = useState<Record<number, ArtistAlbum>>({});
-  
-  // 앨범 상세 정보 캐시 (music_id를 찾기 위해) - useRef로 관리하여 무한 루프 방지
-  const albumDetailsCacheRef = useRef<Record<number, {
-    tracks: Array<{ music_id: number; music_name: string }>;
-  }>>({});
+
+  // 앨범 상세 정보 캐시
+  const albumDetailsCacheRef = useRef<
+    Record<
+      number,
+      {
+        tracks: Array<{ music_id: number; music_name: string }>;
+      }
+    >
+  >({});
 
   const toggleExcludeAi = () => {
     const next = new URLSearchParams(sp);
@@ -114,13 +194,9 @@ export default function SearchSong() {
       const albumMap: Record<number, ArtistAlbum> = {};
 
       try {
-        console.log(`[SearchSong] 아티스트별 앨범 정보 가져오기 시작: ${artistIds.length}개 아티스트`);
-
         const promises = artistIds.map(async (artistId) => {
           try {
             const url = `${API_BASE}/artists/${artistId}/albums/`;
-            console.log(`[SearchSong] 아티스트 ${artistId}의 앨범 목록 요청: ${url}`);
-
             const res = await fetch(url, {
               method: "GET",
               headers: { "Content-Type": "application/json" },
@@ -128,16 +204,6 @@ export default function SearchSong() {
 
             if (res.ok) {
               const data: ArtistAlbum[] = await res.json();
-              console.log(`[SearchSong] 아티스트 ${artistId}의 앨범 목록 수신:`, {
-                artist_id: artistId,
-                album_count: data.length,
-                albums: data.map((a) => ({
-                  id: a.id,
-                  title: a.title,
-                  has_image: !!a.album_image,
-                })),
-              });
-
               return { artistId, albums: data };
             }
             return null;
@@ -149,7 +215,6 @@ export default function SearchSong() {
 
         const results = await Promise.all(promises);
 
-        // 각 앨범을 맵에 추가
         results.forEach((result) => {
           if (result) {
             result.albums.forEach((album) => {
@@ -158,7 +223,6 @@ export default function SearchSong() {
           }
         });
 
-        console.log(`[SearchSong] 최종 앨범 맵: ${Object.keys(albumMap).length}개 앨범`);
         setAlbums(albumMap);
       } catch (e) {
         console.error("[SearchSong] 아티스트별 앨범 정보 가져오기 오류:", e);
@@ -170,7 +234,6 @@ export default function SearchSong() {
   /* ===================== API 호출 ===================== */
 
   useEffect(() => {
-    // API가 설정되지 않았거나 검색어가 없으면 더미 데이터 사용
     if (!API_BASE || !q.trim()) {
       setApiSongs([]);
       setError(null);
@@ -184,7 +247,6 @@ export default function SearchSong() {
         setLoading(true);
         setError(null);
 
-        // 검색 API 호출
         const params = new URLSearchParams({
           q: q,
           exclude_ai: excludeAi ? "true" : "false",
@@ -197,22 +259,13 @@ export default function SearchSong() {
           headers: { "Content-Type": "application/json" },
         });
 
-        if (!res.ok) {
-          throw new Error(`API 오류: ${res.status}`);
-        }
+        if (!res.ok) throw new Error(`API 오류: ${res.status}`);
 
         const data: ApiSearchResponse = await res.json();
 
-        console.log(`[SearchSong] 검색 결과 수신:`, {
-          query: q,
-          count: data.count,
-          results_count: data.results.length,
-        });
-
-        // API 응답을 Song 형식으로 변환
         const converted: Song[] = data.results.map((r) => ({
-          id: String(r.itunes_id), // 표시용 ID는 itunes_id 유지
-          musicId: r.music_id, // 실제 재생에 사용할 music_id
+          id: String(r.itunes_id),
+          musicId: r.music_id,
           title: r.music_name,
           artist: r.artist_name,
           album: r.album_name,
@@ -224,19 +277,12 @@ export default function SearchSong() {
           artistId: r.artist_id,
         }));
 
-        console.log(`[SearchSong] 변환된 곡 데이터:`, converted.length, "개");
         setApiSongs(converted);
 
-        // 고유한 artist_id 추출 (null 제외)
         const uniqueArtistIds = Array.from(
-          new Set(
-            data.results
-              .map((r) => r.artist_id)
-              .filter((id): id is number => id !== null)
-          )
+          new Set(data.results.map((r) => r.artist_id).filter((id): id is number => id !== null))
         );
 
-        // 아티스트별 앨범 정보 가져오기
         if (uniqueArtistIds.length > 0) {
           await fetchArtistAlbums(uniqueArtistIds);
         } else {
@@ -259,16 +305,10 @@ export default function SearchSong() {
   /* ===================== 검색/필터 ===================== */
 
   const songs = useMemo(() => {
-    // ✅ 검색어 없으면 빈 리스트 (mock 안 씀)
     if (!q.trim()) return [];
-
-    // ✅ API_BASE 없으면 API 호출 안 하는 상태니까 빈 리스트
     if (!API_BASE) return [];
-
-    // ✅ API 결과만 사용 (+ AI 제외 필터)
     return apiSongs.filter((s) => !excludeAi || !s.isAi);
   }, [API_BASE, q, apiSongs, excludeAi]);
-
 
   /* ===================== 체크박스 ===================== */
 
@@ -279,9 +319,7 @@ export default function SearchSong() {
   const someChecked = songs.some((s) => checkedIds[s.id]) && !allChecked;
 
   useEffect(() => {
-    if (selectAllRef.current) {
-      selectAllRef.current.indeterminate = someChecked;
-    }
+    if (selectAllRef.current) selectAllRef.current.indeterminate = someChecked;
   }, [someChecked]);
 
   const toggleAll = (next: boolean) => {
@@ -296,91 +334,69 @@ export default function SearchSong() {
 
   /* ===================== 선택 트랙 ===================== */
 
-  // 앨범 상세 정보 가져오기 (music_id 찾기 위해)
-  const fetchAlbumDetail = useCallback(async (albumId: number) => {
-    if (!API_BASE) return null;
-    
-    // 캐시에 있으면 캐시 반환
-    if (albumDetailsCacheRef.current[albumId]) {
-      return albumDetailsCacheRef.current[albumId];
-    }
+  const fetchAlbumDetail = useCallback(
+    async (albumId: number) => {
+      if (!API_BASE) return null;
 
-    try {
-      const res = await axios.get<{
-        album_id: number;
-        tracks: Array<{ music_id: number; music_name: string }>;
-      }>(`${API_BASE}/albums/${albumId}/`, {
-        headers: { "Content-Type": "application/json" },
-      });
+      if (albumDetailsCacheRef.current[albumId]) return albumDetailsCacheRef.current[albumId];
 
-      const detail = {
-        tracks: res.data.tracks.map((t: { music_id: number; music_name: string }) => ({
-          music_id: t.music_id,
-          music_name: t.music_name,
-        })),
-      };
+      try {
+        const res = await axios.get<{
+          album_id: number;
+          tracks: Array<{ music_id: number; music_name: string }>;
+        }>(`${API_BASE}/albums/${albumId}/`, {
+          headers: { "Content-Type": "application/json" },
+        });
 
-      // 캐시에 저장
-      albumDetailsCacheRef.current[albumId] = detail;
+        const detail = {
+          tracks: res.data.tracks.map((t) => ({ music_id: t.music_id, music_name: t.music_name })),
+        };
 
-      return detail;
-    } catch (e) {
-      console.error(`[SearchSong] 앨범 ${albumId} 상세 정보 가져오기 실패:`, e);
-      return null;
-    }
-  }, [API_BASE]);
+        albumDetailsCacheRef.current[albumId] = detail;
+        return detail;
+      } catch (e) {
+        console.error(`[SearchSong] 앨범 ${albumId} 상세 정보 가져오기 실패:`, e);
+        return null;
+      }
+    },
+    [API_BASE]
+  );
 
-  // 곡의 music_id 찾기
-  const findMusicId = useCallback(async (song: Song): Promise<number | null> => {
-    // musicId가 있으면 사용
-    if (song.musicId) {
-      return song.musicId;
-    }
+  const findMusicId = useCallback(
+    async (song: Song): Promise<number | null> => {
+      if (song.musicId) return song.musicId;
+      if (!song.albumId) return null;
 
-    // albumId가 없으면 찾을 수 없음
-    if (!song.albumId) {
-      console.warn(`[SearchSong] 곡 ${song.title}의 albumId가 없습니다.`);
-      return null;
-    }
+      const albumDetail = await fetchAlbumDetail(song.albumId);
+      if (!albumDetail) return null;
 
-    // 앨범 상세 정보 가져오기
-    const albumDetail = await fetchAlbumDetail(song.albumId);
-    if (!albumDetail) {
-      return null;
-    }
+      const track = albumDetail.tracks.find((t) => t.music_name === song.title);
+      return track ? track.music_id : null;
+    },
+    [fetchAlbumDetail]
+  );
 
-    // 곡 이름으로 매칭해서 music_id 찾기
-    const track = albumDetail.tracks.find((t: { music_name: string }) => t.music_name === song.title);
-    if (track) {
-      console.log(`[SearchSong] 곡 ${song.title}의 music_id 찾음: ${track.music_id}`);
-      return track.music_id;
-    }
+  const fetchTrackAudioUrl = useCallback(
+    async (musicId: string): Promise<string | undefined> => {
+      if (!API_BASE) return undefined;
 
-    console.warn(`[SearchSong] 곡 ${song.title}을 앨범 ${song.albumId}의 트랙 목록에서 찾을 수 없습니다.`);
-    return null;
-  }, [fetchAlbumDetail]);
-
-  // 곡의 오디오 URL 가져오기
-  const fetchTrackAudioUrl = useCallback(async (musicId: string): Promise<string | undefined> => {
-    if (!API_BASE) return undefined;
-
-    try {
-      const res = await axios.get<{ audio_url: string }>(`${API_BASE}/tracks/${musicId}/play`, {
-        headers: { "Content-Type": "application/json" },
-      });
-      return res.data.audio_url;
-    } catch (e) {
-      console.error(`[SearchSong] 곡 ${musicId} 재생 URL 가져오기 실패:`, e);
-      return undefined;
-    }
-  }, [API_BASE]);
+      try {
+        const res = await axios.get<{ audio_url: string }>(`${API_BASE}/tracks/${musicId}/play`, {
+          headers: { "Content-Type": "application/json" },
+        });
+        return res.data.audio_url;
+      } catch (e) {
+        console.error(`[SearchSong] 곡 ${musicId} 재생 URL 가져오기 실패:`, e);
+        return undefined;
+      }
+    },
+    [API_BASE]
+  );
 
   const toTrack = async (s: Song): Promise<PlayerTrack> => {
-    // music_id 찾기
     const musicId = await findMusicId(s);
-    
+
     if (!musicId) {
-      console.warn(`[SearchSong] 곡 ${s.title}의 music_id를 찾을 수 없습니다.`);
       return {
         id: s.id,
         title: s.title,
@@ -392,20 +408,16 @@ export default function SearchSong() {
       };
     }
 
-    // 오디오 URL 가져오기
     const audioUrl = await fetchTrackAudioUrl(String(musicId));
-    
-    // 앨범 이미지 찾기
+
     const apiSong = apiSongs.find((as) => as.id === s.id);
     let coverUrl: string | undefined = undefined;
-    
+
     if (apiSong?.albumId) {
       const album = albums[apiSong.albumId];
-      // ✅ image_large_square 우선 사용 (RDS에 저장된 이미지), 없으면 album_image 사용
       const albumImage = album?.image_large_square || album?.album_image;
-      
+
       if (albumImage) {
-        // URL 처리 (상대 경로를 절대 경로로 변환)
         if (albumImage.startsWith("http") || albumImage.startsWith("//")) {
           coverUrl = albumImage;
         } else if (API_BASE && albumImage.startsWith("/")) {
@@ -413,33 +425,14 @@ export default function SearchSong() {
         } else {
           coverUrl = albumImage;
         }
-        
-        // 🔍 "SUPER REAL ME" 앨범 이미지 추적
-        if (album.title?.includes("SUPER REAL ME") || s.album?.includes("SUPER REAL ME")) {
-          const isExternal = albumImage.startsWith("http://") || 
-                            albumImage.startsWith("https://") || 
-                            albumImage.startsWith("//");
-          const isRdsPath = albumImage.startsWith("/");
-          console.warn(`[SearchSong] ⚠️ "SUPER REAL ME" 앨범 이미지 발견:`, {
-            song_title: s.title,
-            album_title: album.title,
-            album_id: apiSong.albumId,
-            image_large_square: album.image_large_square,
-            album_image: album.album_image,
-            final_image_url: albumImage,
-            source: "아티스트 앨범 API",
-            source_type: isExternal ? "외부 URL (iTunes/YouTube 등)" : isRdsPath ? "RDS 경로" : "기타",
-            is_external: isExternal,
-            is_rds_path: isRdsPath,
-            using_image_large_square: !!album.image_large_square,
-            api_endpoint: `${API_BASE}/artists/{artistId}/albums/`,
-          });
-        }
       }
     }
 
-    console.log(`[SearchSong] 곡 ${s.id} (music_id: ${musicId}) (${s.title})의 오디오 URL:`, audioUrl || "(없음)");
-    
+    if (__DEV__) {
+      // eslint-disable-next-line no-console
+      console.log(`[SearchSong] track ready`, { id: s.id, musicId, title: s.title, audioUrl, coverUrl });
+    }
+
     return {
       id: s.id,
       title: s.title,
@@ -447,17 +440,13 @@ export default function SearchSong() {
       album: s.album,
       duration: s.duration,
       audioUrl: audioUrl || undefined,
-      coverUrl: coverUrl,
-      musicId: musicId || undefined, // music_id 저장
-      albumId: s.albumId ?? null, // 앨범 상세 API를 위한 album_id 저장
+      coverUrl,
+      musicId: musicId || undefined,
+      albumId: s.albumId ?? null,
     };
   };
 
-  const checkedSongs = useMemo(
-    () => songs.filter((s) => checkedIds[s.id]),
-    [songs, checkedIds]
-  );
-
+  const checkedSongs = useMemo(() => songs.filter((s) => checkedIds[s.id]), [songs, checkedIds]);
   const selectedCount = checkedSongs.length;
 
   /* ===================== 담기 모달 ===================== */
@@ -477,11 +466,9 @@ export default function SearchSong() {
         setAddTargetsLoading(true);
         setAddTargetsError(null);
 
-        // 내 플레이리스트만 가져오기 (시스템 플레이리스트 제외)
         const data = await listMyPlaylists();
         if (cancelled) return;
 
-        // 시스템 플레이리스트 제외
         const filtered = data.filter((p) => p.visibility !== "system");
         setAddTargets(filtered);
       } catch (e) {
@@ -500,80 +487,73 @@ export default function SearchSong() {
     };
   }, [addOpen]);
 
+  const addSelectedToPlaylist = async (playlistId: string) => {
+    if (selectedCount === 0) return;
 
+    try {
+      const musicIds = (await Promise.all(checkedSongs.map(findMusicId))).filter(
+        (id): id is number => typeof id === "number"
+      );
+      const unique = Array.from(new Set(musicIds));
+      if (unique.length === 0) return;
 
-const addSelectedToPlaylist = async (playlistId: string) => {
-  if (selectedCount === 0) return;
+      await addPlaylistItems(playlistId, unique);
 
-  try {
-    // 담기에는 audioUrl/coverUrl가 필요 없음 → music_id만 있으면 됨
-    const musicIds = (await Promise.all(checkedSongs.map(findMusicId)))
-      .filter((id): id is number => typeof id === "number");
-
-    const unique = Array.from(new Set(musicIds));
-    if (unique.length === 0) return;
-
-    await addPlaylistItems(playlistId, unique);
-
-    setAddOpen(false);
-    setCheckedIds({});
-  } catch (e) {
-    console.error("[SearchSong] 플레이리스트 담기 실패:", e);
-    alert("플레이리스트에 담기 실패했어요. 잠시 후 다시 시도해주세요.");
-  }
-};
-
-const addSelectedToLiked = async () => {
-if (selectedCount === 0) return;
-
-try {
-  // 좋아요 API는 itunes_id가 아니라 music_id가 필요
-  const musicIds = (await Promise.all(checkedSongs.map(findMusicId)))
-    .filter((id): id is number => typeof id === "number");
-
-  const unique = Array.from(new Set(musicIds));
-  if (unique.length === 0) return;
-
-  // ✅ 병렬 호출 + 부분 실패 허용 (이미 좋아요 등의 케이스)
-  const results = await Promise.allSettled(
-    unique.map(async (id) => {
-      try {
-        await likeTrack(id);
-        return { id, ok: true };
-      } catch (e) {
-        // (선택) 이미 좋아요를 백엔드가 409로 주는 경우가 있으면 성공 취급 가능
-        if (axios.isAxiosError(e) && e.response?.status === 409) {
-          return { id, ok: true, already: true };
-        }
-        throw e;
-      }
-    })
-  );
-
-  const ok = results.filter((r) => r.status === "fulfilled").length;
-  const fail = results.length - ok;
-
-  setCheckedIds({});
-
-if (fail === 0) {
-  alert(`좋아요 완료: ${ok}곡`);
-} else {
-  alert(`좋아요 완료: ${ok}곡 / 실패: ${fail}곡`);
-}
-} catch (e) {
-  console.error("[SearchSong] 좋아요 실패:", e);
-  alert("좋아요 실패했어요. 잠시 후 다시 시도해주세요.");
-}
-};
-  /* ===================== 액션 ===================== */
-  type PendingPlay = {
-    key: ActionKey;           // "play" | "shuffle"
-    tracks: PlayerTrack[];    // 변환된 트랙들
+      setAddOpen(false);
+      setCheckedIds({});
+    } catch (e) {
+      console.error("[SearchSong] 플레이리스트 담기 실패:", e);
+      alert("플레이리스트에 담기 실패했어요. 잠시 후 다시 시도해주세요.");
+    }
   };
-  
+
+  const addSelectedToLiked = async () => {
+    if (selectedCount === 0) return;
+
+    try {
+      const musicIds = (await Promise.all(checkedSongs.map(findMusicId))).filter(
+        (id): id is number => typeof id === "number"
+      );
+      const unique = Array.from(new Set(musicIds));
+      if (unique.length === 0) return;
+
+      const results = await Promise.allSettled(
+        unique.map(async (id) => {
+          try {
+            await likeTrack(id);
+            return { id, ok: true };
+          } catch (e) {
+            if (axios.isAxiosError(e) && e.response?.status === 409) {
+              return { id, ok: true, already: true };
+            }
+            throw e;
+          }
+        })
+      );
+
+      const ok = results.filter((r) => r.status === "fulfilled").length;
+      const fail = results.length - ok;
+
+      setCheckedIds({});
+
+      if (fail === 0) alert(`좋아요 완료: ${ok}곡`);
+      else alert(`좋아요 완료: ${ok}곡 / 실패: ${fail}곡`);
+    } catch (e) {
+      console.error("[SearchSong] 좋아요 실패:", e);
+      alert("좋아요 실패했어요. 잠시 후 다시 시도해주세요.");
+    }
+  };
+
+  /* ===================== 액션 ===================== */
+
+  type PendingPlay = {
+    key: ActionKey;
+    tracks: PlayerTrack[];
+  };
+
   const [playConfirmOpen, setPlayConfirmOpen] = useState(false);
   const [pendingPlay, setPendingPlay] = useState<PendingPlay | null>(null);
-  
+
   const handleAction = async (key: ActionKey) => {
     if (!requireLogin("로그인 후 이용 가능합니다.")) return;
     if (selectedCount === 0) return;
@@ -593,24 +573,12 @@ if (fail === 0) {
       return;
     }
   };
-  /**
-   * 곡 리스트 한 행을 더블클릭했을 때 해당 곡만 바로 재생하는 핸들러
-   * - 체크박스 선택과 상관없이, 더블클릭한 곡 1곡만 재생
-   */
+
   const handleRowDoubleClick = async (song: Song) => {
     if (!requireLogin("로그인 후 이용 가능합니다.")) return;
     try {
       const track = await toTrack(song);
-
-      // audioUrl 이 없으면 재생 불가이므로 콘솔로만 경고
-      if (!track.audioUrl) {
-        console.warn("[SearchSong] 더블클릭한 곡의 audioUrl 이 없습니다. 재생 불가:", {
-          songId: song.id,
-          title: song.title,
-        });
-        return;
-      }
-
+      if (!track.audioUrl) return;
       playTracks([track]);
     } catch (e) {
       console.error("[SearchSong] 행 더블클릭 재생 중 오류:", e);
@@ -619,15 +587,12 @@ if (fail === 0) {
 
   const runPendingPlay = (mode: "replace" | "enqueue") => {
     if (!pendingPlay) return;
-  
+
     const isShuffle = pendingPlay.key === "shuffle";
-  
-    if (mode === "replace") {
-      playTracks(pendingPlay.tracks, { shuffle: isShuffle });
-    } else {
-      enqueueTracks(pendingPlay.tracks, { shuffle: isShuffle });
-    }
-  
+
+    if (mode === "replace") playTracks(pendingPlay.tracks, { shuffle: isShuffle });
+    else enqueueTracks(pendingPlay.tracks, { shuffle: isShuffle });
+
     setCheckedIds({});
     setPendingPlay(null);
     setPlayConfirmOpen(false);
@@ -636,317 +601,259 @@ if (fail === 0) {
   /* ===================== JSX ===================== */
 
   return (
-    <section className="mt-4 rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 overflow-hidden">
-      {/* 헤더 */}
-      <div className="px-8 pt-8 pb-6 border-b border-white/10 overflow-x-auto whitespace-nowrap no-scrollbar">
-        <div className="flex items-end justify-between">
-          <div className="flex items-center gap-4">
-            <h2 className="text-xl font-semibold text-[#F6F6F6]">곡</h2>
-            {loading ? (
-              <div className="text-sm text-white/40">검색 중...</div>
-            ) : error ? (
-              <div className="text-sm text-red-400">오류: {error}</div>
-            ) : (
-            <div className="text-sm text-white/40">총 {songs.length}곡</div>
-            )}
+    <>
+      <section className="mt-4 rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 overflow-hidden">
+        {/* 헤더 */}
+        <div className="px-8 pt-8 pb-6 border-b border-white/10 overflow-x-auto whitespace-nowrap no-scrollbar">
+          <div className="flex items-end justify-between">
+            <div className="flex items-center gap-4">
+              <h2 className="text-xl font-semibold text-[#F6F6F6]">곡</h2>
+              {loading ? (
+                <div className="text-sm text-white/40">검색 중...</div>
+              ) : error ? (
+                <div className="text-sm text-red-400">오류: {error}</div>
+              ) : (
+                <div className="text-sm text-white/40">총 {songs.length}곡</div>
+              )}
+            </div>
           </div>
-        </div>
 
-        <div className="mt-4 flex gap-3">
-          <button
-            type="button"
-            onClick={toggleExcludeAi}
-            className={[
-              "shrink-0 px-4 py-2 rounded-2xl transition-all text-sm flex items-center gap-2.5 border border-[#f6f6f6]/10",
-              excludeAi
-                ? "border-[#AFDEE2] text-[#AFDEE2]"
-                : "text-[#f6f6f6]/80 hover:bg-[#f6f6f6]/10 hover:text-[#f6f6f6] hover:border-[#f6f6f6]/20",
-            ].join(" ")}
-          >
-            <FaCheckCircle size={15} />
-            AI 제외
-          </button>
-
-          {actions.map((a) => (
+          <div className="mt-4 flex gap-3">
             <button
-              key={a.key}
               type="button"
-              disabled={selectedCount === 0}
-              onClick={() => handleAction(a.key)}
+              onClick={toggleExcludeAi}
               className={[
-                "px-4 py-2 rounded-2xl border border-[#f6f6f6]/10 text-sm flex items-center gap-2.5 transition",
-                selectedCount === 0
-                  ? "text-[#f6f6f6]/20 border-[#f6f6f6]/5 cursor-not-allowed"
+                "shrink-0 px-4 py-2 rounded-2xl transition-all text-sm flex items-center gap-2.5 border border-[#f6f6f6]/10",
+                excludeAi
+                  ? "border-[#AFDEE2] text-[#AFDEE2]"
                   : "text-[#f6f6f6]/80 hover:bg-[#f6f6f6]/10 hover:text-[#f6f6f6] hover:border-[#f6f6f6]/20",
               ].join(" ")}
             >
-              {a.icon}
-              {a.label}
+              <FaCheckCircle size={15} />
+              AI 제외
             </button>
-          ))}
-        </div>
-      </div>
 
-      {/* 리스트 헤더 */}
-      <div className="px-4 pt-4 border-b border-white/10">
-        <div className="px-4 grid grid-cols-[28px_56px_1fr_90px] gap-x-4 pb-3 text-xs text-[#f6f6f6]/60">
-          <input
-            ref={selectAllRef}
-            type="checkbox"
-            className="accent-[#f6f6f6] cursor-pointer"
-            checked={allChecked}
-            onChange={(e) => toggleAll(e.target.checked)}
-          />
-          <div className="col-span-2 px-2 border-l border-white/10">곡정보</div>
-          <div className="text-right px-2 border-r border-white/10">길이</div>
-        </div>
-      </div>
-
-      {/* 리스트 */}
-      <div className="divide-y divide-white/10">
-        {loading && songs.length === 0 ? (
-          <div className="px-6 py-12 text-center text-white/20">검색 중...</div>
-        ) : error && songs.length === 0 ? (
-          <div className="px-6 py-12 text-center text-red-400">
-            오류가 발생했습니다: {error}
-          </div>
-        ) : songs.length === 0 ? (
-          <div className="px-6 py-8 text-center text-white/20">
-            {q ? "검색 결과 없음" : "검색어를 입력해주세요"}
-          </div>
-        ) : (
-          songs.map((s) => (
-          <div
-            key={s.id}
-            className="grid grid-cols-[28px_56px_1fr_90px] items-center gap-x-3 px-8 py-2 hover:bg-white/5 transition cursor-pointer group"
-            onDoubleClick={() => handleRowDoubleClick(s)}
-          >
-            <input
-              type="checkbox"
-              className="accent-[#f6f6f6]"
-              checked={!!checkedIds[s.id]}
-              onChange={() => toggleOne(s.id)}
-            />
-
-            {/* 앨범 이미지 */}
-            <div className="ml-2 w-12 h-12 rounded-xl bg-white/5 overflow-hidden relative flex-shrink-0 shadow-lg">
-              {(() => {
-                // API에서 가져온 곡인지 확인하고 앨범 이미지 찾기
-                const apiSong = apiSongs.find((as) => as.id === s.id);
-                let albumImage: string | null = null;
-
-                if (apiSong?.albumId) {
-                  const album = albums[apiSong.albumId];
-                  // ✅ image_large_square 우선 사용 (RDS에 저장된 이미지), 없으면 album_image 사용
-                  albumImage = album?.image_large_square || album?.album_image || null;
-                }
-
-                return albumImage ? (
-                  <>
-                    <img
-                      src={
-                        albumImage.startsWith("http") || albumImage.startsWith("//")
-                          ? albumImage
-                          : API_BASE && albumImage.startsWith("/")
-                          ? `${API_BASE.replace("/api/v1", "")}${albumImage}`
-                          : albumImage
-                      }
-                      alt={s.title}
-                      className="w-full h-full object-cover relative z-10"
-                      onError={(e) => {
-                        if (__DEV__) {
-                          console.error("[SearchSong] ❌ 곡 앨범 이미지 로드 실패:", {
-                            song: s.title,
-                            album_id: apiSong?.albumId,
-                            image_url: albumImage,
-                          });
-                        }
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
-                      
-                      onLoad={(e) => {
-                        const img = e.target as HTMLImageElement;
-                        const fallback = img.nextElementSibling as HTMLElement;
-                        if (fallback) fallback.style.display = "none";
-                      }}
-                      loading="lazy"
-                      decoding="async"
-                      fetchPriority="low"
-                    />
-                    <div className="absolute inset-0 bg-white/5 animate-pulse z-0" />
-                  </>
-                ) : (
-                  <div className="w-full h-full bg-white/5" />
-                );
-              })()}
-            </div>
-
-            <div className="min-w-0">
-              <div className="ml-1 text-base text-[#f6f6f6] truncate group-hover:text-[#AFDEE2] transition-colors">
-                {s.title}
-                {s.isAi && (
-                  <span className="shrink-0 ml-3 text-[10px] font-black px-2 py-0.5 rounded-full bg-[#E4524D]/20 text-[#E4524D] border border-[#E4524D]/20 uppercase">
-                    AI
-                  </span>
-                )}
-              </div>
-              <div className="ml-1 text-xs text-white/30 truncate">{s.artist}</div>
-            </div>
-
-            <div className="mr-1 text-sm text-white/70 text-right group-hover:text-[#AFDEE2]/70 transition-colors">{s.duration}</div>
-          </div>
-          ))
-        )}
-      </div>
-
-      {/* ✅ 담기 모달 */}
-      {addOpen && (
-            <div className="fixed inset-0 z-[999] whitespace-normal">
-            <button
+            {actions.map((a) => (
+              <button
+                key={a.key}
                 type="button"
-                className="absolute inset-0 bg-black/50"
-                onClick={() => setAddOpen(false)}
-                aria-label="닫기"
+                disabled={selectedCount === 0}
+                onClick={() => handleAction(a.key)}
+                className={[
+                  "px-4 py-2 rounded-2xl border border-[#f6f6f6]/10 text-sm flex items-center gap-2.5 transition",
+                  selectedCount === 0
+                    ? "text-[#f6f6f6]/20 border-[#f6f6f6]/5 cursor-not-allowed"
+                    : "text-[#f6f6f6]/80 hover:bg-[#f6f6f6]/10 hover:text-[#f6f6f6] hover:border-[#f6f6f6]/20",
+                ].join(" ")}
+              >
+                {a.icon}
+                {a.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 리스트 헤더 */}
+        <div className="px-4 pt-4 border-b border-white/10">
+          <div className="px-4 grid grid-cols-[28px_56px_1fr_90px] gap-x-4 pb-3 text-xs text-[#f6f6f6]/60">
+            <input
+              ref={selectAllRef}
+              type="checkbox"
+              className="accent-[#f6f6f6] cursor-pointer"
+              checked={allChecked}
+              onChange={(e) => toggleAll(e.target.checked)}
             />
-            <div className="absolute inset-0 grid place-items-center p-6">
-                <div className="w-full max-w-[420px] rounded-3xl bg-[#2d2d2d] border border-[#464646] shadow-2xl overflow-hidden">
-                <div className="px-6 py-4 flex items-center justify-between border-b border-[#464646]">
-                    <div className="text-base font-semibold text-[#F6F6F6]">플레이리스트 선택</div>
-                    <button
-                    type="button"
-                    onClick={() => setAddOpen(false)}
-                    className="text-[#F6F6F6]/70 hover:text-white transition"
-                    aria-label="닫기"
-                    >
-                    ✕
-                    </button>
+            <div className="col-span-2 px-2 border-l border-white/10">곡정보</div>
+            <div className="text-right px-2 border-r border-white/10">길이</div>
+          </div>
+        </div>
+
+        {/* 리스트 */}
+        <div className="divide-y divide-white/10">
+          {loading && songs.length === 0 ? (
+            <div className="px-6 py-12 text-center text-white/20">검색 중...</div>
+          ) : error && songs.length === 0 ? (
+            <div className="px-6 py-12 text-center text-red-400">오류가 발생했습니다: {error}</div>
+          ) : songs.length === 0 ? (
+            <div className="px-6 py-8 text-center text-white/20">{q ? "검색 결과 없음" : "검색어를 입력해주세요"}</div>
+          ) : (
+            songs.map((s) => (
+              <div
+                key={s.id}
+                className="grid grid-cols-[28px_56px_1fr_90px] items-center gap-x-3 px-8 py-2 hover:bg-white/5 transition cursor-pointer group"
+                onDoubleClick={() => handleRowDoubleClick(s)}
+              >
+                <input
+                  type="checkbox"
+                  className="accent-[#f6f6f6]"
+                  checked={!!checkedIds[s.id]}
+                  onChange={() => toggleOne(s.id)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+
+                {/* 앨범 이미지 */}
+                <div className="ml-2 w-12 h-12 rounded-xl bg-white/5 overflow-hidden relative flex-shrink-0 shadow-lg">
+                  {(() => {
+                    const apiSong = apiSongs.find((as) => as.id === s.id);
+                    let albumImage: string | null = null;
+
+                    if (apiSong?.albumId) {
+                      const album = albums[apiSong.albumId];
+                      albumImage = album?.image_large_square || album?.album_image || null;
+                    }
+
+                    const src =
+                      albumImage && (albumImage.startsWith("http") || albumImage.startsWith("//"))
+                        ? albumImage
+                        : albumImage && API_BASE && albumImage.startsWith("/")
+                        ? `${API_BASE.replace("/api/v1", "")}${albumImage}`
+                        : albumImage || "";
+
+                    return albumImage ? (
+                      <>
+                        <img
+                          src={src}
+                          alt={s.title}
+                          className="w-full h-full object-cover relative z-10"
+                          onError={(e) => {
+                            if (__DEV__) {
+                              // eslint-disable-next-line no-console
+                              console.error("[SearchSong] ❌ 곡 앨범 이미지 로드 실패:", {
+                                song: s.title,
+                                album_id: apiSong?.albumId,
+                                image_url: albumImage,
+                              });
+                            }
+                            (e.target as HTMLImageElement).style.display = "none";
+                          }}
+                          onLoad={(e) => {
+                            const img = e.target as HTMLImageElement;
+                            const fallback = img.nextElementSibling as HTMLElement;
+                            if (fallback) fallback.style.display = "none";
+                          }}
+                          loading="lazy"
+                          decoding="async"
+                          fetchPriority="low"
+                        />
+                        <div className="absolute inset-0 bg-white/5 animate-pulse z-0" />
+                      </>
+                    ) : (
+                      <div className="w-full h-full bg-white/5" />
+                    );
+                  })()}
                 </div>
 
-                <div className="px-6 py-4 text-sm text-[#F6F6F6]/70">
-                    선택한 {selectedCount}곡을 담을 플레이리스트를 골라주세요
-                </div>
-
-                <div className="max-h-[360px] overflow-y-auto border-t border-[#464646]">
-                     {addTargetsLoading ? (
-                      <div className="px-6 py-6 text-sm text-[#aaa]">
-                        플레이리스트 불러오는 중...
-                      </div>
-                      ) : addTargetsError ? (
-                        <div className="px-6 py-6 text-sm text-red-400">
-                          오류: {addTargetsError}
-                        </div>
-                      ) : addTargets.length === 0 ? (
-                        <div className="px-6 py-6 text-sm text-[#aaa]">
-                          담을 수 있는 플레이리스트가 없어요.
-                        </div>
-                      ) : (
-                      addTargets.map((p) => (
-                        <button
-                        key={p.playlist_id}
-                        type="button"
-                        onClick={() => addSelectedToPlaylist(p.playlist_id.toString())}
-                        className="w-full text-left px-6 py-4 hover:bg-white/5 transition border-b border-[#464646]"
-                        >
-                        <div className="text-sm font-semibold text-[#F6F6F6] truncate">{p.title}</div>
-                        <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">
-                            {p.creator_nickname} · {p.visibility === "public" ? "공개" : "비공개"}
-                        </div>
-                        </button>
-                    ))
+                <div className="min-w-0">
+                  <div className="ml-1 text-base text-[#f6f6f6] truncate group-hover:text-[#AFDEE2] transition-colors">
+                    {s.title}
+                    {s.isAi && (
+                      <span className="shrink-0 ml-3 text-[10px] font-black px-2 py-0.5 rounded-full bg-[#E4524D]/20 text-[#E4524D] border border-[#E4524D]/20 uppercase">
+                        AI
+                      </span>
                     )}
+                  </div>
+                  <div className="ml-1 text-xs text-white/30 truncate">{s.artist}</div>
                 </div>
 
-                <div className="px-6 py-4 border-t border-[#464646] flex justify-end">
-                    <button
-                    type="button"
-                    onClick={() => setAddOpen(false)}
-                    className="px-4 py-2 rounded-2xl text-sm text-[#F6F6F6] hover:bg-white/10 transition"
-                    >
-                    취소
-                    </button>
+                <div className="mr-1 text-sm text-white/70 text-right group-hover:text-[#AFDEE2]/70 transition-colors">
+                  {s.duration}
                 </div>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
+
+      {/* ✅ 담기 모달 (Portal) */}
+      <BaseModal open={addOpen} onClose={() => setAddOpen(false)} title="플레이리스트 선택" maxWidthClass="max-w-[420px]">
+        <div className="px-6 py-4 text-sm text-[#F6F6F6]/70">선택한 {selectedCount}곡을 담을 플레이리스트를 골라주세요</div>
+
+        <div className="max-h-[360px] overflow-y-auto border-t border-[#464646]">
+          {addTargetsLoading ? (
+            <div className="px-6 py-6 text-sm text-[#aaa]">플레이리스트 불러오는 중...</div>
+          ) : addTargetsError ? (
+            <div className="px-6 py-6 text-sm text-red-400">오류: {addTargetsError}</div>
+          ) : addTargets.length === 0 ? (
+            <div className="px-6 py-6 text-sm text-[#aaa]">담을 수 있는 플레이리스트가 없어요.</div>
+          ) : (
+            addTargets.map((p) => (
+              <button
+                key={p.playlist_id}
+                type="button"
+                onClick={() => addSelectedToPlaylist(p.playlist_id.toString())}
+                className="w-full text-left px-6 py-4 hover:bg-white/5 transition border-b border-[#464646]"
+              >
+                <div className="text-sm font-semibold text-[#F6F6F6] truncate">{p.title}</div>
+                <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">
+                  {p.creator_nickname} · {p.visibility === "public" ? "공개" : "비공개"}
                 </div>
-            </div>
-            </div>
+              </button>
+            ))
+          )}
+        </div>
 
-      )}
-
-      {/* ✅ 재생 방식 선택 모달 */}
-      {playConfirmOpen && pendingPlay && (
-        <div className="fixed inset-0 z-[999] whitespace-normal">
+        <div className="px-6 py-4 border-t border-[#464646] flex justify-end">
           <button
             type="button"
-            className="absolute inset-0 bg-black/50"
-            onClick={() => {
-              setPlayConfirmOpen(false);
-              setPendingPlay(null);
-            }}
-            aria-label="닫기"
-          />
-          <div className="absolute inset-0 grid place-items-center p-6">
-            <div className="w-full max-w-[440px] rounded-3xl bg-[#2d2d2d] border border-[#464646] shadow-2xl overflow-hidden">
-              <div className="px-6 py-4 flex items-center justify-between border-b border-[#464646]">
-                <div className="text-base font-semibold text-[#F6F6F6]">재생 방식 선택</div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPlayConfirmOpen(false);
-                    setPendingPlay(null);
-                  }}
-                  className="text-[#F6F6F6]/70 hover:text-white transition"
-                  aria-label="닫기"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="px-6 py-4 text-sm text-[#F6F6F6]/70">
-                선택한 {pendingPlay.tracks.length}곡을{" "}
-                {pendingPlay.key === "shuffle" ? "셔플로 " : ""}
-                어떻게 재생할까요?
-              </div>
-
-              <div className="px-6 pb-6 grid grid-cols-1 gap-3">
-                <button
-                  type="button"
-                  onClick={() => runPendingPlay("replace")}
-                  className="w-full px-4 py-3 rounded-2xl text-sm text-[#F6F6F6] outline outline-1 outline-[#464646] hover:bg-white/10 transition text-left"
-                >
-                  <div className="font-semibold text-[#afdee2]">현재 재생 대기목록 지우고 재생</div>
-                  <div className="mt-1 text-xs text-[#999]">
-                    지금 재생 대기목록을 초기화하고 선택한 곡들로 새로 재생합니다.
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => runPendingPlay("enqueue")}
-                  className="w-full px-4 py-3 rounded-2xl text-sm text-[#F6F6F6] outline outline-1 outline-[#464646] hover:bg-white/10 transition text-left"
-                >
-                  <div className="font-semibold text-[#afdee2]">재생 대기목록 맨 뒤에 추가</div>
-                  <div className="mt-1 text-xs text-[#999]">
-                    현재 재생은 유지하고, 선택한 곡들을 재생 대기 목록 마지막에 둡니다.
-                  </div>
-                </button>
-              </div>
-
-              <div className="px-6 py-4 border-t border-[#464646] flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPlayConfirmOpen(false);
-                    setPendingPlay(null);
-                  }}
-                  className="px-4 py-2 rounded-2xl text-sm text-[#F6F6F6] hover:bg-white/10 transition"
-                >
-                  취소
-                </button>
-              </div>
-            </div>
-          </div>
+            onClick={() => setAddOpen(false)}
+            className="px-4 py-2 rounded-2xl text-sm text-[#F6F6F6] hover:bg-white/10 transition"
+          >
+            취소
+          </button>
         </div>
-      )}
+      </BaseModal>
 
-    </section>
+      {/* ✅ 재생 방식 선택 모달 (Portal) */}
+      <BaseModal
+        open={playConfirmOpen && !!pendingPlay}
+        onClose={() => {
+          setPlayConfirmOpen(false);
+          setPendingPlay(null);
+        }}
+        title="재생 방식 선택"
+        maxWidthClass="max-w-[440px]"
+      >
+        {pendingPlay && (
+          <>
+            <div className="px-6 py-4 text-sm text-[#F6F6F6]/70">
+              선택한 {pendingPlay.tracks.length}곡을 {pendingPlay.key === "shuffle" ? "셔플로 " : ""}어떻게 재생할까요?
+            </div>
+
+            <div className="px-6 pb-6 grid grid-cols-1 gap-3">
+              <button
+                type="button"
+                onClick={() => runPendingPlay("replace")}
+                className="w-full px-4 py-3 rounded-2xl text-sm text-[#F6F6F6] outline outline-1 outline-[#464646] hover:bg-white/10 transition text-left"
+              >
+                <div className="font-semibold text-[#afdee2]">현재 재생 대기목록 지우고 재생</div>
+                <div className="mt-1 text-xs text-[#999]">지금 재생 대기목록을 초기화하고 선택한 곡들로 새로 재생합니다.</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => runPendingPlay("enqueue")}
+                className="w-full px-4 py-3 rounded-2xl text-sm text-[#F6F6F6] outline outline-1 outline-[#464646] hover:bg-white/10 transition text-left"
+              >
+                <div className="font-semibold text-[#afdee2]">재생 대기목록 맨 뒤에 추가</div>
+                <div className="mt-1 text-xs text-[#999]">현재 재생은 유지하고, 선택한 곡들을 재생 대기 목록 마지막에 둡니다.</div>
+              </button>
+            </div>
+
+            <div className="px-6 py-4 border-t border-[#464646] flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setPlayConfirmOpen(false);
+                  setPendingPlay(null);
+                }}
+                className="px-4 py-2 rounded-2xl text-sm text-[#F6F6F6] hover:bg-white/10 transition"
+              >
+                취소
+              </button>
+            </div>
+          </>
+        )}
+      </BaseModal>
+    </>
   );
 }

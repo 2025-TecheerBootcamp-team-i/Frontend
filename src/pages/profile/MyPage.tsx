@@ -358,10 +358,10 @@ export default function MyPage() {
             onClick={() => setRange(key)}
             aria-pressed={active}
             className={[
-            "h-9 px-4 rounded-full text-sm border border-[#2d2d2d] transition",
+            "py-2 px-4 rounded-full text-sm whitespace-nowrap",
             active
-                ? "bg-[#E4524D] text-[#F6F6F6]"
-                : "bg-[#3d3d3d] text-[#F6F6F6]/80 hover:text-[#F6F6F6] hover:bg-[#3d3d3d]/80",
+                ? "bg-[#E4524D]/80 text-[#F6F6F6]"
+                : "bg-white/20 text-[#F6F6F6] hover:bg-white/[0.08]",
             ].join(" ")}
         >
             {label}
@@ -395,8 +395,8 @@ export default function MyPage() {
                 {/* ✅ 프로필 + 분석 */}
                 <div className="space-y-6">
                     {/* 프로필 카드 */}
-                    <div className="rounded-[40px] border border-white/10 bg-white/[0.05] backdrop-blur-2xl p-8 shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
-                        <div className="flex items-center gap-8">
+                    <div className="rounded-[40px] border border-white/10 bg-white/[0.05] backdrop-blur-2xl p-6">
+                        <div className="flex items-center gap-6">
                                 <div className="w-32 h-32 rounded-full bg-white/10 overflow-hidden shadow-2xl border border-white/20">
                                     {profile.avatar ? (
                                     <img
@@ -407,14 +407,14 @@ export default function MyPage() {
                                     ) : null}
                                 </div>
                                 <div className="min-w-0 flex flex-col">
-                                    <div className="text-3xl font-black tracking-tighter text-white">
+                                    <div className="text-3xl font-semibold text-[#f6f6f6]">
                                         {profile.name}
                                     </div>
-                                <div className="mt-4 text-sm font-bold text-white/40 uppercase tracking-widest">
+                                <div className="mt-3 text-sm text-[#f6f6f6]/80">
                                     <button
                                     type="button"
                                     onClick={openEdit}
-                                    className="flex items-center gap-2 hover:text-[#AFDEE2] transition-colors"
+                                    className="flex items-center gap-1 hover:underline hover:text-[#f6f6f6]/50 transition-colors"
                                     >
                                     <IoIosSettings size={20} />
                                     수정 및 설정
@@ -425,67 +425,73 @@ export default function MyPage() {
                     </div>
 
                     {/* 분석 대시보드 카드 */}
-                    <div className="rounded-[40px] border border-white/10 bg-white/[0.05] backdrop-blur-2xl p-8 shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
-                        <div className="flex items-center justify-between mb-6">
-                        <div className="px-2 text-xl font-black tracking-[0.2em] text-white uppercase opacity-80">
+                    <div className="rounded-[40px] border border-white/10 bg-white/[0.05] backdrop-blur-2xl p-6">
+                        <div className="flex items-center justify-between mt-2 mb-3">
+                        <div className="px-2 text-2xl font-semibold text-[#f6f6f6]">
                             개인 음악 분석 데이터
                         </div>
 
                         {/* ✅ 여기: 버튼 클릭하면 탭 넘어가게 */}
-                        <div className="px-2 flex gap-3">
+                        <div className="px-2 flex gap-2">
                             {tabBtn("month", "이번 달")}
                             {tabBtn("all", "전체")}
                         </div>
                         </div>
 
-                        <div className="border-b border-white/10 mb-8" />
+                        <div className="border-b border-white/10 mb-4" />
 
-                        <div className="mt-4 grid grid-cols-3 gap-6">
-                        <div className="rounded-3xl bg-white/[0.03] border border-white/10 p-6 shadow-xl">
-                            <div className="text-[11px] font-black tracking-widest text-white/30 uppercase">
+                        <div className="mt-4 grid grid-cols-3 gap-4">
+                        {/* 청취 */}
+                        <div className="rounded-3xl bg-white/[0.04] border border-white/10 p-6">
+                            <div className="text-sm text-[#f6f6f6]/35">
                             {range === "month" ? "이번 달 청취" : "누적 청취"}
                             </div>
-                            <div className="mt-2 text-2xl font-black text-white">
+                            <div className="mt-2 text-2xl font-bold text-[#F6F6F6] tabular-nums">
                             {dashboard.listen.value}
                             </div>
-                            <div className="mt-2 text-[11px] font-bold text-white/20 uppercase tracking-tight">
+                            <div className="mt-2 text-xs text-[#f6f6f6]/25">
                             {dashboard.listen.sub}
                             </div>
                         </div>
 
-                        <div className="rounded-3xl bg-white/[0.03] border border-white/10 p-6 shadow-xl">
-                            <div className="text-[11px] font-black tracking-widest text-white/30 uppercase">Top 장르</div>
-                            <div className="mt-2 text-2xl font-black text-[#AFDEE2]">
+                        {/* Top 장르 */}
+                        <div className="rounded-3xl bg-white/[0.04] border border-white/10 p-6">
+                            <div className="text-sm text-[#f6f6f6]/35">
+                            Top 장르
+                            </div>
+                            <div className="mt-2 text-2xl font-bold text-[#AFDEE2] tabular-nums">
                             {dashboard.genre.value}
                             </div>
-                            <div className="mt-2 text-[11px] font-bold text-white/20 uppercase tracking-tight">
+                            <div className="mt-2 text-xs text-[#f6f6f6]/25">
                             {dashboard.genre.sub}
                             </div>
                         </div>
 
-                        <div className="rounded-3xl bg-white/[0.03] border border-white/10 p-6 shadow-xl">
-                            <div className="text-[11px] font-black tracking-widest text-white/30 uppercase">
+                        {/* AI 생성 활동 */}
+                        <div className="rounded-3xl bg-white/[0.04] border border-white/10 p-6">
+                            <div className="text-sm text-[#f6f6f6]/35">
                             AI 생성 활동
                             </div>
-                            <div className="mt-2 text-2xl font-black text-white">
+                            <div className="mt-2 text-2xl font-bold text-[#F6F6F6] tabular-nums">
                             {dashboard.ai.value}
                             </div>
-                            <div className="mt-2 text-[11px] font-bold text-white/20 uppercase tracking-tight">
+                            <div className="mt-2 text-xs text-[#f6f6f6]/25">
                             {dashboard.ai.sub}
                             </div>
                         </div>
                         </div>
 
-                        <div className="mt-6 grid grid-cols-2 gap-6">
+
+                        <div className="mt-4 grid grid-cols-2 gap-4">
                         <div className="rounded-3xl bg-white/[0.03] border border-white/10 p-6 shadow-xl">
-                            <div className="text-sm font-black tracking-[0.1em] text-white/40 uppercase mb-4">
+                            <div className="text-sm font-semibold text-white/40 mb-3">
                             Top 아티스트
                             </div>
 
                             <div className="space-y-4">
                             {statistics?.top_artists.slice(0, 3).map((artist) => (
-                                <div key={artist.artist_id} className="flex items-center gap-4 group cursor-pointer" onClick={() => navigate(`/artists/${artist.artist_id}`)}>
-                                <div className="w-10 h-10 rounded-xl bg-white/10 overflow-hidden shadow-lg border border-white/10 group-hover:scale-110 transition-transform duration-300">
+                                <div key={artist.artist_id} className="flex items-center gap-3 group cursor-pointer" onClick={() => navigate(`/artists/${artist.artist_id}`)}>
+                                <div className="w-10 h-10 rounded-xl bg-white/10 overflow-hidden shadow-lg group-hover:scale-110 transition-transform duration-300">
                                     {artist.artist_image ? (
                                     <img 
                                         src={artist.artist_image} 
@@ -496,21 +502,21 @@ export default function MyPage() {
                                 </div>
 
                                 <div className="flex-1 min-w-0">
-                                    <div className="text-sm font-bold text-white/90 truncate group-hover:text-[#AFDEE2] transition-colors">
+                                    <div className="text-sm text-[#f6f6f6]/90 truncate group-hover:text-[#AFDEE2] transition-colors">
                                     {artist.rank}. {artist.artist_name}
                                     </div>
-                                    <div className="text-[11px] font-medium text-white/30">
+                                    <div className="text-xs text-[#f6f6f6]/30">
                                     재생 횟수: {artist.play_count}회
                                     </div>
                                 </div>
 
-                                <div className="text-xs font-black text-white/20 tabular-nums">
+                                <div className="text-sm text-center text-[#f6f6f6]/20 tabular-nums whitespace-nowrap">
                                     {artist.percentage.toFixed(1)}%
                                 </div>
                                 </div>
                             ))}
                             {(!statistics || statistics.top_artists.length === 0) && (
-                                <div className="text-xs font-bold text-white/20 text-center py-6 uppercase tracking-widest">
+                                <div className="text-sm text-[#f6f6f6]/80 text-center py-4">
                                 데이터 없음
                                 </div>
                             )}
@@ -518,18 +524,18 @@ export default function MyPage() {
                         </div>
 
                         <div className="rounded-3xl bg-white/[0.03] border border-white/10 p-6 shadow-xl">
-                            <div className="text-sm font-black tracking-[0.1em] text-white/40 uppercase mb-4">
+                            <div className="text-sm font-semibold text-[#f6f6f6]/40 mb-3">
                             분위기/키워드
                             </div>
 
-                            <div className="flex flex-wrap gap-2.5">
+                            <div className="flex flex-wrap gap-2">
                             {statistics?.top_tags.slice(0, 6).map((tag) => (
                                 <span
                                     key={tag.tag_id}
                                     className="
-                                    px-3.5 py-2 rounded-full
+                                    px-3 py-2 rounded-full
                                     bg-white/[0.05] border border-white/10
-                                    text-[13px] font-bold text-[#AFDEE2]/80
+                                    text-sm text-[#AFDEE2]/80
                                     hover:bg-white/[0.1] hover:text-[#AFDEE2] transition-all
                                     "
                                 >
@@ -537,7 +543,7 @@ export default function MyPage() {
                                 </span>
                             ))}
                             {(!statistics || statistics.top_tags.length === 0) && (
-                                <div className="text-xs font-bold text-white/20 text-center py-6 w-full uppercase tracking-widest">
+                                <div className="text-sm text-[#f6f6f6]/80 text-center py-4">
                                 데이터 없음
                                 </div>
                             )}
@@ -545,17 +551,17 @@ export default function MyPage() {
                         </div>
                         </div>
 
-                        <div className="mt-6 rounded-[24px] bg-white/[0.03] border border-white/5 p-6 text-center shadow-inner">
-                        <div className="text-[11px] font-black tracking-widest text-white/30 uppercase mb-2">
+                        <div className="mt-5 rounded-[24px] bg-white/[0.03] border border-white/5 p-6 text-center shadow-xl">
+                        <div className="text-sm text-[#f6f6f6]/30 mb-3">
                             {range === "month" ? "이번 달 인사이트" : "전체 인사이트"}
                         </div>
-                        <div className="text-base font-bold text-white/80 leading-relaxed">
+                        <div className="text-base text-[#f6f6f6]/80">
                             {dashboard.insight.text}{" "}
-                            <span className="text-[#AFDEE2] font-black">
+                            <span className="text-[#AFDEE2] font-semibold">
                             {dashboard.insight.main1}
                             </span>
                             {" 장르와 "}
-                            <span className="text-[#AFDEE2] font-black">
+                            <span className="text-[#AFDEE2] font-semibold">
                             {dashboard.insight.main2}
                             </span>
                             을(를) 더 자주 들었어요 🎧
@@ -565,12 +571,12 @@ export default function MyPage() {
                 </div>
 
                 {/* 나의 플레이리스트 */}
-                <div className="rounded-[40px] border border-white/10 bg-white/[0.05] backdrop-blur-2xl p-8 shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
-                    <div className="flex items-center justify-between mb-6">
+                <div className="rounded-[40px] border border-white/10 bg-white/[0.05] backdrop-blur-2xl p-6">
+                    <div className="flex items-center justify-between mb-3">
                     <button
                         type="button"
                         onClick={() => navigate("/my-playlists")}
-                        className="px-2 text-xl font-black tracking-[0.2em] text-white uppercase opacity-80 hover:text-[#AFDEE2] transition-colors"
+                        className="px-2 text-xl transition font-semibold text-[#f6f6f6] hover:text-[#f6f6f6]/50"
                     >
                         나의 플레이리스트
                     </button>
@@ -578,7 +584,7 @@ export default function MyPage() {
                     <button
                         type="button"
                         onClick={() => navigate("/my-playlists")}
-                        className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-all"
+                        className="px-2 text-[#f6f6f6] hover:text-[#f6f6f6]/50 transition-all"
                         aria-label="플레이리스트 더보기"
                         title="더보기"
                     >
@@ -586,10 +592,10 @@ export default function MyPage() {
                     </button>
                     </div>
 
-                    <div className="border-b border-white/10 mb-8" />
+                    <div className="border-b border-white/10" />
 
                     <HorizontalScroller gradientFromClass="from-transparent">
-                    <div className="flex gap-4 w-max">
+                    <div className="flex w-max">
                         {playlists.slice(0, 12).map((p) => (
                         <button
                             key={p.id}
@@ -599,15 +605,15 @@ export default function MyPage() {
                             w-[155px]
                             shrink-0
                             flex flex-col
-                            rounded-[32px]
-                            hover:bg-white/[0.08]
-                            transition-all duration-500
+                            rounded-xl
+                            hover:bg-white/[0.05]
+                            transition-all duration-300
                             p-3
                             text-left
                             group
                             "
                         >
-                            <div className="w-full aspect-square rounded-[24px] bg-white/10 overflow-hidden shadow-xl border border-white/10 group-hover:scale-105 transition-transform duration-500">
+                            <div className="w-full aspect-square rounded-xl bg-white/10 overflow-hidden shadow-xl group-hover:scale-105 transition-transform duration-500">
                                 {p.coverUrl ? (
                                     <img src={p.coverUrl} alt={p.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
                                 ) : (
@@ -616,8 +622,8 @@ export default function MyPage() {
                             </div>
 
                             <div className="mt-4 px-1">
-                                <div className="text-[14px] font-bold text-white/90 truncate tracking-tight group-hover:text-[#AFDEE2] transition-colors">{p.title}</div>
-                                <div className="mt-1.5 text-[11px] font-black text-white/20 uppercase tracking-widest">Playlist</div>
+                                <div className="text-sm text-[#f6f6f6]/90 truncate group-hover:text-[#AFDEE2] transition-colors">{p.title}</div>
+                                <div className="mt-1 text-[11px] text-white/20 uppercase">Playlist</div>
                             </div>
                         </button>
                         ))}
@@ -627,12 +633,12 @@ export default function MyPage() {
                 </div>
 
                 {/* 나의 AI 생성곡 */}
-                <div className="rounded-[40px] border border-white/10 bg-white/[0.05] backdrop-blur-2xl p-8 shadow-[0_30px_80px_rgba(0,0,0,0.5)] mb-10">
-                    <div className="flex items-center justify-between mb-6">
+                <div className="rounded-[40px] border border-white/10 bg-white/[0.05] backdrop-blur-2xl p-6">
+                    <div className="flex items-center justify-between mb-3">
                     <button
                         type="button"
                         onClick={() => navigate("/my/ai-songs")}
-                        className="px-2 text-xl font-black tracking-[0.2em] text-white uppercase opacity-80 hover:text-[#AFDEE2] transition-colors"
+                        className="px-2 text-xl font-semibold text-[#f6f6f6] hover:text-[#f6f6f6]/50 transition"
                     >
                         나의 AI 생성곡
                     </button>
@@ -640,7 +646,7 @@ export default function MyPage() {
                     <button
                         type="button"
                         onClick={() => navigate("/my/ai-songs")}
-                        className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-all"
+                        className="px-2 text-[#f6f6f6] hover:text-[#f6f6f6]/50 transition-all"
                         aria-label="AI 생성곡 더보기"
                         title="더보기"
                     >
@@ -648,14 +654,14 @@ export default function MyPage() {
                     </button>
                     </div>
 
-                    <div className="border-b border-white/10 mb-8" />
+                    <div className="border-b border-white/10" />
 
                     <HorizontalScroller gradientFromClass="from-transparent">
-                    <div className="flex gap-4 w-max">
+                    <div className="flex w-max">
                         {aiLoading ? (
-                        <div className="px-6 py-10 text-sm font-bold text-white/20 uppercase tracking-widest">로딩 중...</div>
+                        <div className="px-4 py-6 text-sm text-white/80">로딩 중...</div>
                         ) : aiError ? (
-                        <div className="px-6 py-10 text-sm font-bold text-red-400/60 uppercase tracking-widest">{aiError}</div>
+                        <div className="px-4 py-6 text-sm text-red-400/60">{aiError}</div>
                         ) : (
                         <>
                             {myAiPreview.map((t) => (
@@ -667,15 +673,15 @@ export default function MyPage() {
                                 w-[155px]
                                 shrink-0
                                 flex flex-col
-                                rounded-[32px]
-                                hover:bg-white/[0.08]
-                                transition-all duration-500
+                                rounded-xl
+                                hover:bg-white/[0.05]
+                                transition-all duration-300
                                 p-3
                                 text-left
                                 group
                                 "
                             >
-                                <div className="w-full aspect-square rounded-[24px] bg-white/10 overflow-hidden shadow-xl border border-white/10 group-hover:scale-105 transition-transform duration-500">
+                                <div className="w-full aspect-square rounded-xl bg-white/10 overflow-hidden shadow-xl group-hover:scale-105 transition-transform duration-500">
                                 {t.coverUrl ? (
                                     <img
                                     src={t.coverUrl}
@@ -688,10 +694,10 @@ export default function MyPage() {
                                 </div>
 
                                 <div className="mt-4 px-1">
-                                <div className="text-[14px] font-bold text-white/90 truncate tracking-tight group-hover:text-[#AFDEE2] transition-colors">
+                                <div className="text-sm text-[#f6f6f6]/90 truncate group-hover:text-[#AFDEE2] transition-colors">
                                     {t.title}
                                 </div>
-                                <div className="mt-1.5 text-[11px] font-black text-white/20 uppercase tracking-widest">AI Track</div>
+                                <div className="mt-1 text-[11px] text-white/20 uppercase">AI Track</div>
                                 </div>
                             </button>
                             ))}
@@ -739,102 +745,111 @@ export default function MyPage() {
                 </section>
 
                 {/* 우측 */}
-                <aside className="col-span-6 rounded-[40px] border border-white/10 bg-white/[0.05] backdrop-blur-2xl p-0 overflow-hidden shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
-                <h2 className="px-10 pt-10 pb-6 text-xl font-black tracking-[0.2em] text-white uppercase opacity-80">
-                    실시간 나의 TOP 50 차트
-                </h2>
-
-                <div className="border-b border-white/10" />
-
-                <div className="mt-4 px-10 grid grid-cols-[80px_220px_1fr] items-center text-[12px] font-black tracking-widest text-white/30 uppercase">
-                    <div className="border-l border-white/10 pl-4">순위</div>
-                    <div className="border-l border-white/10 pl-4">곡정보</div>
-                    <div className="border-l border-white/10 pl-4">
-                    총 들은 수
+                <aside className="col-span-6 rounded-[40px] border border-white/10 bg-white/[0.05] backdrop-blur-2xl p-0 overflow-hidden whitespace-nowrap">
+                {/* 상단 헤더 (ChartTop100 스타일) */}
+                <div className="px-8 py-6 border-b border-white/10">
+                    <div className="flex pt-2 items-end justify-between gap-4">
+                    <h2 className="text-2xl px-2 font-semibold text-[#f6f6f6]">
+                        실시간 나의 TOP 50 차트
+                    </h2>
+                    {/* 필요하면 우측에 기간/업데이트 시간 자리 */}
                     </div>
                 </div>
 
-                <div className="mt-4 border-b border-white/10" />
+                {/* 테이블 헤더 (텍스트 그대로) */}
+                <div>
+                    <div className="grid grid-cols-[80px_220px_1fr] items-center py-3 px-4 text-sm text-[#f6f6f6]/30">
+                    <div className="border-l border-white/10 pl-4">순위</div>
+                    <div className="border-l border-white/10 pl-4">곡정보</div>
+                    <div className="border-l border-white/10 pl-4">총 들은 수</div>
+                    </div>
+                    <div className="border-b border-white/10" />
+                </div>
 
-                <div className="px-4 py-4">
-                    <div className="space-y-1">
+                {/* 리스트 (ChartTop100처럼 divide-y + row hover) */}
+                <div className="divide-y divide-white/10">
                     {topRows.slice(0, 15).map((r, idx) => (
                     <div
                         key={r.id}
-                        className="
-                        group
-                        w-full
-                        text-left
-                        transition-all duration-300
-                        hover:bg-white/[0.08]
-                        rounded-2xl
-                        "
-                    >
-                        <div
                         className={[
-                            "grid grid-cols-[80px_220px_1fr] items-center px-6 py-3 rounded-2xl",
-                            idx % 2 === 0 ? "bg-white/[0.02]" : "bg-transparent",
+                        "group grid grid-cols-[80px_220px_1fr] items-center px-4 py-2",
+                        "transition-all duration-300 hover:bg-white/[0.08]",
+                        idx % 2 === 0 ? "bg-white/[0.02]" : "bg-transparent",
                         ].join(" ")}
-                        >
+                    >
                         {/* ✅ 순위 (행 hover 시 아이콘으로 전환) */}
-                        <div className="border-l border-white/5 text-left pl-4">
-                            <div className="flex items-center gap-3">
+                        <div className="border-l border-white/10 pl-4 text-left">
+                        <div className="flex items-center gap-3">
                             <div className="relative w-8 flex items-center justify-center">
-                                {/* 기본: 순위 */}
-                                <span className="text-[15px] font-black text-white/90 transition-opacity group-hover:opacity-0 tabular-nums">
+                            {/* 기본: 순위 */}
+                            <span className="text-[15px] text-[#f6f6f6]/90 transition-opacity group-hover:opacity-0 tabular-nums">
                                 {r.rank}
-                                </span>
+                            </span>
 
-                                {/* hover: 재생 아이콘 */}
-                                <button 
-                                    type="button"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setTrackAndPlay(toTrack(r)); // ✅ 하단 플레이어 세팅+재생
-                                    }}
-                                    className="absolute opacity-0 transition-all duration-300 group-hover:opacity-100 text-[#AFDEE2] hover:scale-125"
-                                    aria-label={`${r.title} 재생`}
-                                    title="재생"><FaPlay size={18} />
-                                </button>
+                            {/* hover: 재생 아이콘 */}
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                e.stopPropagation();
+                                setTrackAndPlay(toTrack(r));
+                                }}
+                                className="absolute opacity-0 transition-all duration-300 group-hover:opacity-100 text-[#AFDEE2]"
+                                aria-label={`${r.title} 재생`}
+                                title="재생"
+                            >
+                                <FaPlay size={18} />
+                            </button>
                             </div>
-                            </div>
+                        </div>
                         </div>
 
                         {/* 곡정보 */}
-                        <div className="pl-4 min-w-0 border-l border-white/5">
-                            <div className="flex items-center gap-5 min-w-0">
-                            <div className="h-12 w-12 shrink-0 rounded-xl bg-white/10 overflow-hidden shadow-lg border border-white/10 group-hover:scale-110 transition-transform duration-300">
-                                {r.coverUrl ? (
-                                <img 
-                                    src={r.coverUrl} 
+                        <div className="pl-4 min-w-0 border-l border-white/10">
+                        <div className="flex items-center gap-4 min-w-0">
+                            <div className="relative h-14 w-14 rounded-lg bg-white/10 shrink-0 overflow-hidden group-hover:scale-105 transition-transform duration-500">
+                            {r.coverUrl ? (
+                                <>
+                                <img
+                                    src={r.coverUrl}
                                     alt={r.title}
                                     className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                    e.currentTarget.style.display = "none";
+                                    const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                                    if (fallback) fallback.style.display = "block";
+                                    }}
                                 />
-                                ) : (
-                                    <div className="w-full h-full bg-gradient-to-br from-white/5 to-transparent" />
-                                )}
+                                {/* fallback (이미지 로드 실패 시) */}
+                                <div className="hidden w-full h-full bg-white/5" />
+                                </>
+                            ) : (
+                                <div className="w-full h-full bg-white/5" />
+                            )}
+
+                            {/* hover overlay */}
+                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                             </div>
+
                             <div className="min-w-0">
-                                <div className="truncate text-[14px] font-bold text-white/95 tracking-tight group-hover:text-[#AFDEE2] transition-colors">
+                            <div className="truncate text-sm text-[#f6f6f6]/95 group-hover:text-[#AFDEE2] transition-colors">
                                 {r.title}
-                                </div>
-                                <div className="truncate text-[11px] font-medium text-white/30 tracking-wide mt-0.5">
+                            </div>
+                            <div className="truncate text-[12px] text-white/40">
                                 {r.artist}
-                                </div>
                             </div>
                             </div>
+                        </div>
                         </div>
 
                         {/* 총 들은 수 */}
-                        <div className="border-l border-white/5 pl-4 text-left text-sm font-black text-white/40 tabular-nums group-hover:text-[#AFDEE2]/60 transition-colors">
-                            {r.total}번
-                        </div>
+                        <div className="border-l border-white/10 pl-4 text-left text-sm text-[#f6f6f6]/40 tabular-nums group-hover:text-white/60 transition-colors">
+                        {r.total}번
                         </div>
                     </div>
                     ))}
-                    </div>
                 </div>
                 </aside>
+
                 {/* /우측 */}
                 </div>
                 {/* /grid */}

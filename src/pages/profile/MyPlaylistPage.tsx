@@ -46,9 +46,9 @@ function Tab({ to, label }: { to: string; label: string }) {
         className={({ isActive }) =>
             [
             "px-4 py-2 rounded-full text-base transition whitespace-nowrap",
-            isActive
-                ? "bg-[#E4524D] text-[#F6F6F6]"
-                : "bg-[#4d4d4d] text-[#F6F6F6] hover:bg-[#5d5d5d]",
+          isActive
+              ? "bg-[#E4524D]/80 text-[#F6F6F6]"
+              : "bg-white/20 text-[#F6F6F6] hover:bg-white/[0.08]",
             ].join(" ")
         }
         >
@@ -178,9 +178,9 @@ function Tab({ to, label }: { to: string; label: string }) {
     onClickItem?: (id: string) => void;
     }) {
     return (
-        <section className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
-        <div className="px-10 pt-8 pb-4 flex items-center justify-between">
-            <div className="text-xl font-black tracking-[0.2em] text-white uppercase opacity-80">
+        <section className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10">
+        <div className="px-8 pt-6 pb-2 flex items-center justify-between">
+            <div className="text-xl font-semibold text-[#f6f6f6]">
             {title}
             </div>
 
@@ -188,7 +188,7 @@ function Tab({ to, label }: { to: string; label: string }) {
             <button
             type="button"
             onClick={onMore}
-            className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-all"
+            className="text-[#F6F6F6] hover:text-[#f6f6f6]/50 transition text-xl leading-none"
             aria-label={`${title} 더보기`}
             title="더보기"
             >
@@ -197,11 +197,11 @@ function Tab({ to, label }: { to: string; label: string }) {
             )}
         </div>
 
-        <div className="mx-10 border-b border-white/10 mb-8" />
+        <div className="mb-4 mx-4 border-b border-white/10" />
 
-        <div className="px-10 pb-10">
+        <div className="px-6 pb-6">
             <HorizontalScroller gradientFromClass="from-transparent">
-            <div className="flex gap-8 min-w-max pr-4">
+            <div className="flex gap-5 min-w-max pr-2">
                 {items.map((it) => (
                 <button
                     key={`${it.kind ?? "playlist"}:${it.id}`}
@@ -209,7 +209,7 @@ function Tab({ to, label }: { to: string; label: string }) {
                     onClick={() => onClickItem?.(it.id)}
                     className="w-[220px] text-left group shrink-0"
                 >
-                    <div className="relative aspect-square rounded-[32px] overflow-hidden bg-white/5 border border-white/10 group-hover:bg-white/10 transition-all duration-500 shadow-xl">
+                    <div className="relative aspect-square rounded-2xl overflow-hidden bg-white/20 group-hover:bg-white/10 transition-all duration-500 shadow-xl">
                       {/* ✅ 커버(2x2 모자이크 우선) */}
                         {it.coverUrls?.length ? (
                             <div className="absolute inset-0 grid grid-cols-2 grid-rows-2">
@@ -250,21 +250,19 @@ function Tab({ to, label }: { to: string; label: string }) {
                     {/* ❤️ 좋아요 하트 */}
                     {it.liked || it.kind === "system" ? (
                     <div className={[
-                        "absolute top-4 right-5 text-2xl drop-shadow-lg transition-transform duration-500 group-hover:scale-125",
-                        it.kind === "system" ? "text-[#E4524D]" : "text-[#AFDEE2]"].join(" ")}
+                        "absolute top-2 right-3 text-2xl",
+                        it.kind === "system" ? "text-[#E4524D]/80" : "text-[#AFDEE2]/80"].join(" ")}
                     >♥
                     </div>
                     ) : null}
                     </div>
-
-                    <div className="mt-5 px-2">
-                        <div className="text-[15px] font-bold text-white/95 truncate tracking-tight group-hover:text-[#AFDEE2] transition-colors">
+                        <div className="mx-1 mt-3 text-sm font-semibold text-[#f6f6f6]/95 truncate group-hover:text-[#AFDEE2] transition-colors">
                             {it.title}
                         </div>
-                        <div className="mt-1.5 text-[11px] font-black text-white/20 uppercase tracking-widest">
+                        <div className="mx-1 mt-1 text-xs text-[#f6f6f6]/20">
                             {it.owner}
                         </div>
-                    </div>
+                    
                 </button>
                 ))}
             </div>
@@ -418,7 +416,7 @@ export default function MyPlaylistPage() {
           <Tab to="personal" label="개인" />
           <Tab to="liked" label="♥" />
         </div>
-        <div className="mt-4 border-b border-[#464646]" />
+        <div className="mt-4 border-b border-white/10" />
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto py-4">
