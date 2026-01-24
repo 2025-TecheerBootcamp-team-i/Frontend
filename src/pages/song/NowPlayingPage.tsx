@@ -246,7 +246,7 @@ export default function NowPlayingPage() {
 
                     // 1) 제목으로 검색해서 itunes_id 매칭 시도
                     try {
-                        const searchUrl = `${API_BASE}/search?q=${encodeURIComponent(current.title)}`;
+                        const searchUrl = `${API_BASE}/search/opensearch?q=${encodeURIComponent(current.title)}`;
                         const searchRes = await fetch(searchUrl, {
                             method: "GET",
                             signal: controller.signal,
@@ -295,7 +295,7 @@ export default function NowPlayingPage() {
                     if (!musicId) {
                         try {
                             const combinedSearch = `${current.artist} ${current.title}`;
-                            const combinedSearchUrl = `${API_BASE}/search?q=${encodeURIComponent(combinedSearch)}`;
+                            const combinedSearchUrl = `${API_BASE}/search/opensearch?q=${encodeURIComponent(combinedSearch)}`;
 
                             const combinedSearchRes = await fetch(combinedSearchUrl, {
                                 method: "GET",
@@ -446,7 +446,7 @@ export default function NowPlayingPage() {
 
                     // 1) 제목으로 검색해서 itunes_id 매칭 시도
                     try {
-                        const searchUrl = `${API_BASE}/search?q=${encodeURIComponent(current.title)}`;
+                        const searchUrl = `${API_BASE}/search/opensearch?q=${encodeURIComponent(current.title)}`;
                         console.log(`[NowPlayingPage] 검색 API 호출:`, searchUrl);
 
                         const searchRes = await fetch(searchUrl, {
@@ -504,7 +504,7 @@ export default function NowPlayingPage() {
                     if (!musicId) {
                         try {
                             const combinedSearch = `${current.artist} ${current.title}`;
-                            const combinedSearchUrl = `${API_BASE}/search?q=${encodeURIComponent(combinedSearch)}`;
+                            const combinedSearchUrl = `${API_BASE}/search/opensearch?q=${encodeURIComponent(combinedSearch)}`;
                             console.log(`[NowPlayingPage] 조합 검색 시도:`, combinedSearch);
 
                             const combinedSearchRes = await fetch(combinedSearchUrl, {
@@ -623,7 +623,7 @@ export default function NowPlayingPage() {
 
                     // 1) 제목으로 검색해서 itunes_id 매칭 시도
                     try {
-                        const searchUrl = `${API_BASE}/search?q=${encodeURIComponent(current.title)}`;
+                        const searchUrl = `${API_BASE}/search/opensearch?q=${encodeURIComponent(current.title)}`;
                         const searchRes = await fetch(searchUrl, {
                             method: "GET",
                             signal: controller.signal,
@@ -669,7 +669,7 @@ export default function NowPlayingPage() {
                     if (!musicId) {
                         try {
                             const combinedSearch = `${current.artist} ${current.title}`;
-                            const combinedSearchUrl = `${API_BASE}/search?q=${encodeURIComponent(combinedSearch)}`;
+                            const combinedSearchUrl = `${API_BASE}/search/opensearch?q=${encodeURIComponent(combinedSearch)}`;
 
                             const combinedSearchRes = await fetch(combinedSearchUrl, {
                                 method: "GET",

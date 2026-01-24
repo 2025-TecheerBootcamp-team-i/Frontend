@@ -296,7 +296,7 @@ export async function searchByTags(tags: string, pageSize: number = 100): Promis
   try {
     console.log("[API] searchByTags 호출", { tags, pageSize });
 
-    const res = await axiosInstance.get('/search/tags', {
+    const res = await axiosInstance.get('/search/opensearch/tags', {
       params: {
         page: 1,
         page_size: pageSize,
