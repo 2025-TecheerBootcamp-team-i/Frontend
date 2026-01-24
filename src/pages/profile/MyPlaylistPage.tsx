@@ -1,16 +1,16 @@
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import React, { useRef, useMemo, useState, useEffect } from "react";
 import { MdOutlineNavigateNext } from "react-icons/md";
-import {
-  getAllPlaylists,
-  subscribePlaylists,
-  getLikedPlaylistIds,
-  getLikedAlbumIds,
-} from "../../mocks/playlistMock";
-import { ARTISTS } from "../../mocks/artistsMock";
 
+import {
+  listMyPlaylists,
+  listLikedPlaylists,
+  isSystemPlaylist,
+  type PlaylistSummary,
+} from "../../api/playlist";
 import { fetchLikedTracks, type LikedTrack } from "../../api/LikedSong";
 import { getCurrentUserId } from "../../utils/auth";
+import axiosInstance from "../../api/axiosInstance";
 
 const LIKED_SYSTEM_ID = "liked"; // 나중에 "liked -system으로 수정해야 함. 그렇지 않으면 개인 목록 맨 앞에 좋아요 누른 곡 리스트 생성됨"
 
@@ -27,6 +27,16 @@ type PlaylistItem = {
     coverUrls?: string[];      // 2x2 모자이크용(좋아요 카드에서 사용)
     };
 
+type LikedAlbumApi = {
+  album_id: number;
+  album_name: string;
+  artist_name: string;
+  cover_image: string | null;
+  release_date: string;
+  like_count: string;
+  is_liked: string;
+};
+
 // 좋아요 누른 곡 이미지 추가
 function buildCoverUrlsFromLikedTracks(tracks: LikedTrack[], limit = 4): string[] {
   const urls = tracks
@@ -35,6 +45,23 @@ function buildCoverUrlsFromLikedTracks(tracks: LikedTrack[], limit = 4): string[
 
   // ✅ 같은 앨범 이미지 중복 제거
   return Array.from(new Set(urls)).slice(0, limit);
+}
+
+function toLikedAlbumItem(a: LikedAlbumApi): PlaylistItem {
+  const id = String(a.album_id ?? "");
+  const title = a.album_name ?? (id ? `앨범 (${id})` : "앨범");
+  const owner = a.artist_name ?? "알 수 없음";
+  const coverUrl = a.cover_image ?? null;
+
+  return {
+    id,
+    title,
+    owner,
+    scope: "shared" as const,
+    liked: true,
+    kind: "album",
+    coverUrl,
+  };
 }
 
 /* ===================== UI 컴포넌트 ===================== */
@@ -220,7 +247,7 @@ function Tab({ to, label }: { to: string; label: string }) {
                                     key={idx}
                                     src={src}
                                     alt={`${it.title} cover ${idx + 1}`}
-                                    className="w-full h-full object-cover"
+                                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                                     loading="lazy"
                                     decoding="async"
                                     onError={(e) => {
@@ -284,13 +311,50 @@ export default function MyPlaylistPage() {
    좋아요 기능
   ===================== */
 
-  // 1) mock 플레이리스트 원본만 state로 관리 (subscribe는 1번만)
-  const [allPlaylists, setAllPlaylists] = useState(() => getAllPlaylists());
+  // 1) 개인 / 좋아요 플레이리스트 / 좋아요 앨범 (중요 API)
+
+  const [myPlaylists, setMyPlaylists] = useState<PlaylistSummary[]>([]);
+  const [likedPlaylists, setLikedPlaylists] = useState<PlaylistSummary[]>([]);
+  const [likedAlbums, setLikedAlbums] = useState<LikedAlbumApi[]>([]);
 
   useEffect(() => {
-    const sync = () => setAllPlaylists(getAllPlaylists());
-    sync();
-    return subscribePlaylists(sync);
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const [mine, likedPl, likedAlRes] = await Promise.all([
+          listMyPlaylists(), // GET /playlists?visibility=private
+          listLikedPlaylists(), // GET /playlists/likes
+          axiosInstance.get<LikedAlbumApi[]>("/albums/likes"),
+        ]);
+
+        if (cancelled) return;
+
+        // 개인 목록에서 시스템 플레이리스트(“나의 좋아요 목록”)가 섞이면 제거
+        const mineFiltered = Array.isArray(mine)
+          ? mine.filter((p) => p.visibility !== "system" && !isSystemPlaylist(p.title))
+          : [];
+
+        const likedPlFiltered = Array.isArray(likedPl)
+          ? likedPl.filter((p) => p.visibility !== "system" && !isSystemPlaylist(p.title))
+          : [];
+
+        setMyPlaylists(mineFiltered);
+        setLikedPlaylists(likedPlFiltered);
+        setLikedAlbums(Array.isArray(likedAlRes.data) ? likedAlRes.data : []);
+      } catch (e) {
+        console.error("[MyPlaylistPage] playlists/albums fetch 실패:", e);
+        if (!cancelled) {
+          setMyPlaylists([]);
+          setLikedPlaylists([]);
+          setLikedAlbums([]);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // 2) 좋아요 누른 곡 리스트 (API)
@@ -316,69 +380,42 @@ export default function MyPlaylistPage() {
     [likedTracks]
   );
 
-  // 4) 앨범 메타 인덱스 (albumId -> {title, owner})
-  const albumIndex = useMemo(() => {
-    const map = new Map<string, { title: string; owner: string }>();
-    Object.values(ARTISTS).forEach((artist) => {
-      artist.albums.forEach((alb) => {
-        map.set(alb.id, { title: alb.title, owner: artist.name });
-      });
-    });
-    return map;
-  }, []);
-
   /* =====================
    파생 데이터는 useMemo로 계산
   ===================== */
 
   // 개인 목록(시스템 liked 제외)
   const personalAll: PlaylistItem[] = useMemo(() => {
-    return allPlaylists
-      .filter((p) => p.id !== LIKED_SYSTEM_ID)
-      .map((p) => ({
-        id: p.id,
-        title: p.title,
-        owner: p.owner,
-        scope: "personal" as const,
-      }));
-  }, [allPlaylists]);
+    return myPlaylists.map((p) => ({
+      id: String(p.playlist_id),
+      title: p.title,
+      owner: p.creator_nickname ?? "—",
+      scope: "personal" as const,
+      kind: "playlist",
+      liked: p.is_liked,
+      isPublic: p.visibility === "public",
+    }));
+  }, [myPlaylists]);
 
   // 좋아요 섹션(시스템 카드 + 좋아요 앨범 + 좋아요 플레이리스트)
   const likedAll: PlaylistItem[] = useMemo(() => {
-    const userPlaylists = allPlaylists.filter((p) => p.id !== LIKED_SYSTEM_ID);
+    const likedAlbumItems: PlaylistItem[] = likedAlbums
+      .map(toLikedAlbumItem)
+      // id가 비어있으면 클릭 라우팅이 깨질 수 있어서 방어
+      .filter((x) => x.id.length > 0);
 
-    // 좋아요 앨범
-    const albumLikedMap = getLikedAlbumIds();
-    const albumIds = Object.keys(albumLikedMap).filter((id) => albumLikedMap[id]);
+    const likedPlaylistItems: PlaylistItem[] = (likedPlaylists ?? []).map((p) => ({
+      id: String(p.playlist_id),
+      title: p.title,
+      owner: p.creator_nickname ?? "—",
+      scope: "shared" as const,
+      liked: true,
+      kind: "playlist",
+      isPublic: p.visibility === "public",
+    }));
 
-    const likedAlbums: PlaylistItem[] = albumIds.map((albumId) => {
-      const meta = albumIndex.get(albumId);
-      return {
-        id: albumId,
-        title: meta?.title ?? `앨범 (${albumId})`,
-        owner: meta?.owner ?? "알 수 없음",
-        scope: "shared" as const,
-        liked: true,
-        kind: "album",
-      };
-    });
-
-    // 좋아요 플레이리스트
-    const likedMap = getLikedPlaylistIds();
-    const likedIdSet = new Set(Object.keys(likedMap).filter((id) => likedMap[id]));
-
-    const likedPlaylists: PlaylistItem[] = userPlaylists
-      .filter((p) => likedIdSet.has(p.id))
-      .map((p) => ({
-        id: p.id,
-        title: p.title,
-        owner: p.owner,
-        scope: "personal" as const,
-        liked: true,
-      }));
-
-    // 좋아요 섹션 첫 카드(시스템)
     return [
+      // ✅ 좋아요 섹션 첫 카드(시스템: 좋아요 곡 모자이크)
       {
         id: LIKED_SYSTEM_ID,
         title: "나의 좋아요 목록",
@@ -387,10 +424,10 @@ export default function MyPlaylistPage() {
         kind: "system",
         coverUrls: likedCoverUrls,
       },
-      ...likedAlbums,
-      ...likedPlaylists,
+      ...likedAlbumItems,
+      ...likedPlaylistItems,
     ];
-  }, [allPlaylists, albumIndex, likedCoverUrls]);
+  }, [likedAlbums, likedPlaylists, likedCoverUrls]);
 
   const personalTop = useMemo(() => personalAll.slice(0, 6), [personalAll]);
   const likedTop = useMemo(() => likedAll.slice(0, 6), [likedAll]);
@@ -399,7 +436,7 @@ export default function MyPlaylistPage() {
     const it = likedAll.find((x) => x.id === id) || personalAll.find((x) => x.id === id);
 
     if (id === LIKED_SYSTEM_ID || it?.kind === "system") {
-      navigate("/my-playlists/liked");
+      navigate("/playlist/liked");
       return;
     }
     if (it?.kind === "album") {

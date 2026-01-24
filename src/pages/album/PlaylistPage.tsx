@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
     getPlaylistDetail,
@@ -18,6 +18,11 @@ import { IoChevronBack, IoPlayCircle, IoShuffle } from "react-icons/io5";
 import { MdDelete, MdFavorite } from "react-icons/md";
 import { FaPlay } from "react-icons/fa6";
 import { FiEdit3 } from "react-icons/fi";
+
+import { fetchLikedTracks, type LikedTrack } from "../../api/LikedSong";
+
+// 라우팅 분기점
+const LIKED_SYSTEM_ID = "liked";
 
 const actions = [
     { key: "play", label: "재생", icon: <IoPlayCircle size={18} /> },
@@ -43,9 +48,47 @@ type PendingPlay = {
     tracks: PlayerTrack[];
 };
 
+    function buildLikedSystemPlaylist(
+    userId: number,
+    likedTracks: LikedTrack[]
+    ): PlaylistDetail {
+    const nowIso = new Date().toISOString();
+
+    const items: PlaylistItem[] = likedTracks.map((t, idx) => ({
+        item_id: t.music_id,
+
+        // ✅ PlaylistItem이 요구하는 필수 필드 채우기
+        order: idx + 1,
+        created_at: nowIso, // 또는 nowIso / new Date().toISOString()
+
+        // ✅ music도 UI가 쓰는 필드만 맞춰서 채움
+        music: {
+        music_id: t.music_id,
+        title: t.music_name,
+        duration: t.duration ?? 0,
+        artist: { name: t.artist_name },
+        album: {
+            title: (t as any).album_name ?? "",
+            cover_image: t.album_image ?? null,
+        },
+        } as any,
+    }));
+
+    return {
+        playlist_id: 0,
+        title: "나의 좋아요 목록",
+        creator_nickname: "내 컬렉션",
+        visibility: "private",
+        user_id: userId,
+        is_liked: true,
+        like_count: 0,
+        items,
+    } as any;
+    }
 
 export default function PlaylistDetailPage() {
     const { playlistId } = useParams();
+    const isLikedSystem = playlistId === LIKED_SYSTEM_ID;
     const { playTracks, enqueueTracks } = usePlayer();
     const navigate = useNavigate();
 
@@ -62,30 +105,64 @@ export default function PlaylistDetailPage() {
     const [playConfirmOpen, setPlayConfirmOpen] = useState(false);
     const [pendingPlay, setPendingPlay] = useState<PendingPlay | null>(null);
 
-    // 플레이리스트 상세 정보 로드
-    const fetchPlaylistDetail = async () => {
-        if (!playlistId) return;
+    // 기존 checkedIds state 아래에 추가 추천
+    useEffect(() => {
+    // 다른 플리로 이동하면 선택 상태 초기화
+    setCheckedIds({});
+    }, [playlistId]);
 
-        try {
-            setLoading(true);
-            setError(null);
-            const data = await getPlaylistDetail(playlistId);
-            setPlaylist(data);
-        } catch (err: any) {
-            console.error("[PlaylistPage] 플레이리스트 로딩 실패:", err);
-            const errorMessage = 
-                err?.response?.status === 404 
-                    ? "플레이리스트를 찾을 수 없습니다" 
-                    : "플레이리스트를 불러올 수 없습니다";
-            setError(errorMessage);
-        } finally {
-            setLoading(false);
+    // 플레이리스트 상세 정보 로드
+    const fetchPlaylistDetail = useCallback(async () => {
+    if (!playlistId) return;
+
+    try {
+        setLoading(true);
+        setError(null);
+
+        // ✅ (핵심) liked 시스템 플리 분기
+        if (isLikedSystem) {
+        if (!requireLogin("로그인 후 이용 가능합니다.")) {
+            setPlaylist(null);
+            setError("로그인 후 이용 가능합니다.");
+            return;
         }
-    };
+
+        const userId = getCurrentUserId();
+        if (!userId) {
+            setPlaylist(null);
+            setError("user_id를 찾을 수 없어요. 로그인 후 user_id 저장을 확인해주세요.");
+            return;
+        }
+
+        const likedTracks = await fetchLikedTracks(userId);
+        const virtualPlaylist = buildLikedSystemPlaylist(userId, likedTracks);
+        setPlaylist(virtualPlaylist);
+        return;
+        }
+
+    // ✅ 일반 플레이리스트는 기존대로 상세 API 호출
+    const data = await getPlaylistDetail(playlistId);
+    setPlaylist(data);
+
+  } catch (err: any) {
+    console.error("[PlaylistPage] 플레이리스트 로딩 실패:", err);
+
+    // liked는 404 의미가 애매하니 일반 메시지
+    const errorMessage =
+      err?.response?.status === 404
+        ? "플레이리스트를 찾을 수 없습니다"
+        : "플레이리스트를 불러올 수 없습니다";
+
+    setPlaylist(null);
+    setError(errorMessage);
+  } finally {
+    setLoading(false);
+  }
+}, [playlistId, isLikedSystem]);
 
     useEffect(() => {
-        fetchPlaylistDetail();
-    }, [playlistId]);
+    fetchPlaylistDetail();
+    }, [fetchPlaylistDetail]);
     
     // ✅ playlist 로드되면 좋아요 상태 업데이트
     useEffect(() => {
@@ -210,7 +287,7 @@ export default function PlaylistDetailPage() {
         setCheckedIds((prev) => ({ ...prev, [id]: !prev[id] }));
 
     // 시스템 플레이리스트 판별
-    const isSystemPl = isSystemPlaylist(playlist.title);
+    const isSystemPl = isLikedSystem || isSystemPlaylist(playlist.title);
     
     // 편집 버튼 표시 조건
     const canEdit = currentUserId !== null && 

@@ -170,7 +170,6 @@ export default function SearchSong() {
   /* ===================== API 호출 ===================== */
 
   useEffect(() => {
-    // API가 설정되지 않았거나 검색어가 없으면 더미 데이터 사용
     if (!API_BASE || !q.trim()) {
       setApiSongs([]);
       setError(null);
@@ -765,6 +764,13 @@ if (fail === 0) {
                       }}
                       
                       onLoad={(e) => {
+                          if (__DEV__) {
+                          console.log("[SearchSong] ✅ 곡 앨범 이미지 로드 성공:", {
+                            song: s.title,
+                            album_id: apiSong?.albumId,
+                            image_url: albumImage,
+                          });
+                        }
                         const img = e.target as HTMLImageElement;
                         const fallback = img.nextElementSibling as HTMLElement;
                         if (fallback) fallback.style.display = "none";
