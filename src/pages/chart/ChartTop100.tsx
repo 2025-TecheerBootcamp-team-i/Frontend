@@ -269,7 +269,7 @@ export default function ChartTop100() {
     // ✅ 로딩/에러 UI
     if (loading) {
         return (
-        <section className="whitespace-nowrap rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 overflow-hidden p-10 text-white shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
+        <section className="whitespace-nowrap rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 overflow-hidden p-10 text-[#f6f6f6] shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
             차트 데이터를 불러오는 중...
         </section>
         );
@@ -288,18 +288,18 @@ export default function ChartTop100() {
         <div className="overflow-x-auto">
             <div className="min-w-[920px]">
             {/* 상단 헤더 */}
-            <div className="px-10 py-8 border-b border-white/10">
-                <div className="flex items-end justify-between gap-4">
-                <div className="flex items-center gap-8">
-                    <h2 className="text-2xl font-black tracking-[0.2em] text-white uppercase opacity-90">실시간 TOP 100 차트</h2>
-                    <div className="text-sm font-medium text-white/40 tracking-wider">
+            <div className="px-8 py-6 border-b border-white/10">
+                <div className="flex pt-2 items-end justify-between gap-4">
+                <div className="flex items-center gap-6">
+                    <h2 className="text-2xl px-2 font-semibold text-[#f6f6f6]">실시간 TOP 100 차트</h2>
+                    <div className="text-sm text-[#f6f6f6]/40 tracking-wider">
                     {chart?.generatedAt ? formatGeneratedAt(chart.generatedAt) : ""}
                     </div>
                 </div>
                 </div>
 
                 {/* 액션 버튼 */}
-                <div className="mt-6 flex flex-nowrap gap-4">
+                <div className="px-2 mt-4 flex flex-nowrap gap-3">
                 {actions.map((a) => {
                     const disabled = selectedCount === 0;
 
@@ -310,11 +310,11 @@ export default function ChartTop100() {
                         onClick={() => handleAction(a.key)}
                         disabled={disabled && (a.key === "play" || a.key === "shuffle" || a.key === "add" || a.key === "like")}
                         className={[
-                        "shrink-0 px-5 py-2.5 rounded-2xl border border-white/10",
-                        "text-sm font-bold transition-all duration-300 flex items-center gap-2.5",
+                        "shrink-0 px-4 py-2 rounded-2xl border border-[#f6f6f6]/10",
+                        "text-sm font-bold transition-all flex items-center gap-2.5",
                         disabled && (a.key === "play" || a.key === "shuffle" || a.key === "add" || a.key === "like")
-                            ? "text-white/20 border-white/5 cursor-not-allowed"
-                            : "text-white/80 hover:bg-white/10 hover:text-white hover:border-white/20",
+                            ? "text-[#f6f6f6]/20 border-[#f6f6f6]/5 cursor-not-allowed"
+                            : "text-[#f6f6f6]/80 hover:bg-[#f6f6f6]/10 hover:text-[#f6f6f6] hover:border-[#f6f6f6]/20",
                         ].join(" ")}
                     >
                         <span className="text-xl">{a.icon}</span>
@@ -327,12 +327,12 @@ export default function ChartTop100() {
 
             {/* 테이블 헤더 */}
             <div className="">
-                <div className={`grid ${GRID} items-center justify-center py-4 px-10 text-[13px] font-black tracking-widest text-white/30 uppercase`}>
+                <div className={`grid ${GRID} items-center justify-center py-3 px-4 text-sm text-[#f6f6f6]/30`}>
                 {/* 전체선택 */}
                 <div className="flex items-center justify-center">
                     <input
                     type="checkbox"
-                    className="accent-[#AFDEE2] w-4 h-4 cursor-pointer"
+                    className="accent-[#f6f6f6] cursor-pointer"
                     checked={allChecked}
                     onChange={(e) => toggleAll(e.target.checked)}
                     aria-label="전체 선택"
@@ -352,13 +352,13 @@ export default function ChartTop100() {
             </div>
 
             {/* 리스트 */}
-            <div className="px-4 py-4">
-                <div className="space-y-1">
+            <div className="">
+                <div className="divide-y divide-white/10">
                 {rows.map((row) => (
                     <div
                     key={row.musicId}
                     className={`
-                        group grid ${GRID} items-center px-6 py-3 rounded-2xl
+                        group grid ${GRID} items-center px-4 py-2
                         transition-all duration-300 hover:bg-white/[0.08]
                         ${row.rank % 2 === 0 ? "bg-white/[0.02]" : "bg-transparent"}
                     `}
@@ -367,7 +367,7 @@ export default function ChartTop100() {
                     <div className="flex items-center justify-center">
                         <input
                         type="checkbox"
-                        className="accent-[#AFDEE2] w-4 h-4 cursor-pointer"
+                        className="accent-[#f6f6f6] cursor-pointer"
                         checked={!!checkedIds[row.musicId]}
                         onChange={() => toggleOne(row.musicId)}
                         aria-label={`${row.rank}위 선택`}
@@ -377,7 +377,7 @@ export default function ChartTop100() {
                     {/* 순위 + 변동 + hover 재생 */}
                     <div className="flex items-center gap-3">
                         <div className="relative w-8 flex items-center justify-center">
-                        <span className="text-[15px] font-black text-white/90 transition-opacity group-hover:opacity-0 tabular-nums">
+                        <span className="ml-1 text-[15px] text-[#f6f6f6]/90 transition-opacity group-hover:opacity-0 tabular-nums">
                             {row.rank}
                         </span>
                         <button
@@ -386,19 +386,19 @@ export default function ChartTop100() {
                             e.stopPropagation();
                             setTrackAndPlay(toTrack(row));
                             }}
-                            className="absolute opacity-0 transition-all duration-300 group-hover:opacity-100 text-[#AFDEE2] hover:scale-125"
+                            className="ml-1 absolute opacity-0 transition-all duration-300 group-hover:opacity-100 text-[#AFDEE2]"
                             aria-label={`${row.musicName}재생`}
                             title="재생"
                         >
-                            <FaPlay size={18} />
+                            <FaPlay />
                         </button>
                         </div>
 
-                        <div className="pl-1 text-[11px] font-black w-10">
+                        <div className="ml-2 text-xs font-medium w-10">
                         {(() => {
                             const change = row.rankChange;
 
-                            if (change === null || change === 0) return <span className="text-white/20">—</span>;
+                            if (change === null || change === 0) return <span className="ml-1 text-white/20">—</span>;
                             if (change > 0) return <span className="text-red-400">▲{change}</span>;
                             if (change < 0) return <span className="text-blue-400">▼{Math.abs(change)}</span>;
                             return <span className="text-white/20">—</span>;
@@ -407,8 +407,8 @@ export default function ChartTop100() {
                     </div>
 
                     {/* 곡정보(커버+제목) */}
-                    <div className="flex pl-2 items-center gap-5 min-w-0">
-                        <div className="relative h-14 w-14 rounded-xl bg-white/10 shrink-0 overflow-hidden shadow-lg border border-white/10 group-hover:scale-105 transition-transform duration-500">
+                    <div className="flex pl-2 items-center gap-4 min-w-0">
+                        <div className="relative h-14 w-14 rounded-lg bg-white/10 shrink-0 overflow-hidden group-hover:scale-105 transition-transform duration-500">
                             {row.albumImage ? (
                             <img
                                 src={row.albumImage}
@@ -425,10 +425,10 @@ export default function ChartTop100() {
                             <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                         <div className="min-w-0">
-                        <div className="text-[15px] font-bold text-white/95 truncate tracking-tight group-hover:text-[#AFDEE2] transition-colors">
+                        <div className="text-sm text-[#f6f6f6]/95 truncate group-hover:text-[#AFDEE2] transition-colors">
                             {row.musicName}
                             {row.isAi && (
-                            <span className="shrink-0 ml-3 text-[10px] font-black px-2 py-0.5 rounded-md bg-[#E4524D]/20 text-[#E4524D] border border-[#E4524D]/20 uppercase">
+                            <span className="shrink-0 ml-3 text-[10px] font-black px-2 py-0.5 rounded-full bg-[#E4524D]/20 text-[#E4524D] border border-[#E4524D]/20 uppercase">
                                 AI
                             </span>
                             )}
@@ -438,10 +438,10 @@ export default function ChartTop100() {
                     </div>
 
                     {/* 아티스트 */}
-                    <div className="pl-2 text-[14px] font-semibold text-white/60 truncate group-hover:text-white/80 transition-colors">{row.artistName}</div>
+                    <div className="pl-2 text-sm text-[#f6f6f6]/60 truncate group-hover:text-white/80 transition-colors">{row.artistName}</div>
 
                     {/* 앨범 */}
-                    <div className="pl-2 text-[14px] font-semibold text-white/40 truncate group-hover:text-white/60 transition-colors">{row.albumName}</div>
+                    <div className="pl-2 text-sm text-[#f6f6f6]/40 truncate group-hover:text-white/60 transition-colors">{row.albumName}</div>
                     </div>
                 ))}
                 </div>
