@@ -1,20 +1,26 @@
 import { MdOutlineNavigateNext } from "react-icons/md";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import type { Playlist } from "../../components/layout/MainLayout";
+import { listAllAiMusic } from "../../api/music";
 import { getProfile } from "../../utils/auth";
+import { MdPlayArrow } from "react-icons/md";
+
+// Mock Playlists
+interface Playlist {
+  id: number;
+  title: string;
+  count: string;
+}
+const MOCK_PLAYLISTS: Playlist[] = [
+  { id: 1, title: "새벽 감성 Lo-Fi", count: "12곡" },
+  { id: 2, title: "운동할 때 듣는 팝", count: "24곡" },
+  { id: 3, title: "코딩 집중 노동요", count: "8곡" },
+];
 
 const PLAYER_H = 85; // ✅ 플레이어 높이(px)
 
-function Sidebar({
-  playlists,
-  onCreatePlaylist,
-}: {
-  playlists: Playlist[];
-  onCreatePlaylist: () => void;
-}) {
+function Sidebar() {
   const navigate = useNavigate();
-  const [prompt, setPrompt] = useState("");
 
   // ✅ 프로필 정보 (닉네임 + 사진) 상태로 관리
   const [profile, setProfile] = useState(getProfile());
@@ -32,100 +38,68 @@ function Sidebar({
     };
   }, []);
 
-  const handleGenerate = () => {
-    const v = prompt.trim();
-    if (!v) return;
 
-    navigate(`/ai/create?prompt=${encodeURIComponent(v)}`);
-    setPrompt("");
-  };
+  // ✅ AI 음악 랜덤 배경 이미지
+  const [aiBg, setAiBg] = useState<string | null>(null);
 
-  // =========================
-  // ✅ 플레이리스트 가로 스크롤 힌트 (인기 아티스트 구역 방식)
-  // =========================
-  const plScrollRef = useRef<HTMLDivElement>(null);
-  const [plShowLeft, setPlShowLeft] = useState(false);
-  const [plShowRight, setPlShowRight] = useState(false);
-
-  const updatePlaylistScrollHint = () => {
-    const el = plScrollRef.current;
-    if (!el) return;
-
-    const { scrollLeft, scrollWidth, clientWidth } = el;
-    const canScroll = scrollWidth > clientWidth + 1;
-
-    if (!canScroll) {
-      setPlShowLeft(false);
-      setPlShowRight(false);
-      return;
-    }
-
-    setPlShowLeft(scrollLeft > 4);
-    setPlShowRight(scrollLeft + clientWidth < scrollWidth - 4);
-  };
-
-  // playlists가 바뀌면(초기 로드/추가/삭제) 힌트 재계산
   useEffect(() => {
-    requestAnimationFrame(updatePlaylistScrollHint);
-  }, [playlists.length]);
-
-  // 스크롤/리사이즈 이벤트
-  useEffect(() => {
-    const el = plScrollRef.current;
-    if (!el) return;
-  
-    // ✅ effect 바디에서 직접 setState 호출 금지 → rAF 콜백에서 실행
-    const raf = requestAnimationFrame(() => updatePlaylistScrollHint());
-  
-    const onScroll = () => updatePlaylistScrollHint();
-    const onResize = () => updatePlaylistScrollHint();
-  
-    el.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onResize);
-  
-    return () => {
-      cancelAnimationFrame(raf);
-      el.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onResize);
+    let alive = true;
+    const fetchAiBg = async () => {
+      try {
+        const list = await listAllAiMusic({ is_ai: true });
+        if (!alive) return;
+        const candidates = list.filter(m => m.album_image || m.album_image_square);
+        if (candidates.length > 0) {
+          const randomIdx = Math.floor(Math.random() * candidates.length);
+          const picked = candidates[randomIdx];
+          setAiBg(picked.album_image || picked.album_image_square);
+        }
+      } catch (e) {
+        console.error("Failed to load AI background:", e);
+      }
     };
+    fetchAiBg();
+    return () => { alive = false; };
   }, []);
-  
 
   return (
     <aside
       className="
-        w-[355px]
+        w-[360px]
         bg-transparent
+        backdrop-blur-xl
         border-r border-white/5
-        p-4
         flex flex-col
-        overflow-hidden
+        sticky top-0
+        z-40
       "
       style={{
         height: `calc(100vh - ${PLAYER_H}px)`,
       }}
     >
-      {/* ✅ 스크롤 없음: overflow-y-auto 절대 넣지 말기 */}
-      <div className="flex flex-col gap-4 flex-1 min-h-0">
+      {/* ✅ 콘텐츠 상단 정렬 및 간격 통일 */}
+      <div className="flex flex-col gap-6 pt-8 pb-12">
+        {/* 마이페이지: Original Card Layout */}
         <div
           className="
-            w-full
+            w-[84%] mx-auto
             bg-white/[0.05]
             backdrop-blur-2xl
             border border-white/10
             rounded-[40px]
-            px-6 py-4
+            px-6 py-6
             flex-none
             shadow-[0_6px_18px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)]
           "
           style={{
-            height: "clamp(340px, 42vh, 400px)", // ✅ 화면 크기에 따라 적당히
+            height: "auto",
+            minHeight: "180px",
           }}
         >
           <div className="flex items-center justify-between">
             <button
               onClick={() => navigate("/mypage")}
-              className="hover:text-[#f6f6f6]/50 transition font-semibold text-lg text-[#F6F6F6]"
+              className="hover:text-[#f6f6f6]/50 transition font-semibold text-2xl text-[#F6F6F6]"
             >
               마이페이지
             </button>
@@ -151,171 +125,169 @@ function Sidebar({
                 />
               ) : null}
             </div>
-            <span className="mt-1.5 text-base text-[#F6F6F6]">{profile.name}</span>
+            <div className="flex flex-col justify-center">
+              <span className="text-xl font-medium text-[#F6F6F6]">{profile.name}</span>
+            </div>
           </div>
 
+          <div className="mt-6 mb-2 border-b border-white/[0.10]" />
+
+          {/* 나의 플레이리스트 */}
           <div>
-            <button
-              type="button"
-              onClick={() => navigate("/my-playlists")}
-              className="mt-3 hover:text-[#f6f6f6]/50 transition font-normal text-base mb-2 text-[#F6F6F6]"
-            >
-              나의 플레이리스트
-            </button>
-
-            <div className="mb-2 border-b border-white/[0.10]" />
-
-            {/* ✅ 여기부터: 스크롤 힌트 레이어 */}
-            <div className="relative">
-              <div
-                ref={plScrollRef}
-                className="p-1 overflow-x-auto overflow-y-hidden no-scrollbar scroll-smooth"
-              >
-                <div className="flex gap-3 overflow-visible">
-                  {playlists.map((p) => (
-                    <button
-                      onClick={() => navigate(`/playlist/${p.id}`)}
-                      key={p.id}
-                      type="button"
-                      className="
-                        shrink-0
-                        w-[clamp(80px,12vh,110px)]
-                        h-[clamp(80px,12vh,110px)]
-                        rounded-xl overflow-hidden bg-[#777777]
-                        hover:scale-[1.03] hover:shadow transition
-                        z-10 relative hover:z-30 origin-center
-                      "
-                      title={p.title}
-                    >
-                      {p.coverUrl ? (
-                        <img
-                          src={p.coverUrl}
-                          alt={p.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : null}
-                    </button>
-                  ))}
-
-                  <button
-                    onClick={onCreatePlaylist}
-                    type="button"
-                    className="
-                      shrink-0
-                      w-[clamp(80px,12vh,110px)]
-                      h-[clamp(80px,12vh,110px)]
-                      bg-white/10 rounded-xl hover:bg-white/15
-                      text-white/70 transition
-                      flex items-center justify-center text-xl
-                    "
-                    aria-label="플레이리스트 추가"
-                    title="플레이리스트 추가"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-
-              {/* ✅ 인기 아티스트처럼: 필요할 때만 좌/우 그라데이션 */}
-              {plShowLeft && (
-                <div className="pointer-events-none absolute left-0 top-0 h-full w-8 bg-gradient-to-r from-black/20 to-transparent z-20" />
-              )}
-              {plShowRight && (
-                <div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-black/20 to-transparent z-20" />
-              )}
+            <h3 className="text-sm text-white/60 mb-2 px-1">나의 플레이리스트</h3>
+            <div className="flex flex-col gap-1">
+              {MOCK_PLAYLISTS.map(pl => (
+                <button
+                  key={pl.id}
+                  className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-white/5 transition group"
+                  onClick={() => navigate(`/playlist/${pl.id}`)}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded bg-white/10 flex items-center justify-center text-white/50 group-hover:text-white group-hover:bg-white/20">
+                      <MdPlayArrow size={14} />
+                    </div>
+                    <div className="text-left">
+                      <div className="text-sm text-white/90 font-medium leading-none">{pl.title}</div>
+                      <div className="text-[10px] text-white/40 mt-1">{pl.count}</div>
+                    </div>
+                  </div>
+                  <MdOutlineNavigateNext className="text-white/20 group-hover:text-white/60" />
+                </button>
+              ))}
             </div>
           </div>
         </div>
 
-        <div className="border-b border-white/[0.10]" />
-
-        {/* AI 음악: 남는 공간 먹되, 너무 커지지 않게 clamp */}
-        <div
+        {/* AI 음악 만들기: Rectangular Bar Visual Card */}
+        <button
+          onClick={() => navigate("/ai")}
           className="
-            w-full
-            bg-white/[0.05]
-            backdrop-blur-2xl
-            border border-white/10
-            rounded-[40px]
-            px-6 py-4
-            flex flex-col
-            min-h-0
-            shadow-[0_6px_18px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)]
+            w-[84%] mx-auto
+            h-[180px]
+            bg-[#2C2C2C]
+            hover:bg-[#3D3D3D]
+            transition-colors
+            rounded-[32px]
+            p-6
+            flex flex-col justify-between
+            shadow-[0_4px_12px_rgba(0,0,0,0.4)]
+            group
+            relative
             overflow-hidden
+            shrink-0
           "
-          style={{
-            height: "clamp(260px, 28vh, 320px)",
-          }}
+          aria-label="AI 음악 만들기"
         >
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => navigate("/ai")}
-              className="mt-1 hover:text-[#f6f6f6]/50 transition font-semibold text-lg mb-2 text-[#F6F6F6]"
-            >
-              AI 음악 만들기
-            </button>
+          {/* ✅ 랜덤 AI 배경 이미지 */}
+          {aiBg && (
+            <>
+              <div
+                className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110 opacity-70"
+                style={{ backgroundImage: `url('${aiBg}')` }}
+              />
+              <div className="absolute inset-0 bg-black/30 group-hover:bg-black/50 transition-colors" />
+            </>
+          )}
 
-            <button
-              onClick={() => navigate("/ai")}
-              className="mt-1 hover:text-[#f6f6f6]/50 transition mb-2 text-[#F6F6F6]"
-              aria-label="AI 페이지로 이동"
-            >
-              <MdOutlineNavigateNext size={30} />
-            </button>
-          </div>
+          {/* 텍스트: 상단 표시 */}
+          <span className="text-2xl font-bold text-white tracking-tight relative z-10 text-left leading-tight drop-shadow-md">
+            AI 음악<br />만들기
+          </span>
 
-          <div className="mb-3 border-b border-white/10" />
-
-          <textarea
-            maxLength={500}
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder={"프롬프트를 입력하여\n나만의 노래를 만들어보세요!"}
+          {/* 화살표 아이콘: 하단 우측 */}
+          <div
             className="
-              w-full
-              h-[110px]
-              resize-none
-              rounded-2xl
-              bg-white/5
-              px-4 py-3
-              placeholder:text-white/20
-              text-sm
-              text-[#e0e0e0]
-              outline-none
-              focus:ring-2 focus:ring-white/10
-              border border-white/5
+              self-end
+              w-12 h-12 
+              rounded-full 
+              bg-white/20 backdrop-blur-md
+              flex items-center justify-center 
+              text-white
+              group-hover:bg-white/30
+              transition
+              relative z-10
             "
+          >
+            <MdOutlineNavigateNext size={28} />
+          </div>
+        </button>
+
+
+
+        {/* 태그 탐험하기: Rectangular Bar Visual Card */}
+        <button
+          onClick={() => navigate("/canvas")}
+          className="
+            w-[84%] mx-auto
+            h-[180px]
+            relative
+            rounded-[32px]
+            overflow-hidden
+            group
+            shadow-[0_6px_18px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)]
+            border border-white/20
+            shadow-[0_0_15px_rgba(0,0,0,0.5),inset_0_0_20px_rgba(255,255,255,0.1)]
+            flex flex-col justify-between p-6 items-start text-left
+            shrink-0
+          "
+          aria-label="태그 탐험하기 (캔버스 이동)"
+        >
+          {/* 배경 이미지 - 스크롤에 반응하여 확대 */}
+          <div
+            className="absolute inset-0 bg-cover bg-center transition-transform duration-100 ease-out will-change-transform"
+            style={{
+              backgroundImage: "url('/images/album_verse_preview.png')",
+            }}
           />
 
-          <div className="mt-2 flex justify-between items-center">
-            <span className="px-2 text-xs text-[#888888]">
-              {prompt.length}/500
-            </span>
+          {/* ❄️ 스노우볼 효과: 눈송이 입자 */}
+          <div
+            className="absolute inset-0 pointer-events-none opacity-80"
+            style={{
+              backgroundImage: `
+                radial-gradient(2px 2px at 20px 30px, #fff, transparent),
+                radial-gradient(2px 2px at 40px 70px, #fff, transparent),
+                radial-gradient(2px 2px at 60px 40px, #fff, transparent),
+                radial-gradient(2px 2px at 80px 120px, #fff, transparent),
+                radial-gradient(2px 2px at 100px 50px, #fff, transparent),
+                radial-gradient(2px 2px at 150px 150px, #fff, transparent),
+                radial-gradient(3px 3px at 200px 100px, rgba(255,255,255,0.8), transparent),
+                radial-gradient(2px 2px at 250px 200px, #fff, transparent),
+                radial-gradient(2px 2px at 300px 80px, #fff, transparent)
+              `,
+              backgroundSize: '355px 355px',
+            }}
+          />
 
-            <button
-              type="button"
-              onClick={handleGenerate}
-              disabled={!prompt.trim()}
-              className="
-                mt-1
-                px-3 py-1.5
-                rounded-xl
-                text-xs
-                bg-[#AFDEE2]
-                text-[#1f2a2b]
-                hover:bg-[#87B2B6]
-                active:scale-[0.97]
-                transition
-                disabled:bg-[#5f7f83]
-                disabled:text-[#cfd8da]
-                disabled:cursor-not-allowed
-                disabled:active:scale-100
-              "
-            >
-              Create
-            </button>
+          {/* ✨ 유리 광택 */}
+          <div className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-black/20 via-transparent to-white/30 opacity-90" />
+          <div className="absolute top-4 right-4 w-20 h-12 bg-white/20 blur-[15px] rounded-full pointer-events-none rotate-[-45deg]" />
+
+          {/* 오버레이 */}
+          <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition duration-500" />
+
+          {/* 텍스트: 상단 표시 */}
+          <span className="text-2xl font-bold text-white tracking-tight relative z-10 leading-tight drop-shadow-md">
+            태그<br />탐험하기
+          </span>
+
+          {/* 화살표 아이콘: 하단 우측 */}
+          <div
+            className="
+              self-end
+              w-12 h-12 
+              rounded-full 
+              bg-white/20 backdrop-blur-md
+              flex items-center justify-center 
+              text-white
+              group-hover:bg-white/30
+              transition
+              relative z-10
+            "
+          >
+            <MdOutlineNavigateNext size={28} />
           </div>
-        </div>
+        </button>
       </div>
     </aside>
   );

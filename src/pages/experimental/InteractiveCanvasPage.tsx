@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
+import { useNavigate } from 'react-router-dom';
 import InfiniteCanvas from "../../components/canvas/InfiniteCanvas";
 import AlbumDetailOverlay from "../../components/canvas/AlbumDetailOverlay";
 import MusicPlayerBar from "../../components/canvas/MusicPlayerBar";
@@ -84,6 +85,7 @@ function mapToCanvasAlbum(item: TagSearchResult): CanvasAlbum | null {
 }
 
 export default function InteractiveCanvasPage() {
+    const navigate = useNavigate();
     const [albums, setAlbums] = useState<CanvasAlbum[]>([]);
     const [selectedAlbum, setSelectedAlbum] = useState<CanvasAlbum | null>(null);
     const [playingMusic, setPlayingMusic] = useState<{ album: CanvasAlbum, url: string } | null>(null);
@@ -283,20 +285,20 @@ export default function InteractiveCanvasPage() {
             {/* Search Overlay */}
             {showOverlay && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center">
-                    <div className="absolute inset-0 backdrop-blur-md bg-black/30" />
+                    <div className="absolute inset-0 backdrop-blur-md bg-white/30" />
 
                     {/* Search Box Container */}
                     <form
                         onSubmit={handleSearch}
                         className="relative z-10 w-full max-w-xl mx-4"
                     >
-                        {/* Glassmorphism Search Box */}
-                        <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl">
+                        {/* Glassmorphism Search Box - Light Theme */}
+                        <div className="bg-white/60 backdrop-blur-xl border border-black/10 rounded-2xl p-6 shadow-2xl">
                             {/* Title */}
-                            <h2 className="text-white text-3xl font-bold mb-2 text-center tracking-tight">
+                            <h2 className="text-black text-3xl font-bold mb-2 text-center tracking-tight">
                                 Album Verse
                             </h2>
-                            <p className="text-white/50 text-sm text-center mb-6">
+                            <p className="text-black/50 text-sm text-center mb-6">
                                 태그를 검색하고 탐험하세요
                             </p>
 
@@ -307,18 +309,18 @@ export default function InteractiveCanvasPage() {
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     placeholder="summer, sad, happy..."
-                                    className="w-full bg-white/10 border border-white/20 rounded-xl px-5 py-4 text-white placeholder-white/40 focus:outline-none focus:border-white/40 focus:bg-white/15 transition-all text-lg"
+                                    className="w-full bg-transparent border border-black/20 rounded-xl px-5 py-4 text-black placeholder-black/40 focus:outline-none focus:border-black/50 focus:bg-black/5 transition-all text-lg"
                                     disabled={isLoading}
                                 />
                                 <button
                                     type="submit"
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors disabled:opacity-50"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/10 hover:bg-black/20 p-2 rounded-lg transition-colors disabled:opacity-50"
                                     disabled={isLoading}
                                 >
                                     {isLoading ? (
-                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
                                     ) : (
-                                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                         </svg>
                                     )}
@@ -326,7 +328,7 @@ export default function InteractiveCanvasPage() {
                             </div>
 
                             {/* Hint */}
-                            <p className="text-white/30 text-xs text-center mt-3">
+                            <p className="text-black/30 text-xs text-center mt-3">
                                 쉼표로 여러 태그를 검색할 수 있습니다
                             </p>
                         </div>
@@ -336,20 +338,21 @@ export default function InteractiveCanvasPage() {
 
             {/* Header (shown when overlay is hidden) */}
             {!showOverlay && (
-                <div className="fixed top-8 left-8 z-40 pointer-events-none mix-blend-difference">
-                    <h1 className="text-5xl font-bold text-white tracking-tighter">
+                <div className="fixed top-8 left-8 z-40 pointer-events-none">
+                    <h1 className="text-5xl font-bold text-black tracking-tighter shadow-sm">
                         Album Verse
                     </h1>
-                    <p className="text-sm text-white/60 mt-1">
+                    <p className="text-sm text-black/60 mt-1 font-medium">
                         #{currentTagsRef.current.replace(/,/g, ' #')}
                     </p>
                 </div>
             )}
+
             {/* Navigation Bar (Simple Button) */}
             <div className="fixed top-8 left-1/2 -translate-x-1/2 z-40">
                 <button
-                    onClick={() => window.location.href = 'http://localhost:5173/home'}
-                    className="px-6 py-2 bg-black text-white rounded-full font-medium hover:bg-gray-900 transition-colors text-sm flex items-center gap-2 shadow-xl"
+                    onClick={() => navigate('/home')}
+                    className="px-6 py-2 bg-white text-black rounded-full font-medium hover:bg-gray-100 transition-colors text-sm flex items-center gap-2 shadow-xl border border-black/5"
                 >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
                     HomePage

@@ -45,7 +45,7 @@ export default function AlbumItem({ album, onClick }: AlbumItemProps) {
             >
                 <motion.div
                     layoutId={`album-cover-${album.id}`}
-                    className="rounded-full relative shadow-[30px_30px_60px_rgba(0,0,0,0.5)]"
+                    className="rounded-full relative shadow-[20px_20px_40px_rgba(0,0,0,0.15),-10px_-10px_30px_rgba(255,255,255,0.8)]"
                     style={{
                         width: `${Math.round(100 + album.scale * 100)}px`,
                         height: `${Math.round(100 + album.scale * 100)}px`
@@ -58,33 +58,33 @@ export default function AlbumItem({ album, onClick }: AlbumItemProps) {
                         loading="lazy"
                     />
 
-                    {/* Glass Bead Effect Layers - ENHANCED */}
+                    {/* Glass Bead Effect Layers - ENHANCED FOR WHITE THEME */}
 
-                    {/* 1. Base Darkening at Edges (Sphere shading) - Stronger */}
-                    <div className="absolute inset-0 rounded-full shadow-[inset_0_0_40px_rgba(0,0,0,0.6)] pointer-events-none" />
+                    {/* 1. Base Darkening at Edges - Much subtler for light theme */}
+                    <div className="absolute inset-0 rounded-full shadow-[inset_0_0_20px_rgba(0,0,0,0.2)] pointer-events-none" />
 
-                    {/* 2. Top Specular Highligh (Main Gloss) - Brighter & Sharper */}
-                    <div className="absolute top-0 left-0 w-full h-[45%] bg-gradient-to-b from-white/40 to-transparent rounded-t-full pointer-events-none"
-                        style={{ backdropFilter: 'brightness(1.1)' }} />
+                    {/* 2. Top Specular Highligh - Stronger white reflection */}
+                    <div className="absolute top-0 left-0 w-full h-[45%] bg-gradient-to-b from-white/90 to-transparent rounded-t-full pointer-events-none"
+                        style={{ backdropFilter: 'brightness(1.2)' }} />
 
-                    {/* 3. Sharp Glint (Top-Left) - The "Marble" shine */}
-                    <div className="absolute top-[12%] left-[12%] w-[35%] h-[20%] bg-gradient-to-br from-white to-transparent opacity-70 rounded-full blur-[2px] pointer-events-none transform -rotate-12" />
+                    {/* 3. Sharp Glint (Top-Left) */}
+                    <div className="absolute top-[12%] left-[12%] w-[35%] h-[20%] bg-gradient-to-br from-white to-transparent opacity-90 rounded-full blur-[1px] pointer-events-none transform -rotate-12" />
 
-                    {/* 4. Bottom Reflection (Light passing through) */}
-                    <div className="absolute bottom-[5%] right-[10%] w-[40%] h-[30%] bg-gradient-to-tl from-white/30 to-transparent rounded-full blur-[6px] pointer-events-none opacity-40 transform rotate-45" />
+                    {/* 4. Bottom Reflection */}
+                    <div className="absolute bottom-[5%] right-[10%] w-[40%] h-[30%] bg-gradient-to-tl from-white/60 to-transparent rounded-full blur-[4px] pointer-events-none opacity-60 transform rotate-45" />
 
-                    {/* 5. Hard Rim Light / Border - Subtle but sharp */}
-                    <div className="absolute inset-0 rounded-full border border-white/20 ring-1 ring-white/10 pointer-events-none mix-blend-overlay" />
+                    {/* 5. Hard Rim Light / Border - Darker ring for definition against white */}
+                    <div className="absolute inset-0 rounded-full border border-black/5 ring-1 ring-white/40 pointer-events-none" />
                 </motion.div>
 
-                {/* Label on hover */}
+                {/* Label on hover - Light Theme */}
                 <motion.div
                     initial={{ opacity: 0, y: 10, scale: 0.9 }}
                     animate={{ opacity: isHovered ? 1 : 0, y: isHovered ? 0 : 10, scale: isHovered ? 1 : 0.9 }}
-                    className="absolute -bottom-24 left-1/2 -translate-x-1/2 bg-[#121212]/95 backdrop-blur-xl border border-white/20 px-5 py-4 rounded-2xl text-center min-w-[180px] pointer-events-none shadow-2xl z-50 flex flex-col justify-center gap-1"
+                    className="absolute -bottom-24 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-xl border border-black/5 px-5 py-4 rounded-2xl text-center min-w-[180px] pointer-events-none shadow-[0_10px_30px_rgba(0,0,0,0.1)] z-50 flex flex-col justify-center gap-1"
                 >
-                    <h3 className="text-white font-bold text-base leading-tight break-keep">{album.title}</h3>
-                    <p className="text-[#a0a0a0] text-xs font-medium">{album.artist}</p>
+                    <h3 className="text-black font-bold text-base leading-tight break-keep">{album.title}</h3>
+                    <p className="text-gray-500 text-xs font-medium">{album.artist}</p>
                 </motion.div>
             </div>
         </motion.div >

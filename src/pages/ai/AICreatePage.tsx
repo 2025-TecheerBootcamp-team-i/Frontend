@@ -63,7 +63,6 @@ function PillButton({
 export default function AiCreatePage() {
   const navigate = useNavigate();
   const { playTracks } = usePlayer();
-  const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
   const listScrollRef = useRef<HTMLDivElement | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
@@ -459,7 +458,7 @@ export default function AiCreatePage() {
               const result: any = status.result as any;
               const musicIdFromResult = result?.music?.music_id ?? result?.music_id ?? null;
 
-              if (!musicIdFromResult || !API_BASE) {
+              if (!musicIdFromResult) {
                 setPrompt("");
                 setConvertedPrompt("");
                 setSelected(new Set());
@@ -490,22 +489,15 @@ export default function AiCreatePage() {
                 }
 
                 try {
-                  const res = await fetch(`${API_BASE}/${musicId}/`);
-                  if (!res.ok) {
+                  const data = await getMusicDetail(musicId);
+
+                  if (!data) {
                     detailAttempts++;
                     setTimeout(pollMusicDetail, 5000);
                     return;
                   }
 
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  const data: any = await res.json();
-
-                  const detailAudioUrl =
-                    data?.audio_url ??
-                    data?.audioUrl ??
-                    data?.music?.audio_url ??
-                    data?.music?.audioUrl ??
-                    null;
+                  const detailAudioUrl = data.audio_url ?? null;
 
                   if (!detailAudioUrl) {
                     detailAttempts++;

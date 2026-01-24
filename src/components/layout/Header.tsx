@@ -31,7 +31,7 @@ function Header() {
     setQuery("");
     setTagMode(false);
     navigate("/home");
-  };  
+  };
 
   const isLoggedIn = !!localStorage.getItem("access_token");
 
@@ -110,12 +110,12 @@ function Header() {
           onChange={(e) => {
             const v = e.target.value;
             setQuery(v);
-          
+
             // ✅ "# "가 깨지면 태그 모드 종료
             if (tagMode && !v.startsWith("# ")) {
               setTagMode(false);
             }
-          }}          
+          }}
           onKeyDown={(e) => {
             // ✅ "#"(딱 한 글자) 상태에서 스페이스 → 태그 UI ON
             if (e.key === " " && query === "#") {
@@ -124,7 +124,7 @@ function Header() {
               setQuery("# ");       // UX용: 스페이스 들어간 것처럼 보이게
               return;
             }
-          
+
             // ✅ 태그 모드에서 "# " 상태에서 백스페이스 → 태그 모드 OFF
             if (e.key === "Backspace" && tagMode && query === "# ") {
               e.preventDefault();
