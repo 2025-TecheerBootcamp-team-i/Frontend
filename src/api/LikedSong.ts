@@ -48,7 +48,7 @@ export async function likecount(music_id: number | string): Promise<TrackLikeCou
 
 // 좋아요 누르기 | POST /api/v1/tracks/{music_id}/likes
 export async function likeTrack(music_id: number | string): Promise<LikeToggleResponse> {
-  const res = await axiosInstance.post<LikeToggleResponse>(`/tracks/${music_id}/likes`);
+  const res = await axiosInstance.post<LikeToggleResponse>(`/tracks/${music_id}/like`);
   return res.data;
 }
 
