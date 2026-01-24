@@ -329,10 +329,10 @@ function HomePage() {
         type="button"
         onClick={() => setTab(key)}
         className={[
-            "h-9 px-4 rounded-full text-sm transition whitespace-nowrap",
+            "px-4 py-2 rounded-full text-base transition whitespace-nowrap",
             active
-            ? "bg-[#E4524D] text-[#F6F6F6]"
-            : "bg-[#4d4d4d] text-[#F6F6F6] hover:bg-[#5d5d5d]",
+              ? "bg-[#E4524D]/80 text-[#F6F6F6]"
+              : "bg-white/20 text-[#F6F6F6] hover:bg-white/[0.08]",
         ].join(" ")}
         >
         {label}

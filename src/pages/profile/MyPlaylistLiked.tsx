@@ -35,15 +35,18 @@ function buildCoverUrlsFromLikedTracks(tracks: LikedTrack[], limit = 4): string[
 // (백엔드 응답 필드명이 조금씩 다를 수 있어서 안전하게 커버를 뽑는 헬퍼)
 // 필요하면 너희 API 스펙에 맞게 한 줄로 정리해도 됨.
 function pickAlbumCover(album: LikedAlbumSummary): string | null {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (album as any).cover_image ?? null;
 }
 
 function pickPlaylistCover(p: LikedPlaylistSummary): string | null {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const a = p as any;
   return a.cover_image ?? a.cover_url ?? a.coverUrl ?? a.image ?? null;
 }
 
 function formatPlaylistOwner(p: LikedPlaylistSummary): string {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const a = p as any;
   const nick = a.creator_nickname ?? a.creatorNickname ?? a.owner_name ?? "";
   const cnt =
@@ -55,210 +58,213 @@ function formatPlaylistOwner(p: LikedPlaylistSummary): string {
 }
 
 export default function MyPlaylistsLiked() {
-  const navigate = useNavigate();
+const navigate = useNavigate();
 
-  /** =========================
-   *  1) 좋아요 곡(= 시스템 카드용)
-   * ========================= */
-  const [likedTracks, setLikedTracks] = useState<LikedTrack[]>([]);
-  const [tracksLoading, setTracksLoading] = useState(false);
-  const [tracksError, setTracksError] = useState<string | null>(null);
+/** =========================
+ *  1) 좋아요 곡(= 시스템 카드용)
+ * ========================= */
+const [likedTracks, setLikedTracks] = useState<LikedTrack[]>([]);
+const [tracksLoading, setTracksLoading] = useState(false);
+const [tracksError, setTracksError] = useState<string | null>(null);
 
-  const refreshLikedTracks = useCallback(async () => {
-    setTracksLoading(true);
+const refreshLikedTracks = useCallback(async () => {
+  setTracksLoading(true);
 
-    const userId = getCurrentUserId();
-    if (!userId) {
-      setTracksLoading(false);
-      setTracksError("user_id를 찾을 수 없어요. 로그인 후 user_id 저장을 확인해주세요.");
-      setLikedTracks([]);
-      return;
-    }
+  const userId = getCurrentUserId();
+  if (!userId) {
+    setTracksLoading(false);
+    setTracksError("user_id를 찾을 수 없어요. 로그인 후 user_id 저장을 확인해주세요.");
+    setLikedTracks([]);
+    return;
+  }
 
-    try {
-      setTracksError(null);
-      const list = await fetchLikedTracks(userId);
-      setLikedTracks(Array.isArray(list) ? list : []);
-    } catch (e) {
-      console.error("[MyPlaylistsLiked] 좋아요 곡 목록 불러오기 실패:", e);
-      setTracksError("좋아요 곡 목록을 불러오지 못했어요.");
-      setLikedTracks([]);
-    } finally {
-      setTracksLoading(false);
-    }
-  }, []);
+  try {
+    setTracksError(null);
+    const list = await fetchLikedTracks(userId);
+    setLikedTracks(Array.isArray(list) ? list : []);
+  } catch (e) {
+    console.error("[MyPlaylistsLiked] 좋아요 곡 목록 불러오기 실패:", e);
+    setTracksError("좋아요 곡 목록을 불러오지 못했어요.");
+    setLikedTracks([]);
+  } finally {
+    setTracksLoading(false);
+  }
+}, []);
 
-  // 4분할 커버에 쓸 URL 4개 만들기
-  const likedCoverUrls = useMemo(
-    () => buildCoverUrlsFromLikedTracks(likedTracks, 4),
-    [likedTracks]
-  );
+// 4분할 커버에 쓸 URL 4개 만들기
+const likedCoverUrls = useMemo(
+  () => buildCoverUrlsFromLikedTracks(likedTracks, 4),
+  [likedTracks]
+);
 
-  /** =========================
-   *  2) 좋아요 앨범(= API)
-   * ========================= */
-  const [likedAlbums, setLikedAlbums] = useState<LikedAlbumSummary[]>([]);
-  const [albumsLoading, setAlbumsLoading] = useState(false);
-  const [albumsError, setAlbumsError] = useState<string | null>(null);
+/** =========================
+ *  2) 좋아요 앨범(= API)
+ * ========================= */
+const [likedAlbums, setLikedAlbums] = useState<LikedAlbumSummary[]>([]);
+const [albumsLoading, setAlbumsLoading] = useState(false);
+const [albumsError, setAlbumsError] = useState<string | null>(null);
 
-  const refreshLikedAlbums = useCallback(async () => {
-    setAlbumsLoading(true);
-    try {
-      setAlbumsError(null);
-      const albums = await listLikedAlbums();
-      setLikedAlbums(Array.isArray(albums) ? albums : []);
-    } catch (error) {
-      console.error("[MyPlaylistsLiked] 좋아요한 앨범 로딩 실패:", error);
-      setAlbumsError("좋아요한 앨범을 불러오지 못했어요.");
-      setLikedAlbums([]);
-    } finally {
-      setAlbumsLoading(false);
-    }
-  }, []);
+const refreshLikedAlbums = useCallback(async () => {
+  setAlbumsLoading(true);
+  try {
+    setAlbumsError(null);
+    const albums = await listLikedAlbums();
+    setLikedAlbums(Array.isArray(albums) ? albums : []);
+  } catch (error) {
+    console.error("[MyPlaylistsLiked] 좋아요한 앨범 로딩 실패:", error);
+    setAlbumsError("좋아요한 앨범을 불러오지 못했어요.");
+    setLikedAlbums([]);
+  } finally {
+    setAlbumsLoading(false);
+  }
+}, []);
 
-  /** =========================
-   *  3) 좋아요 플레이리스트(= API)
-   * ========================= */
-  const [likedPlaylistsApi, setLikedPlaylistsApi] = useState<LikedPlaylistSummary[]>([]);
-  const [likedPlaylistsLoading, setLikedPlaylistsLoading] = useState(false);
-  const [likedPlaylistsError, setLikedPlaylistsError] = useState<string | null>(null);
+/** =========================
+ *  3) 좋아요 플레이리스트(= API)
+ * ========================= */
+const [likedPlaylistsApi, setLikedPlaylistsApi] = useState<LikedPlaylistSummary[]>([]);
+const [likedPlaylistsLoading, setLikedPlaylistsLoading] = useState(false);
+const [likedPlaylistsError, setLikedPlaylistsError] = useState<string | null>(null);
 
-  const refreshLikedPlaylists = useCallback(async () => {
-    setLikedPlaylistsLoading(true);
-    try {
-      setLikedPlaylistsError(null);
-      const list = await listLikedPlaylists(); // GET /playlists/likes  → /api/v1/playlists/likes
-      setLikedPlaylistsApi(Array.isArray(list) ? list : []);
-    } catch (e) {
-      console.error("[MyPlaylistsLiked] 좋아요 플레이리스트 로딩 실패:", e);
-      setLikedPlaylistsError("좋아요한 플레이리스트를 불러오지 못했어요.");
-      setLikedPlaylistsApi([]);
-    } finally {
-      setLikedPlaylistsLoading(false);
-    }
-  }, []);
+const refreshLikedPlaylists = useCallback(async () => {
+  setLikedPlaylistsLoading(true);
+  try {
+    setLikedPlaylistsError(null);
+    const list = await listLikedPlaylists();
+    setLikedPlaylistsApi(Array.isArray(list) ? list : []);
+  } catch (e) {
+    console.error("[MyPlaylistsLiked] 좋아요 플레이리스트 로딩 실패:", e);
+    setLikedPlaylistsError("좋아요한 플레이리스트를 불러오지 못했어요.");
+    setLikedPlaylistsApi([]);
+  } finally {
+    setLikedPlaylistsLoading(false);
+  }
+}, []);
 
+/** =========================
+ *  4) 포커스/진입 시 최신화
+ * ========================= */
+useEffect(() => {
+  refreshLikedTracks();
+  refreshLikedAlbums();
+  refreshLikedPlaylists();
 
-
-  /** =========================
-   *  4) 포커스/진입 시 최신화
-   * ========================= */
-  useEffect(() => {
+  const onFocus = () => {
     refreshLikedTracks();
     refreshLikedAlbums();
     refreshLikedPlaylists();
+  };
 
-    const onFocus = () => {
-      refreshLikedTracks();
-      refreshLikedAlbums();
-      refreshLikedPlaylists();
-    };
+  window.addEventListener("focus", onFocus);
+  return () => window.removeEventListener("focus", onFocus);
+}, [refreshLikedTracks, refreshLikedAlbums, refreshLikedPlaylists]);
 
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
-  }, [refreshLikedTracks, refreshLikedAlbums, refreshLikedPlaylists]);
+/** =========================
+ *  5) 화면 카드 모델(items)로 합치기
+ * ========================= */
+const items = useMemo((): PlaylistItem[] => {
+  // 0) 시스템 카드(나의 좋아요 목록)
+  const systemCount = likedTracks.length;
+  const systemOwner = tracksLoading
+    ? "불러오는 중..."
+    : tracksError
+    ? "불러오기 실패"
+    : `총 ${systemCount}곡`;
 
-  /** =========================
-   *  4) 화면 카드 모델(items)로 합치기 (어댑터)
-   * ========================= */
-  const items = useMemo((): PlaylistItem[] => {
-    // 0) 시스템 카드(나의 좋아요 목록) ✅ 기존 그대로
-    const systemCount = likedTracks.length;
-    const systemOwner = tracksLoading
-      ? "불러오는 중..."
-      : tracksError
-      ? "불러오기 실패"
-      : `총 ${systemCount}곡`;
+  const systemCard: PlaylistItem = {
+    id: LIKED_SYSTEM_ID,
+    title: "나의 좋아요 목록",
+    owner: systemOwner,
+    liked: true,
+    kind: "system",
+    coverUrls: likedCoverUrls,
+    coverUrl: likedCoverUrls[0] ?? null,
+  };
 
-    const systemCard: PlaylistItem = {
-      id: LIKED_SYSTEM_ID,
-      title: "나의 좋아요 목록",
-      owner: systemOwner,
+  // 1) 좋아요 플레이리스트(API)
+  const playlistItems: PlaylistItem[] = likedPlaylistsApi.map((p) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const a = p as any;
+    return {
+      id: String(a.playlist_id ?? a.id),
+      title: String(a.title ?? a.playlist_name ?? "플레이리스트"),
+      owner: formatPlaylistOwner(p),
       liked: true,
-      kind: "system",
-      coverUrls: likedCoverUrls,
-      coverUrl: likedCoverUrls[0] ?? null,
+      kind: "playlist",
+      coverUrl: pickPlaylistCover(p),
     };
+  });
 
-    // 1) 좋아요 플레이리스트(API)
-    const playlistItems: PlaylistItem[] = likedPlaylistsApi.map((p) => {
-      const a = p as any;
-      return {
-        id: String(a.playlist_id ?? a.id),
-        title: String(a.title ?? a.playlist_name ?? "플레이리스트"),
-        owner: formatPlaylistOwner(p),
-        liked: true,
-        kind: "playlist",
-        coverUrl: pickPlaylistCover(p),
-      };
-    });
-
-    // 2) 좋아요 앨범(API)
+  // 2) 좋아요 앨범(API)
   const albumOwnerFallback =
     albumsLoading ? "불러오는 중..." : albumsError ? "불러오기 실패" : null;
 
   const albumItems: PlaylistItem[] = likedAlbums.map((album) => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     id: String((album as any).album_id ?? (album as any).id),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     title: String((album as any).title ?? (album as any).album_name ?? "앨범"),
     owner:
       albumOwnerFallback ??
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       String((album as any).artist_name ?? (album as any).artist ?? ""),
     liked: true,
     kind: "album",
     coverUrl: pickAlbumCover(album),
   }));
 
-    return [systemCard, ...playlistItems, ...albumItems];
-  }, [
-    likedTracks,
-    likedCoverUrls,
-    tracksLoading,
-    tracksError,
-    likedPlaylistsApi,
-    likedAlbums,
-    albumsLoading,
-    albumsError,
-  ]);
+  return [systemCard, ...playlistItems, ...albumItems];
+}, [
+  likedTracks,
+  likedCoverUrls,
+  tracksLoading,
+  tracksError,
+  likedPlaylistsApi,
+  likedAlbums,
+  albumsLoading,
+  albumsError,
+]);
 
-  const gridClass = useMemo(
-    () => `
-      grid
-      gap-x-6
-      gap-y-12
-      justify-between
-      [grid-template-columns:repeat(4,220px)]
-    `,
-    []
-  );
+const gridClass = useMemo(
+  () => `
+    grid
+    gap-x-6
+    gap-y-12
+    justify-between
+    [grid-template-columns:repeat(4,220px)]
+  `,
+  []
+);
 
-  /** =========================
-   *  5) 클릭 시 라우팅 분기
-   * ========================= */
-  const handleOpen = useCallback(
-    (it: PlaylistItem) => {
-      // ✅ 너희 라우터에 album 상세가 있으면 여기만 /album으로 바꿔주면 됨
-      if (it.kind === "album") {
-        navigate(`/album/${it.id}`);
-        return;
-      }
-      // system/playlist는 기존처럼 /playlist
-      navigate(`/playlist/${it.id}`);
-    },
-    [navigate]
-  );
+/** =========================
+ *  6) 클릭 시 라우팅 분기
+ * ========================= */
+const handleOpen = useCallback(
+  (it: PlaylistItem) => {
+    if (it.kind === "album") {
+      navigate(`/album/${it.id}`);
+      return;
+    }
+    navigate(`/playlist/${it.id}`);
+  },
+  [navigate]
+);
 
     return (
-        <section className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
-        {/* 헤더 */}
-        <div className="px-10 pt-8 pb-4 flex items-center justify-between">
-            <div className="text-xl font-black tracking-[0.2em] text-white uppercase opacity-80">좋아요 목록</div>
-            <div className="w-10 h-10 rounded-full border border-white/10 bg-white/5 text-[#AFDEE2] grid place-items-center text-xl shadow-inner">
+        <section className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10">
+        <div className="px-8 pt-6 pb-2 flex items-center justify-between">
+            <div className="text-xl font-semibold text-[#f6f6f6]">좋아요</div>
+
+            <div className="w-9 h-9 text-[#f6f6f6]/80 grid place-items-center text-xl">
             ♥
             </div>
         </div>
 
-        <div className="mx-10 border-b border-white/10 mb-10" />
-        <div className="px-10 pb-10 overflow-x-auto">
+        {/* ✅ 구분선: Section과 동일 */}
+        <div className="mb-4 mx-4 border-b border-white/10" />
+
+        {/* ✅ 본문 패딩: Section과 동일 */}
+        <div className="px-6 pb-6 overflow-x-auto">
             <div className={gridClass}>
             {items.map((it) => (
                 <button
@@ -267,7 +273,7 @@ export default function MyPlaylistsLiked() {
                 onClick={() => handleOpen(it)}
                 className="w-[220px] text-left group"
                 >
-               <div className="relative aspect-square rounded-[32px] bg-white/5 border border-white/10 group-hover:bg-white/10 transition-all duration-500 shadow-xl overflow-hidden">
+             <div className="relative aspect-square rounded-2xl overflow-hidden bg-white/20 group-hover:bg-white/10 transition-all duration-500 shadow-xl">
                     {/* ✅ 4등분 우선 (system 카드 등 coverUrls 있는 경우) */}
                     {it.coverUrls?.length ? (
                         <div className="absolute inset-0 grid grid-cols-2 grid-rows-2">
@@ -296,39 +302,37 @@ export default function MyPlaylistsLiked() {
                         alt={it.title}
                         className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                         loading="lazy"
-                        />
+                    />
                     ) : (
-                        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
                     )}
 
-                    {/* ✅ Merge 후 디자인 오버레이 유지 */}
                     <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
 
                     {/* ✅ 하트 아이콘 (Merge 후 디자인 유지) */}
                     {it.liked && (
-                        <div
+                    <div
                         className={[
-                            "absolute top-4 right-5 text-2xl drop-shadow-lg transition-transform duration-500 group-hover:scale-125",
-                            it.kind === "system" ? "text-[#E4524D]" : "text-[#AFDEE2]",
+                        "absolute top-2 right-3 text-2xl",
+                        it.kind === "system" ? "text-[#E4524D]/80" : "text-[#AFDEE2]/80",
                         ].join(" ")}
-                        >
+                    >
                         ♥
-                        </div>
-                    )}
                     </div>
+                    )}
+                </div>
 
-              <div className="mt-5 px-2">
-                <div className="text-[15px] font-bold text-white/95 truncate tracking-tight group-hover:text-[#AFDEE2] transition-colors">
+                {/* ✅ 텍스트: Section 카드 텍스트 톤으로 통일 */}
+                <div className="mx-1 mt-3">
+                    <div className="text-sm font-semibold text-[#f6f6f6]/95 truncate group-hover:text-[#AFDEE2] transition-colors">
                     {it.title}
+                    </div>
+                    <div className="mt-1 text-xs text-[#f6f6f6]/20">{it.owner}</div>
                 </div>
-                <div className="mt-1.5 text-[11px] font-black text-white/20 uppercase tracking-widest">
-                    {it.owner}
-                </div>
-              </div>
-            </button>
-          ))}
+                </button>
+            ))}
+            </div>
         </div>
-      </div>
-    </section>
+        </section>
     );
 }
