@@ -265,3 +265,186 @@ export async function getTagGraph(musicId: number): Promise<TagGraphItem[]> {
     return [];
   }
 }
+
+/**
+ * Tag Search API
+ * GET /api/v1/search/tags?page=1&page_size=100&tag=summer,sad
+ */
+export interface TagSearchResult {
+  music_id: number;
+  music_name: string;
+  artist_name: string | null;
+  album_name: string | null;
+  audio_url: string | null;
+  image_square?: string | null;
+  image_large_square?: string | null;
+  album_image?: string | null;
+  score?: number;
+}
+
+export interface TagSearchResponse {
+  items: TagSearchResult[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export async function searchByTags(tags: string, pageSize: number = 100): Promise<TagSearchResult[]> {
+  try {
+    console.log("[API] searchByTags 호출", { tags, pageSize });
+
+    const res = await axiosInstance.get('/search/tags', {
+      params: {
+        page: 1,
+        page_size: pageSize,
+        tag: tags
+      }
+    });
+
+    console.log("[API] searchByTags 전체 응답", res.data);
+
+    // Handle different response formats
+    if (Array.isArray(res.data)) {
+      // Direct array response
+      return res.data;
+    } else if (res.data?.items && Array.isArray(res.data.items)) {
+      // Paginated response with items
+      return res.data.items;
+    } else if (res.data?.results && Array.isArray(res.data.results)) {
+      // Django REST style response
+      return res.data.results;
+    }
+
+    console.warn("[API] searchByTags 알 수 없는 응답 형식", res.data);
+    return [];
+  } catch (error) {
+    console.error("[API] searchByTags 실패", { tags, error });
+    return [];
+  }
+}
+
+/**
+ * Canvas Album Item Interface
+ */
+export interface CanvasAlbum {
+  id: number;
+  title: string;
+  artist: string;
+  cover: string;
+  x: number;
+  y: number;
+  rotation: number;
+  scale: number;
+}
+
+/**
+ * Fetch real albums/tracks and map them to the canvas format 
+ * with random positions.
+ * 
+ * OPTIMIZED: Uses caching and fewer API calls
+ */
+
+// Cache for fetched albums to avoid repeated API calls
+let albumCache: CanvasAlbum[] = [];
+let cacheLoadPromise: Promise<void> | null = null;
+
+async function preloadAlbumCache() {
+  if (cacheLoadPromise) return cacheLoadPromise;
+
+  cacheLoadPromise = (async () => {
+    // Pre-fetch a larger batch of random albums once
+    const batchSize = 30; // Fetch 30 in one go
+    const promises: Promise<MusicDetailResponse | null>[] = [];
+
+    for (let i = 0; i < batchSize; i++) {
+      const randomId = Math.floor(Math.random() * 30000) + 1;
+      promises.push(getMusicDetail(randomId));
+    }
+
+    const results = await Promise.all(promises);
+
+    for (const item of results) {
+      if (item) {
+        const coverImage = item.image_large_square || item.image_square || item.album_image;
+        if (coverImage) {
+          albumCache.push({
+            id: item.music_id,
+            title: item.music_name || "Unknown Track",
+            artist: item.artist_name || "Unknown Artist",
+            cover: coverImage,
+            x: 0,
+            y: 0,
+            rotation: 0,
+            scale: 1
+          });
+        }
+      }
+    }
+  })();
+
+  return cacheLoadPromise;
+}
+
+export async function getCanvasAlbums(count: number = 3): Promise<CanvasAlbum[]> {
+  // 1. Check cache first
+  if (albumCache.length >= count) {
+    // Take from cache
+    const result = albumCache.splice(0, count);
+
+    // Refill cache in background (don't wait)
+    if (albumCache.length < 10) {
+      cacheLoadPromise = null;
+      preloadAlbumCache();
+    }
+
+    return result;
+  }
+
+  // 2. If cache empty, fetch directly (smaller batch for speed)
+  const promises: Promise<MusicDetailResponse | null>[] = [];
+
+  // Only fetch what we need + small buffer
+  for (let i = 0; i < count + 2; i++) {
+    const randomId = Math.floor(Math.random() * 30000) + 1;
+    promises.push(getMusicDetail(randomId));
+  }
+
+  const results = await Promise.all(promises);
+  const validItems: CanvasAlbum[] = [];
+
+  for (const item of results) {
+    if (validItems.length >= count) break;
+
+    if (item) {
+      const coverImage = item.image_large_square || item.image_square || item.album_image;
+      if (coverImage) {
+        validItems.push({
+          id: item.music_id,
+          title: item.music_name || "Unknown Track",
+          artist: item.artist_name || "Unknown Artist",
+          cover: coverImage,
+          x: 0,
+          y: 0,
+          rotation: 0,
+          scale: 1
+        });
+      }
+    }
+  }
+
+  // Start preloading for next calls
+  preloadAlbumCache();
+
+  return validItems;
+}
+
+export async function playTrack(musicId: number): Promise<string | null> {
+  try {
+    const res = await axiosInstance.get(`/tracks/${musicId}/play`);
+    console.log("[API] Play Track", res.data);
+    return res.data.audio_url || null;
+  } catch (error) {
+    console.error("[API] Failed to play track", error);
+    return null;
+  }
+}
