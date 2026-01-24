@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+// src/pages/chart/ChartTop100.tsx
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 
 import { FaPlay } from "react-icons/fa6";
 import { IoPlayCircle, IoShuffle } from "react-icons/io5";
@@ -9,13 +11,14 @@ import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
 import { requireLogin } from "../../api/auth";
 
-import {
-    getPlaylistById,
-    getUserPlaylists,
-    subscribePlaylists,
-    updatePlaylist,
-    LIKED_SYSTEM_ID,
-} from "../../mocks/playlistMock";
+// ✅ 실제 API (SearchSong과 동일한 방식)
+import { listMyPlaylists, addPlaylistItems, type PlaylistSummary } from "../../api/playlist";
+// (선택) 좋아요도 진짜 API로 할 거면 SearchSong처럼 likeTrack 사용
+import { likeTrack } from "../../api/LikedSong";
+
+/* =========================
+    Utils
+========================= */
 
 const actions = [
     { key: "play", label: "재생", icon: <IoPlayCircle size={18} /> },
@@ -26,7 +29,6 @@ const actions = [
 
 type ActionKey = (typeof actions)[number]["key"];
 
-// ✅ 분초 변환 및 생성 일자
 const formatDuration = (sec: number) => {
     if (!Number.isFinite(sec) || sec < 0) return "0:00";
     const m = Math.floor(sec / 60);
@@ -42,19 +44,211 @@ const formatGeneratedAt = (iso: string) => {
     ).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 };
 
+/* =========================
+    Modal Portal + Base Modal
+========================= */
+
+function ModalPortal({ children }: { children: React.ReactNode }) {
+    if (typeof document === "undefined") return null;
+    return createPortal(children, document.body);
+}
+
+type BaseModalProps = {
+    open: boolean;
+    title: string;
+    onClose: () => void;
+    children: React.ReactNode;
+    maxWidthClass?: string;
+};
+
+function BaseModal({ open, title, onClose, children, maxWidthClass = "max-w-[420px]" }: BaseModalProps) {
+    // ESC 닫기
+    useEffect(() => {
+        if (!open) return;
+        const onKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") onClose();
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [open, onClose]);
+
+    // 바디 스크롤 잠금
+    useEffect(() => {
+        if (!open) return;
+        const prev = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        return () => {
+        document.body.style.overflow = prev;
+        };
+    }, [open]);
+
+    if (!open) return null;
+
+    return (
+        <ModalPortal>
+        <div className="fixed inset-0 z-[99999] whitespace-normal">
+            <button type="button" className="absolute inset-0 bg-black/50" onClick={onClose} aria-label="닫기" />
+            <div className="absolute inset-0 grid place-items-center p-6">
+            <div
+                className={`w-full ${maxWidthClass} rounded-3xl bg-[#2d2d2d] border border-[#464646] shadow-2xl overflow-hidden`}
+                onClick={(e) => e.stopPropagation()}
+                role="dialog"
+                aria-modal="true"
+                aria-label={title}
+            >
+                <div className="px-6 py-4 flex items-center justify-between border-b border-[#464646]">
+                <div className="text-base font-semibold text-[#F6F6F6]">{title}</div>
+                <button
+                    type="button"
+                    onClick={onClose}
+                    className="text-[#F6F6F6]/70 hover:text-white transition"
+                    aria-label="닫기"
+                >
+                    ✕
+                </button>
+                </div>
+
+                {children}
+            </div>
+            </div>
+        </div>
+        </ModalPortal>
+    );
+}
+
+/* =========================
+  Playlist Pick Modal (실데이터)
+========================= */
+
+type PlaylistPickModalProps = {
+    open: boolean;
+    onClose: () => void;
+    selectedCount: number;
+
+    loading: boolean;
+    error: string | null;
+    targets: PlaylistSummary[];
+
+    onPick: (playlistId: string) => void;
+};
+
+function PlaylistPickModal({
+    open,
+    onClose,
+    selectedCount,
+    loading,
+    error,
+    targets,
+    onPick,
+    }: PlaylistPickModalProps) {
+    return (
+        <BaseModal open={open} onClose={onClose} title="플레이리스트 선택" maxWidthClass="max-w-[420px]">
+        <div className="px-6 py-4 text-sm text-[#F6F6F6]/70">
+            선택한 {selectedCount}곡을 담을 플레이리스트를 골라주세요
+        </div>
+
+        <div className="max-h-[360px] overflow-y-auto border-t border-[#464646]">
+            {loading ? (
+            <div className="px-6 py-6 text-sm text-[#aaa]">플레이리스트 불러오는 중...</div>
+            ) : error ? (
+            <div className="px-6 py-6 text-sm text-red-400">오류: {error}</div>
+            ) : targets.length === 0 ? (
+            <div className="px-6 py-6 text-sm text-[#aaa]">담을 수 있는 플레이리스트가 없어요.</div>
+            ) : (
+            targets.map((p) => (
+                <button
+                key={p.playlist_id}
+                type="button"
+                onClick={() => onPick(String(p.playlist_id))}
+                className="w-full text-left px-6 py-4 hover:bg-white/5 transition border-b border-[#464646]"
+                >
+                <div className="text-sm font-semibold text-[#F6F6F6] truncate">{p.title}</div>
+                <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">
+                    {p.creator_nickname} · {p.visibility === "public" ? "공개" : "비공개"}
+                </div>
+                </button>
+            ))
+            )}
+        </div>
+
+        <div className="px-6 py-4 border-t border-[#464646] flex justify-end">
+            <button type="button" onClick={onClose} className="px-4 py-2 rounded-2xl text-sm text-[#F6F6F6] hover:bg-white/10 transition">
+            취소
+            </button>
+        </div>
+        </BaseModal>
+    );
+}
+
+/* =========================
+  Play Mode Confirm Modal
+========================= */
+
+type PendingPlay = {
+    key: ActionKey;
+    tracks: PlayerTrack[];
+};
+
+type PlayModeConfirmModalProps = {
+    open: boolean;
+    onClose: () => void;
+    pending: PendingPlay | null;
+    onChoose: (mode: "replace" | "enqueue") => void;
+};
+
+function PlayModeConfirmModal({ open, onClose, pending, onChoose }: PlayModeConfirmModalProps) {
+    const count = pending?.tracks.length ?? 0;
+    const isShuffle = pending?.key === "shuffle";
+
+    return (
+        <BaseModal open={open && !!pending} onClose={onClose} title="재생 방식 선택" maxWidthClass="max-w-[440px]">
+        <div className="px-6 py-4 text-sm text-[#F6F6F6]/70">
+            선택한 {count}곡을 {isShuffle ? "셔플로 " : ""}어떻게 재생할까요?
+        </div>
+
+        <div className="px-6 pb-6 grid grid-cols-1 gap-3">
+            <button
+            type="button"
+            onClick={() => onChoose("replace")}
+            className="w-full px-4 py-3 rounded-2xl text-sm text-[#F6F6F6] outline outline-1 outline-[#464646] hover:bg-white/10 transition text-left"
+            >
+            <div className="font-semibold text-[#afdee2]">현재 재생 대기목록 지우고 재생</div>
+            <div className="mt-1 text-xs text-[#999]">지금 재생 대기목록을 초기화하고 선택한 곡들로 새로 재생합니다.</div>
+            </button>
+
+            <button
+            type="button"
+            onClick={() => onChoose("enqueue")}
+            className="w-full px-4 py-3 rounded-2xl text-sm text-[#F6F6F6] outline outline-1 outline-[#464646] hover:bg-white/10 transition text-left"
+            >
+            <div className="font-semibold text-[#afdee2]">재생 대기목록 맨 뒤에 추가</div>
+            <div className="mt-1 text-xs text-[#999]">현재 재생은 유지하고, 선택한 곡들을 재생 대기 목록 마지막에 둡니다.</div>
+            </button>
+        </div>
+
+        <div className="px-6 py-4 border-t border-[#464646] flex justify-end">
+            <button type="button" onClick={onClose} className="px-4 py-2 rounded-2xl text-sm text-[#F6F6F6] hover:bg-white/10 transition">
+            취소
+            </button>
+        </div>
+        </BaseModal>
+    );
+}
+
+/* =========================
+    Page Component
+========================= */
+
 export default function ChartTop100() {
     const GRID = "grid-cols-[44px_90px_1.2fr_1fr_200px]";
 
-    // ✅ PlayerContext
-    // NOTE: enqueueTracks가 PlayerContext에 없으면 추가/노출 필요
     const { setTrackAndPlay, playTracks, enqueueTracks } = usePlayer();
 
-    // ✅ API 상태
+    // Chart API 상태
     const [chart, setChart] = useState<ChartData | null>(null);
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-    // ✅ musicId 기준 중복 제거
     const rows = useMemo(() => {
         if (!chart) return [];
         const seen = new Set<string>();
@@ -65,7 +259,6 @@ export default function ChartTop100() {
         });
     }, [chart]);
 
-    // ✅ PlayerTrack 변환
     const toTrack = (row: ApiChartRow): PlayerTrack => ({
         id: row.musicId,
         musicId: Number(row.musicId),
@@ -78,7 +271,7 @@ export default function ChartTop100() {
         coverUrl: row.albumImage,
     });
 
-    // ✅ 체크박스
+    // 체크박스
     const [checkedIds, setCheckedIds] = useState<Record<string, boolean>>({});
     const allChecked = rows.length > 0 && rows.every((r) => checkedIds[r.musicId]);
 
@@ -93,11 +286,10 @@ export default function ChartTop100() {
     };
 
     const checkedRows = useMemo(() => rows.filter((r) => !!checkedIds[r.musicId]), [rows, checkedIds]);
-
     const checkedTracks = useMemo(() => checkedRows.map(toTrack), [checkedRows]);
     const selectedCount = checkedTracks.length;
 
-    // ✅ 이전 스냅샷(“전 순위”) 저장: 렌더링을 안 일으키는 저장소
+    // 차트 로드
     const prevRankByIdRef = useRef<Record<string, number>>({});
 
     useEffect(() => {
@@ -111,10 +303,7 @@ export default function ChartTop100() {
             const data = await fetchChart("realtime");
             if (!alive) return;
 
-            // ✅ 1) 이전 순위 맵(전 스냅샷)
             const prev = prevRankByIdRef.current;
-
-            // ✅ 2) 이번 diff 계산 (이전 - 현재) (사용 안 하면 제거 가능)
             const nextDiff: Record<string, number> = {};
             for (const item of data.items) {
             const id = item.musicId;
@@ -124,11 +313,8 @@ export default function ChartTop100() {
 
             setChart(data);
 
-            // ✅ 3) 이번 순위를 “다음번 비교용(전 스냅샷)”으로 저장
             const nextPrev: Record<string, number> = {};
-            for (const item of data.items) {
-            nextPrev[item.musicId] = item.rank;
-            }
+            for (const item of data.items) nextPrev[item.musicId] = item.rank;
             prevRankByIdRef.current = nextPrev;
         } catch (err) {
             if (!alive) return;
@@ -140,10 +326,7 @@ export default function ChartTop100() {
         }
         };
 
-        // ✅ 최초 1회 즉시 로드
         load();
-
-        // ✅ 10분마다 갱신
         const timer = window.setInterval(load, 10 * 60 * 1000);
 
         return () => {
@@ -152,89 +335,113 @@ export default function ChartTop100() {
         };
     }, []);
 
-    // ✅ 담기 모달
+    /* =========================
+        ✅ 담기 모달 (실데이터)
+    ========================= */
+
     const [addOpen, setAddOpen] = useState(false);
-    const [addTargets, setAddTargets] = useState(() => getUserPlaylists());
+    const [addTargets, setAddTargets] = useState<PlaylistSummary[]>([]);
+    const [addTargetsLoading, setAddTargetsLoading] = useState(false);
+    const [addTargetsError, setAddTargetsError] = useState<string | null>(null);
 
+    // 모달 열릴 때 내 플레이리스트 불러오기
     useEffect(() => {
-        const syncTargets = () => setAddTargets(getUserPlaylists());
-        syncTargets();
-        return subscribePlaylists(syncTargets);
-    }, []);
+        if (!addOpen) return;
 
-    // ✅ 담기(선택곡 → 특정 플리)
-    const addSelectedToPlaylist = (playlistId: string) => {
+        let cancelled = false;
+
+        (async () => {
+        try {
+            setAddTargetsLoading(true);
+            setAddTargetsError(null);
+
+            const data = await listMyPlaylists();
+            if (cancelled) return;
+
+            // 시스템 플레이리스트 제외
+            const filtered = data.filter((p) => p.visibility !== "system");
+            setAddTargets(filtered);
+        } catch (e) {
+            console.error("[ChartTop100] 플레이리스트 목록 불러오기 실패:", e);
+            if (cancelled) return;
+            setAddTargets([]);
+            setAddTargetsError(e instanceof Error ? e.message : "플레이리스트 목록을 불러오지 못했어요.");
+        } finally {
+            if (!cancelled) setAddTargetsLoading(false);
+        }
+        })();
+
+        return () => {
+        cancelled = true;
+        };
+    }, [addOpen]);
+
+    const addSelectedToPlaylist = useCallback(
+        async (playlistId: string) => {
         if (selectedCount === 0) return;
 
-        const curr = getPlaylistById(playlistId);
-        if (!curr) return;
+        try {
+            // ✅ 차트는 musicId를 이미 갖고 있음 → 그대로 담기
+            const musicIds = checkedRows
+            .map((r) => Number(r.musicId))
+            .filter((id) => Number.isFinite(id));
 
-        const incoming = checkedTracks.map((t) => ({
-        id: t.id,
-        title: t.title,
-        artist: t.artist,
-        album: t.album ?? "",
-        duration: t.duration ?? "0:00",
-        likeCount: 0,
-        kind: "track" as const,
-        }));
+            const unique = Array.from(new Set(musicIds));
+            if (unique.length === 0) return;
 
-        const exists = new Set(curr.tracks.map((x) => x.id));
-        const merged = [...curr.tracks];
+            await addPlaylistItems(playlistId, unique);
 
-        for (const tr of incoming) {
-        if (exists.has(tr.id)) continue;
-        merged.push(tr);
-        exists.add(tr.id);
+            setAddOpen(false);
+            setCheckedIds({});
+        } catch (e) {
+            console.error("[ChartTop100] 플레이리스트 담기 실패:", e);
+            alert("플레이리스트에 담기 실패했어요. 잠시 후 다시 시도해주세요.");
         }
+        },
+        [checkedRows, selectedCount]
+    );
 
-        updatePlaylist(playlistId, { tracks: merged });
-        setAddOpen(false);
-        setCheckedIds({});
-    };
-
-    // ✅ 좋아요(선택곡 → liked 시스템 플리)
-    const addSelectedToLiked = () => {
+    // ✅ 좋아요도 진짜 API로 하고 싶으면 (SearchSong처럼)
+    const addSelectedToLiked = useCallback(async () => {
         if (selectedCount === 0) return;
 
-        const curr = getPlaylistById(LIKED_SYSTEM_ID);
-        if (!curr) return;
+        try {
+        const musicIds = checkedRows
+            .map((r) => Number(r.musicId))
+            .filter((id) => Number.isFinite(id));
 
-        const incoming = checkedTracks.map((t) => ({
-        id: t.id,
-        title: t.title,
-        artist: t.artist,
-        album: t.album ?? "",
-        duration: t.duration ?? "0:00",
-        likeCount: 0,
-        kind: "track" as const,
-        }));
+        const unique = Array.from(new Set(musicIds));
+        if (unique.length === 0) return;
 
-        const exists = new Set(curr.tracks.map((x) => x.id));
-        const merged = [...curr.tracks];
+        // 병렬 + 부분 실패 허용 (이미 좋아요 등)
+        const results = await Promise.allSettled(
+            unique.map(async (id) => {
+            await likeTrack(id);
+            return id;
+            })
+        );
 
-        for (const tr of incoming) {
-        if (exists.has(tr.id)) continue;
-        merged.push(tr);
-        exists.add(tr.id);
-        }
+        const ok = results.filter((r) => r.status === "fulfilled").length;
+        const fail = results.length - ok;
 
-        updatePlaylist(LIKED_SYSTEM_ID, { tracks: merged });
         setCheckedIds({});
-    };
+        if (fail === 0) alert(`좋아요 완료: ${ok}곡`);
+        else alert(`좋아요 완료: ${ok}곡 / 실패: ${fail}곡`);
+        } catch (e) {
+        console.error("[ChartTop100] 좋아요 실패:", e);
+        alert("좋아요 실패했어요. 잠시 후 다시 시도해주세요.");
+        }
+    }, [checkedRows, selectedCount]);
 
-    // ✅ (추가) 재생 방식 선택 모달용 상태
-    type PendingPlay = {
-        key: ActionKey; // "play" | "shuffle"
-        tracks: PlayerTrack[];
-    };
+    /* =========================
+        재생 방식 모달
+    ========================= */
 
     const [playConfirmOpen, setPlayConfirmOpen] = useState(false);
     const [pendingPlay, setPendingPlay] = useState<PendingPlay | null>(null);
 
     const runPendingPlay = (mode: "replace" | "enqueue") => {
         if (!pendingPlay) return;
-
         const isShuffle = pendingPlay.key === "shuffle";
 
         if (mode === "replace") {
@@ -248,14 +455,18 @@ export default function ChartTop100() {
         setPlayConfirmOpen(false);
     };
 
-    // ✅ 액션
+    const closePlayConfirm = () => {
+        setPlayConfirmOpen(false);
+        setPendingPlay(null);
+    };
+
+    // 액션
     const handleAction = (key: ActionKey) => {
         if (!requireLogin("로그인 후 이용 가능합니다.")) return;
 
-        // play/shuffle/add/like는 선택곡 필요
-        if (selectedCount === 0 && (key === "play" || key === "shuffle" || key === "add" || key === "like")) return;
+        const needsSelection = key === "play" || key === "shuffle" || key === "add" || key === "like";
+        if (needsSelection && selectedCount === 0) return;
 
-        // ✅ play/shuffle → 모달로 선택
         if (key === "play" || key === "shuffle") {
         setPendingPlay({ key, tracks: checkedTracks });
         setPlayConfirmOpen(true);
@@ -266,7 +477,6 @@ export default function ChartTop100() {
         if (key === "like") addSelectedToLiked();
     };
 
-    // ✅ 로딩/에러 UI
     if (loading) {
         return (
         <section className="whitespace-nowrap rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 overflow-hidden p-10 text-[#f6f6f6]">
@@ -302,17 +512,18 @@ export default function ChartTop100() {
                 <div className="px-2 mt-4 flex flex-nowrap gap-3">
                 {actions.map((a) => {
                     const disabled = selectedCount === 0;
+                    const needSel = a.key === "play" || a.key === "shuffle" || a.key === "add" || a.key === "like";
 
                     return (
                     <button
                         key={a.key}
                         type="button"
                         onClick={() => handleAction(a.key)}
-                        disabled={disabled && (a.key === "play" || a.key === "shuffle" || a.key === "add" || a.key === "like")}
+                        disabled={disabled && needSel}
                         className={[
                         "shrink-0 px-4 py-2 rounded-2xl border border-[#f6f6f6]/10",
                         "text-sm font-bold transition-all flex items-center gap-2.5",
-                        disabled && (a.key === "play" || a.key === "shuffle" || a.key === "add" || a.key === "like")
+                        disabled && needSel
                             ? "text-[#f6f6f6]/20 border-[#f6f6f6]/5 cursor-not-allowed"
                             : "text-[#f6f6f6]/80 hover:bg-[#f6f6f6]/10 hover:text-[#f6f6f6] hover:border-[#f6f6f6]/20",
                         ].join(" ")}
@@ -326,9 +537,8 @@ export default function ChartTop100() {
             </div>
 
             {/* 테이블 헤더 */}
-            <div className="">
+            <div>
                 <div className={`grid ${GRID} items-center justify-center py-3 px-4 text-sm text-[#f6f6f6]/30`}>
-                {/* 전체선택 */}
                 <div className="flex items-center justify-center">
                     <input
                     type="checkbox"
@@ -352,7 +562,7 @@ export default function ChartTop100() {
             </div>
 
             {/* 리스트 */}
-            <div className="">
+            <div>
                 <div className="divide-y divide-white/10">
                 {rows.map((row) => (
                     <div
@@ -363,7 +573,6 @@ export default function ChartTop100() {
                         ${row.rank % 2 === 0 ? "bg-white/[0.02]" : "bg-transparent"}
                     `}
                     >
-                    {/* 체크 */}
                     <div className="flex items-center justify-center">
                         <input
                         type="checkbox"
@@ -374,7 +583,6 @@ export default function ChartTop100() {
                         />
                     </div>
 
-                    {/* 순위 + 변동 + hover 재생 */}
                     <div className="flex items-center gap-3">
                         <div className="relative w-8 flex items-center justify-center">
                         <span className="ml-1 text-[15px] text-[#f6f6f6]/90 transition-opacity group-hover:opacity-0 tabular-nums">
@@ -397,7 +605,6 @@ export default function ChartTop100() {
                         <div className="ml-2 text-xs font-medium w-10">
                         {(() => {
                             const change = row.rankChange;
-
                             if (change === null || change === 0) return <span className="ml-1 text-white/20">—</span>;
                             if (change > 0) return <span className="text-red-400">▲{change}</span>;
                             if (change < 0) return <span className="text-blue-400">▼{Math.abs(change)}</span>;
@@ -406,24 +613,24 @@ export default function ChartTop100() {
                         </div>
                     </div>
 
-                    {/* 곡정보(커버+제목) */}
                     <div className="flex pl-2 items-center gap-4 min-w-0">
                         <div className="relative h-14 w-14 rounded-lg bg-white/10 shrink-0 overflow-hidden group-hover:scale-105 transition-transform duration-500">
-                            {row.albumImage ? (
+                        {row.albumImage ? (
                             <img
-                                src={row.albumImage}
-                                alt={row.albumName}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
+                            src={row.albumImage}
+                            alt={row.albumName}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
                                 e.currentTarget.style.display = "none";
                                 const fallback = e.currentTarget.nextElementSibling as HTMLElement;
                                 if (fallback) fallback.style.display = "block";
-                                }}
+                            }}
                             />
-                            ) : null}
-                            <div className={`w-full h-full bg-white/5 shrink-0 ${row.albumImage ? "hidden" : ""}`} />
-                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        ) : null}
+                        <div className={`w-full h-full bg-white/5 shrink-0 ${row.albumImage ? "hidden" : ""}`} />
+                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
+
                         <div className="min-w-0">
                         <div className="text-sm text-[#f6f6f6]/95 truncate group-hover:text-[#AFDEE2] transition-colors">
                             {row.musicName}
@@ -433,15 +640,19 @@ export default function ChartTop100() {
                             </span>
                             )}
                         </div>
-                        <div className="text-[12px] font-medium text-white/40 truncate tracking-wide mt-1 md:hidden">{row.artistName}</div>
+                        <div className="text-[12px] font-medium text-white/40 truncate tracking-wide mt-1 md:hidden">
+                            {row.artistName}
+                        </div>
                         </div>
                     </div>
 
-                    {/* 아티스트 */}
-                    <div className="pl-2 text-sm text-[#f6f6f6]/60 truncate group-hover:text-white/80 transition-colors">{row.artistName}</div>
+                    <div className="pl-2 text-sm text-[#f6f6f6]/60 truncate group-hover:text-white/80 transition-colors">
+                        {row.artistName}
+                    </div>
 
-                    {/* 앨범 */}
-                    <div className="pl-2 text-sm text-[#f6f6f6]/40 truncate group-hover:text-white/60 transition-colors">{row.albumName}</div>
+                    <div className="pl-2 text-sm text-[#f6f6f6]/40 truncate group-hover:text-white/60 transition-colors">
+                        {row.albumName}
+                    </div>
                     </div>
                 ))}
                 </div>
@@ -449,146 +660,24 @@ export default function ChartTop100() {
             </div>
         </div>
 
-        {/* ✅ 담기 모달 */}
-        {addOpen && (
-            <div className="fixed inset-0 z-[999] whitespace-normal">
-            <button
-                type="button"
-                className="absolute inset-0 bg-black/50"
-                onClick={() => setAddOpen(false)}
-                aria-label="닫기"
-            />
-            <div className="absolute inset-0 grid place-items-center p-6">
-                <div className="w-full max-w-[420px] rounded-3xl bg-[#2d2d2d] border border-[#464646] shadow-2xl overflow-hidden">
-                <div className="px-6 py-4 flex items-center justify-between border-b border-[#464646]">
-                    <div className="text-base font-semibold text-[#F6F6F6]">플레이리스트 선택</div>
-                    <button
-                    type="button"
-                    onClick={() => setAddOpen(false)}
-                    className="text-[#F6F6F6]/70 hover:text-white transition"
-                    aria-label="닫기"
-                    >
-                    ✕
-                    </button>
-                </div>
-
-                <div className="px-6 py-4 text-sm text-[#F6F6F6]/70">
-                    선택한 {selectedCount}곡을 담을 플레이리스트를 골라주세요
-                </div>
-
-                <div className="max-h-[360px] overflow-y-auto border-t border-[#464646]">
-                    {addTargets.length === 0 ? (
-                    <div className="px-6 py-6 text-sm text-[#aaa]">
-                        담을 수 있는 플레이리스트가 없어요.
-                        <div className="mt-2 text-xs text-[#777]">(liked 같은 시스템 플리는 제외됨)</div>
-                    </div>
-                    ) : (
-                    addTargets
-                        .filter((p) => p.id !== LIKED_SYSTEM_ID)
-                        .map((p) => (
-                        <button
-                            key={p.id}
-                            type="button"
-                            onClick={() => addSelectedToPlaylist(p.id)}
-                            className="w-full text-left px-6 py-4 hover:bg-white/5 transition border-b border-[#464646]"
-                        >
-                            <div className="text-sm font-semibold text-[#F6F6F6] truncate">{p.title}</div>
-                            <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">
-                            {p.owner} · {p.isPublic ? "공개" : "비공개"}
-                            </div>
-                        </button>
-                        ))
-                    )}
-                </div>
-
-                <div className="px-6 py-4 border-t border-[#464646] flex justify-end">
-                    <button
-                    type="button"
-                    onClick={() => setAddOpen(false)}
-                    className="px-4 py-2 rounded-2xl text-sm text-[#F6F6F6] hover:bg-white/10 transition"
-                    >
-                    취소
-                    </button>
-                </div>
-                </div>
-            </div>
-            </div>
-        )}
+        {/* ✅ 담기 모달 (실데이터) */}
+        <PlaylistPickModal
+            open={addOpen}
+            onClose={() => setAddOpen(false)}
+            selectedCount={selectedCount}
+            loading={addTargetsLoading}
+            error={addTargetsError}
+            targets={addTargets}
+            onPick={(id) => addSelectedToPlaylist(id)}
+        />
 
         {/* ✅ 재생 방식 선택 모달 */}
-        {playConfirmOpen && pendingPlay && (
-            <div className="fixed inset-0 z-[999] whitespace-normal">
-            <button
-                type="button"
-                className="absolute inset-0 bg-black/50"
-                onClick={() => {
-                setPlayConfirmOpen(false);
-                setPendingPlay(null);
-                }}
-                aria-label="닫기"
-            />
-            <div className="absolute inset-0 grid place-items-center p-6">
-                <div className="w-full max-w-[440px] rounded-3xl bg-[#2d2d2d] border border-[#464646] shadow-2xl overflow-hidden">
-                <div className="px-6 py-4 flex items-center justify-between border-b border-[#464646]">
-                    <div className="text-base font-semibold text-[#F6F6F6]">재생 방식 선택</div>
-                    <button
-                    type="button"
-                    onClick={() => {
-                        setPlayConfirmOpen(false);
-                        setPendingPlay(null);
-                    }}
-                    className="text-[#F6F6F6]/70 hover:text-white transition"
-                    aria-label="닫기"
-                    >
-                    ✕
-                    </button>
-                </div>
-
-                <div className="px-6 py-4 text-sm text-[#F6F6F6]/70">
-                    선택한 {pendingPlay.tracks.length}곡을 {pendingPlay.key === "shuffle" ? "셔플로 " : ""}어떻게
-                    재생할까요?
-                </div>
-
-                <div className="px-6 pb-6 grid grid-cols-1 gap-3">
-                    <button
-                    type="button"
-                    onClick={() => runPendingPlay("replace")}
-                    className="w-full px-4 py-3 rounded-2xl text-sm text-[#F6F6F6] outline outline-1 outline-[#464646] hover:bg-white/10 transition text-left"
-                    >
-                    <div className="font-semibold text-[#afdee2]">현재 재생 대기목록 지우고 재생</div>
-                    <div className="mt-1 text-xs text-[#999]">
-                        지금 재생 대기목록을 초기화하고 선택한 곡들로 새로 재생합니다.
-                    </div>
-                    </button>
-
-                    <button
-                    type="button"
-                    onClick={() => runPendingPlay("enqueue")}
-                    className="w-full px-4 py-3 rounded-2xl text-sm text-[#F6F6F6] outline outline-1 outline-[#464646] hover:bg-white/10 transition text-left"
-                    >
-                    <div className="font-semibold text-[#afdee2]">재생 대기목록 맨 뒤에 추가</div>
-                    <div className="mt-1 text-xs text-[#999]">
-                        현재 재생은 유지하고, 선택한 곡들을 재생 대기 목록 마지막에 둡니다.
-                    </div>
-                    </button>
-                </div>
-
-                <div className="px-6 py-4 border-t border-[#464646] flex justify-end">
-                    <button
-                    type="button"
-                    onClick={() => {
-                        setPlayConfirmOpen(false);
-                        setPendingPlay(null);
-                    }}
-                    className="px-4 py-2 rounded-2xl text-sm text-[#F6F6F6] hover:bg-white/10 transition"
-                    >
-                    취소
-                    </button>
-                </div>
-                </div>
-            </div>
-            </div>
-        )}
+        <PlayModeConfirmModal
+            open={playConfirmOpen}
+            pending={pendingPlay}
+            onClose={closePlayConfirm}
+            onChoose={(mode) => runPendingPlay(mode)}
+        />
         </section>
     );
 }

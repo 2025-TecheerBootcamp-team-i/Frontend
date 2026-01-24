@@ -13,6 +13,7 @@ import { getMusicDetail, getTagGraph } from "../../api/music";
 import type { TagGraphItem } from "../../api/music";
 import { getRecommendations } from "../../api/recommendation";
 import type { RecommendedMusic } from "../../api/recommendation";
+import { extractPastelColors, rgbStringToHsl } from "../../utils/color";
 
 // ✅ NowPlayingPage.tsx 상단 (import 아래) — 1번만 주입되는 이퀄라이저 CSS
 let __npEqStyleInjected = false;
@@ -143,6 +144,9 @@ export default function NowPlayingPage() {
     const [tagGraph, setTagGraph] = useState<TagGraphItem[]>([]);
     const [tagGraphLoading, setTagGraphLoading] = useState(false);
 
+    // ✅ 트리맵 동적 색상 상태 (HSL)
+    const [treemapBaseColor, setTreemapBaseColor] = useState<{ h: number; s: number; l: number } | null>(null);
+
     // ✅ Treemap용 데이터에 고유 ID 추가 (중복 key 문제 해결)
     const tagGraphWithIds = useMemo(() => {
         let idCounter = 0;
@@ -178,6 +182,29 @@ export default function NowPlayingPage() {
         // 4순위 (fallback): current.coverUrl
         return processImageUrl(current.coverUrl);
     }, [current, musicDetail, processImageUrl]);
+
+    // ✅ (추가) 앨범 커버 색상 추출하여 트리맵에 적용
+    useEffect(() => {
+        if (!coverImage) {
+            setTreemapBaseColor(null);
+            return;
+        }
+
+        let cancelled = false;
+
+        // 1개만 추출하면 됨 (가장 주요한 색)
+        extractPastelColors(coverImage, 1).then(colors => {
+            if (cancelled || colors.length === 0) return;
+
+            // 추출된 RGB 문자열을 HSL로 변환
+            const hsl = rgbStringToHsl(colors[0]);
+            if (hsl) {
+                setTreemapBaseColor(hsl);
+            }
+        });
+
+        return () => { cancelled = true; };
+    }, [coverImage]);
 
     // ✅ 가사 API 호출
     useEffect(() => {
@@ -219,7 +246,7 @@ export default function NowPlayingPage() {
 
                     // 1) 제목으로 검색해서 itunes_id 매칭 시도
                     try {
-                        const searchUrl = `${API_BASE}/search?q=${encodeURIComponent(current.title)}`;
+                        const searchUrl = `${API_BASE}/search/opensearch?q=${encodeURIComponent(current.title)}`;
                         const searchRes = await fetch(searchUrl, {
                             method: "GET",
                             signal: controller.signal,
@@ -268,7 +295,7 @@ export default function NowPlayingPage() {
                     if (!musicId) {
                         try {
                             const combinedSearch = `${current.artist} ${current.title}`;
-                            const combinedSearchUrl = `${API_BASE}/search?q=${encodeURIComponent(combinedSearch)}`;
+                            const combinedSearchUrl = `${API_BASE}/search/opensearch?q=${encodeURIComponent(combinedSearch)}`;
 
                             const combinedSearchRes = await fetch(combinedSearchUrl, {
                                 method: "GET",
@@ -419,7 +446,7 @@ export default function NowPlayingPage() {
 
                     // 1) 제목으로 검색해서 itunes_id 매칭 시도
                     try {
-                        const searchUrl = `${API_BASE}/search?q=${encodeURIComponent(current.title)}`;
+                        const searchUrl = `${API_BASE}/search/opensearch?q=${encodeURIComponent(current.title)}`;
                         console.log(`[NowPlayingPage] 검색 API 호출:`, searchUrl);
 
                         const searchRes = await fetch(searchUrl, {
@@ -477,7 +504,7 @@ export default function NowPlayingPage() {
                     if (!musicId) {
                         try {
                             const combinedSearch = `${current.artist} ${current.title}`;
-                            const combinedSearchUrl = `${API_BASE}/search?q=${encodeURIComponent(combinedSearch)}`;
+                            const combinedSearchUrl = `${API_BASE}/search/opensearch?q=${encodeURIComponent(combinedSearch)}`;
                             console.log(`[NowPlayingPage] 조합 검색 시도:`, combinedSearch);
 
                             const combinedSearchRes = await fetch(combinedSearchUrl, {
@@ -596,7 +623,7 @@ export default function NowPlayingPage() {
 
                     // 1) 제목으로 검색해서 itunes_id 매칭 시도
                     try {
-                        const searchUrl = `${API_BASE}/search?q=${encodeURIComponent(current.title)}`;
+                        const searchUrl = `${API_BASE}/search/opensearch?q=${encodeURIComponent(current.title)}`;
                         const searchRes = await fetch(searchUrl, {
                             method: "GET",
                             signal: controller.signal,
@@ -642,7 +669,7 @@ export default function NowPlayingPage() {
                     if (!musicId) {
                         try {
                             const combinedSearch = `${current.artist} ${current.title}`;
-                            const combinedSearchUrl = `${API_BASE}/search?q=${encodeURIComponent(combinedSearch)}`;
+                            const combinedSearchUrl = `${API_BASE}/search/opensearch?q=${encodeURIComponent(combinedSearch)}`;
 
                             const combinedSearchRes = await fetch(combinedSearchUrl, {
                                 method: "GET",
@@ -1413,28 +1440,55 @@ export default function NowPlayingPage() {
                                             key={`treemap-${currentMusicId}-${tagGraphWithIds.length}`}
                                             data={tagGraphWithIds}
                                             dataKey="size"
-                                            stroke="rgba(255,255,255,0.3)"
-                                            fill="#AFDEE2"
+                                            stroke="#ffffff" // ✅ 흰색 구분선 (요청사항)
+                                            fill="transparent"
                                             nameKey="name"
-                                            isAnimationActive={false}
+                                            isAnimationActive={true}
                                             content={({ x, y, width, height, name, index, color }: any) => {
                                                 if (!width || !height || width < 10 || height < 10) return <g />;
 
-                                                const fillColor = color || '#AFDEE2';
+                                                // 1. 앨범 커버 색상 기반 동적 채색
+                                                // 기본값: 청록색 계열 (AFDEE2)
+                                                let finalColor = 'hsla(186, 46%, 79%, 0.35)';
+
+                                                if (treemapBaseColor) {
+                                                    // 앨범 커버 색상 (HSL) + 태그 크기에 따른 투명도 변화
+                                                    const baseHsl = treemapBaseColor;
+
+                                                    // 면적(width * height)을 기준 (= 백엔드 수치에 비례)으로 투명도/명도 조절
+                                                    // 백엔드에서 이미 세제곱 등으로 강조된 수치이므로, 이 면적 비율 그대로 시각화에 반영
+
+                                                    // 반응형 컨테이너라 절대적인 maxArea를 알기 어렵지만, 
+                                                    // 대략적으로 큰 태그가 더 진하게 보이도록 로그/선형 스케일 적용
+                                                    const area = width * height;
+
+                                                    // 컨테이너 크기(대략 300~400px square 근처) 고려하여 정규화 인자 조정
+                                                    // 너무 복잡한 계산 없이 면적이 클수록 투명도를 높임 (0.2 ~ 0.8)
+                                                    const opacity = Math.min(0.85, 0.2 + (area / 20000));
+                                                    const lightness = baseHsl.l + ((1 - opacity) * 10); // 투명도가 낮을수록(작을수록) 약간 더 밝게
+
+                                                    finalColor = `hsla(${baseHsl.h}, ${baseHsl.s}%, ${lightness}%, ${opacity})`;
+                                                } else if (color) {
+                                                    // 기존 API에서 준 color가 있다면 fallback (근데 우리가 API 로직도 바꿨으면 이걸 쓸수도 있음)
+                                                    // 여기선 그냥 기본값 유지하거나 기존 로직 사용
+                                                    finalColor = color;
+                                                }
 
                                                 return (
                                                     <g key={`tag-${index}-${name}`}>
+                                                        {/* ✅ 유리 재질 배경 + 흰색 테두리 */}
                                                         <rect
                                                             x={x}
                                                             y={y}
                                                             width={width}
                                                             height={height}
-                                                            rx={8}
-                                                            ry={8}
+                                                            rx={4} // 살짝 둥글게
+                                                            ry={4}
                                                             style={{
-                                                                fill: fillColor,
-                                                                stroke: 'rgba(255,255,255,0.15)',
-                                                                strokeWidth: 1,
+                                                                fill: finalColor,
+                                                                stroke: '#ffffff', // ✅ 흰색 테두리 강제 적용
+                                                                strokeWidth: 2,
+                                                                strokeOpacity: 0.5, // 테두리도 약간 투명하게 해서 더 고급스럽게
                                                             }}
                                                         />
                                                         {width > 35 && height > 18 && (
@@ -1443,10 +1497,13 @@ export default function NowPlayingPage() {
                                                                 y={y + height / 2}
                                                                 textAnchor="middle"
                                                                 dominantBaseline="middle"
-                                                                fill="rgba(255,255,255,0.85)"
-                                                                fontSize={Math.min(20, width / 4)}
-                                                                fontWeight="500"
-                                                                style={{ textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}
+                                                                fill="rgba(255,255,255,0.95)"
+                                                                fontSize={Math.min(20, width / 5)}
+                                                                fontWeight="600"
+                                                                style={{
+                                                                    textShadow: '0 2px 4px rgba(0,0,0,0.2)', // 글자 가독성
+                                                                    pointerEvents: 'none'
+                                                                }}
                                                             >
                                                                 {name}
                                                             </text>
