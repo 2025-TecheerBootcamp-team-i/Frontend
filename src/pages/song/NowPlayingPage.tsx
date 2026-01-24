@@ -1418,7 +1418,7 @@ export default function NowPlayingPage() {
                                             nameKey="name"
                                             isAnimationActive={false}
                                             content={({ x, y, width, height, name, index, color }: any) => {
-                                                if (!width || !height || width < 10 || height < 10) return null;
+                                                if (!width || !height || width < 10 || height < 10) return <g />;
 
                                                 const fillColor = color || '#AFDEE2';
 
