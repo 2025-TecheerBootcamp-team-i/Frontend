@@ -10,8 +10,8 @@ function Tab({ to, label }: { to: string; label: string }) {
         [
           "px-4 py-2 rounded-full text-base transition whitespace-nowrap",
           isActive
-            ? "bg-[#E4524D] text-[#F6F6F6]"
-            : "bg-[#4d4d4d] text-[#F6F6F6] hover:bg-[#5d5d5d]",
+            ? "bg-[#E4524D]/80 text-[#F6F6F6]"
+            : "bg-white/20 text-[#F6F6F6] hover:bg-white/[0.08]",
         ].join(" ")
       }
     >
@@ -39,7 +39,7 @@ export default function SearchPage() {
           <Tab to={`playlist${search}`} label="플레이리스트" />
         </div>
 
-        <div className="mt-4 border-b border-[#464646]" />
+        <div className="mt-4 border-b border-white/10" />
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto py-0">

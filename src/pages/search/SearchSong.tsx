@@ -636,12 +636,12 @@ if (fail === 0) {
   /* ===================== JSX ===================== */
 
   return (
-    <section className="mt-4 rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 overflow-hidden shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
+    <section className="mt-4 rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 overflow-hidden">
       {/* 헤더 */}
-      <div className="px-8 pt-8 pb-4 border-b border-white/10 overflow-x-auto whitespace-nowrap no-scrollbar">
+      <div className="px-8 pt-8 pb-6 border-b border-white/10 overflow-x-auto whitespace-nowrap no-scrollbar">
         <div className="flex items-end justify-between">
-          <div className="flex items-center gap-6">
-            <h2 className="text-xl font-black tracking-[0.15em] text-white uppercase opacity-95">곡</h2>
+          <div className="flex items-center gap-4">
+            <h2 className="text-xl font-semibold text-[#F6F6F6]">곡</h2>
             {loading ? (
               <div className="text-sm text-white/40">검색 중...</div>
             ) : error ? (
@@ -652,18 +652,18 @@ if (fail === 0) {
           </div>
         </div>
 
-        <div className="mt-6 flex gap-3">
+        <div className="mt-4 flex gap-3">
           <button
             type="button"
             onClick={toggleExcludeAi}
             className={[
-              "shrink-0 px-4 py-2 rounded-2xl text-sm flex items-center gap-2 outline outline-1 outline-offset-[-1px]",
+              "shrink-0 px-4 py-2 rounded-2xl transition-all text-sm flex items-center gap-2.5 border border-[#f6f6f6]/10",
               excludeAi
-                ? "outline-[#AFDEE2] text-[#AFDEE2]"
-                : "outline-white/20 text-white/60 hover:text-white hover:bg-white/10 transition",
+                ? "border-[#AFDEE2] text-[#AFDEE2]"
+                : "text-[#f6f6f6]/80 hover:bg-[#f6f6f6]/10 hover:text-[#f6f6f6] hover:border-[#f6f6f6]/20",
             ].join(" ")}
           >
-            <FaCheckCircle size={18} />
+            <FaCheckCircle size={15} />
             AI 제외
           </button>
 
@@ -674,10 +674,10 @@ if (fail === 0) {
               disabled={selectedCount === 0}
               onClick={() => handleAction(a.key)}
               className={[
-                "px-4 py-2 rounded-2xl outline outline-1 outline-offset-[-1px] text-sm flex items-center gap-2 transition",
+                "px-4 py-2 rounded-2xl border border-[#f6f6f6]/10 text-sm flex items-center gap-2.5 transition",
                 selectedCount === 0
-                  ? "outline-white/10 text-white/20 cursor-not-allowed"
-                  : "outline-white/20 text-white hover:bg-white/10",
+                  ? "text-[#f6f6f6]/20 border-[#f6f6f6]/5 cursor-not-allowed"
+                  : "text-[#f6f6f6]/80 hover:bg-[#f6f6f6]/10 hover:text-[#f6f6f6] hover:border-[#f6f6f6]/20",
               ].join(" ")}
             >
               {a.icon}
@@ -688,12 +688,12 @@ if (fail === 0) {
       </div>
 
       {/* 리스트 헤더 */}
-      <div className="px-8 pt-4 border-b border-white/10">
-        <div className="px-4 grid grid-cols-[28px_56px_1fr_90px] gap-x-6 pb-3 text-[11px] font-black tracking-widest text-white/30 uppercase">
+      <div className="px-4 pt-4 border-b border-white/10">
+        <div className="px-4 grid grid-cols-[28px_56px_1fr_90px] gap-x-4 pb-3 text-xs text-[#f6f6f6]/60">
           <input
             ref={selectAllRef}
             type="checkbox"
-            className="accent-[#AFDEE2]"
+            className="accent-[#f6f6f6] cursor-pointer"
             checked={allChecked}
             onChange={(e) => toggleAll(e.target.checked)}
           />
@@ -703,7 +703,7 @@ if (fail === 0) {
       </div>
 
       {/* 리스트 */}
-      <div className="px-4 divide-y divide-white/10">
+      <div className="divide-y divide-white/10">
         {loading && songs.length === 0 ? (
           <div className="px-6 py-12 text-center text-white/20">검색 중...</div>
         ) : error && songs.length === 0 ? (
@@ -711,25 +711,25 @@ if (fail === 0) {
             오류가 발생했습니다: {error}
           </div>
         ) : songs.length === 0 ? (
-          <div className="px-6 py-12 text-center text-white/20 uppercase font-light tracking-widest">
+          <div className="px-6 py-8 text-center text-white/20">
             {q ? "검색 결과 없음" : "검색어를 입력해주세요"}
           </div>
         ) : (
           songs.map((s) => (
           <div
             key={s.id}
-            className="grid grid-cols-[28px_56px_1fr_90px] items-center gap-x-6 px-8 py-3 hover:bg-white/10 transition rounded-xl cursor-pointer group"
+            className="grid grid-cols-[28px_56px_1fr_90px] items-center gap-x-3 px-8 py-2 hover:bg-white/5 transition cursor-pointer group"
             onDoubleClick={() => handleRowDoubleClick(s)}
           >
             <input
               type="checkbox"
-              className="accent-[#AFDEE2]"
+              className="accent-[#f6f6f6]"
               checked={!!checkedIds[s.id]}
               onChange={() => toggleOne(s.id)}
             />
 
             {/* 앨범 이미지 */}
-            <div className="ml-2 w-12 h-12 rounded-xl bg-white/5 overflow-hidden relative flex-shrink-0 shadow-lg border border-white/10 group-hover:border-white/20 transition-colors">
+            <div className="ml-2 w-12 h-12 rounded-xl bg-white/5 overflow-hidden relative flex-shrink-0 shadow-lg">
               {(() => {
                 // API에서 가져온 곡인지 확인하고 앨범 이미지 찾기
                 const apiSong = apiSongs.find((as) => as.id === s.id);
@@ -782,18 +782,18 @@ if (fail === 0) {
             </div>
 
             <div className="min-w-0">
-              <div className="text-base font-bold text-white truncate tracking-tight group-hover:text-[#AFDEE2] transition-colors">
+              <div className="ml-1 text-base text-[#f6f6f6] truncate group-hover:text-[#AFDEE2] transition-colors">
                 {s.title}
                 {s.isAi && (
-                  <span className="ml-2 text-[10px] px-2 py-[1px] rounded-full bg-[#E4524D]/20 text-[#E4524D] font-black uppercase">
+                  <span className="shrink-0 ml-3 text-[10px] font-black px-2 py-0.5 rounded-full bg-[#E4524D]/20 text-[#E4524D] border border-[#E4524D]/20 uppercase">
                     AI
                   </span>
                 )}
               </div>
-              <div className="text-xs text-white/30 truncate font-medium mt-1">{s.artist}</div>
+              <div className="ml-1 text-xs text-white/30 truncate">{s.artist}</div>
             </div>
 
-            <div className="mr-1 text-sm text-white/20 font-bold tabular-nums text-right group-hover:text-[#AFDEE2]/40 transition-colors">{s.duration}</div>
+            <div className="mr-1 text-sm text-white/70 text-right group-hover:text-[#AFDEE2]/70 transition-colors">{s.duration}</div>
           </div>
           ))
         )}

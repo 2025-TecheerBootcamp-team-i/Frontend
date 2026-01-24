@@ -1,5 +1,5 @@
 import { MdOutlineNavigateNext } from "react-icons/md";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Playlist } from "../../components/layout/MainLayout";
 import { getProfile } from "../../utils/auth";
@@ -15,18 +15,18 @@ function Sidebar({
 }) {
   const navigate = useNavigate();
   const [prompt, setPrompt] = useState("");
-  
+
   // ✅ 프로필 정보 (닉네임 + 사진) 상태로 관리
   const [profile, setProfile] = useState(getProfile());
-  
+
   // ✅ 프로필 변경 이벤트 리스너
   useEffect(() => {
     const handleProfileUpdate = () => {
       setProfile(getProfile());
     };
-    
+
     window.addEventListener("profileUpdated", handleProfileUpdate);
-    
+
     return () => {
       window.removeEventListener("profileUpdated", handleProfileUpdate);
     };
@@ -39,6 +39,57 @@ function Sidebar({
     navigate(`/ai/create?prompt=${encodeURIComponent(v)}`);
     setPrompt("");
   };
+
+  // =========================
+  // ✅ 플레이리스트 가로 스크롤 힌트 (인기 아티스트 구역 방식)
+  // =========================
+  const plScrollRef = useRef<HTMLDivElement>(null);
+  const [plShowLeft, setPlShowLeft] = useState(false);
+  const [plShowRight, setPlShowRight] = useState(false);
+
+  const updatePlaylistScrollHint = () => {
+    const el = plScrollRef.current;
+    if (!el) return;
+
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    const canScroll = scrollWidth > clientWidth + 1;
+
+    if (!canScroll) {
+      setPlShowLeft(false);
+      setPlShowRight(false);
+      return;
+    }
+
+    setPlShowLeft(scrollLeft > 4);
+    setPlShowRight(scrollLeft + clientWidth < scrollWidth - 4);
+  };
+
+  // playlists가 바뀌면(초기 로드/추가/삭제) 힌트 재계산
+  useEffect(() => {
+    requestAnimationFrame(updatePlaylistScrollHint);
+  }, [playlists.length]);
+
+  // 스크롤/리사이즈 이벤트
+  useEffect(() => {
+    const el = plScrollRef.current;
+    if (!el) return;
+  
+    // ✅ effect 바디에서 직접 setState 호출 금지 → rAF 콜백에서 실행
+    const raf = requestAnimationFrame(() => updatePlaylistScrollHint());
+  
+    const onScroll = () => updatePlaylistScrollHint();
+    const onResize = () => updatePlaylistScrollHint();
+  
+    el.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onResize);
+  
+    return () => {
+      cancelAnimationFrame(raf);
+      el.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
+    };
+  }, []);
+  
 
   return (
     <aside
@@ -65,10 +116,10 @@ function Sidebar({
             rounded-[40px]
             px-6 py-4
             flex-none
-            shadow-[0_20px_50px_rgba(0,0,0,0.3)]
+            shadow-[0_6px_18px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)]
           "
           style={{
-            height: "clamp(320px, 42vh, 400px)", // ✅ 화면 크기에 따라 적당히
+            height: "clamp(340px, 42vh, 400px)", // ✅ 화면 크기에 따라 적당히
           }}
         >
           <div className="flex items-center justify-between">
@@ -82,6 +133,7 @@ function Sidebar({
             <button
               onClick={() => navigate("/mypage")}
               className="hover:text-[#f6f6f6]/50 transition mb-2 text-[#F6F6F6]"
+              aria-label="마이페이지로 이동"
             >
               <MdOutlineNavigateNext size={30} />
             </button>
@@ -113,45 +165,64 @@ function Sidebar({
 
             <div className="mb-2 border-b border-white/[0.10]" />
 
-            <div className="p-1 overflow-x-auto overflow-y-hidden">
-              <div className="flex gap-3 overflow-visible">
-                {playlists.map((p) => (
+            {/* ✅ 여기부터: 스크롤 힌트 레이어 */}
+            <div className="relative">
+              <div
+                ref={plScrollRef}
+                className="p-1 overflow-x-auto overflow-y-hidden no-scrollbar scroll-smooth"
+              >
+                <div className="flex gap-3 overflow-visible">
+                  {playlists.map((p) => (
+                    <button
+                      onClick={() => navigate(`/playlist/${p.id}`)}
+                      key={p.id}
+                      type="button"
+                      className="
+                        shrink-0
+                        w-[clamp(80px,12vh,110px)]
+                        h-[clamp(80px,12vh,110px)]
+                        rounded-xl overflow-hidden bg-[#777777]
+                        hover:scale-[1.03] hover:shadow transition
+                        z-10 relative hover:z-30 origin-center
+                      "
+                      title={p.title}
+                    >
+                      {p.coverUrl ? (
+                        <img
+                          src={p.coverUrl}
+                          alt={p.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : null}
+                    </button>
+                  ))}
+
                   <button
-                    onClick={() => navigate(`/playlist/${p.id}`)}
-                    key={p.id}
+                    onClick={onCreatePlaylist}
                     type="button"
                     className="
                       shrink-0
-                      w-[clamp(80px,11vh,100px)]
-                      h-[clamp(80px,11vh,100px)]
-                      rounded-xl overflow-hidden bg-[#777777] hover:scale-[1.03] hover:shadow transition
-                      z-10 relative hover:z-30 origin-center"
-                    title={p.title}
+                      w-[clamp(80px,12vh,110px)]
+                      h-[clamp(80px,12vh,110px)]
+                      bg-white/10 rounded-xl hover:bg-white/15
+                      text-white/70 transition
+                      flex items-center justify-center text-xl
+                    "
+                    aria-label="플레이리스트 추가"
+                    title="플레이리스트 추가"
                   >
-                    {p.coverUrl ? (
-                      <img
-                        src={p.coverUrl}
-                        alt={p.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : null}
+                    +
                   </button>
-                ))}
-
-                <button
-                  onClick={onCreatePlaylist}
-                  type="button"
-                  className="
-                    shrink-0
-                    w-[clamp(80px,11vh,100px)]
-                    h-[clamp(80px,11vh,100px)]
-                    bg-[#777777] rounded-xl hover:bg-[#777777]/50 transition text-[#3d3d3d] flex items-center justify-center text-xl"
-                  aria-label="플레이리스트 추가"
-                  title="플레이리스트 추가"
-                >
-                  +
-                </button>
+                </div>
               </div>
+
+              {/* ✅ 인기 아티스트처럼: 필요할 때만 좌/우 그라데이션 */}
+              {plShowLeft && (
+                <div className="pointer-events-none absolute left-0 top-0 h-full w-8 bg-gradient-to-r from-black/20 to-transparent z-20" />
+              )}
+              {plShowRight && (
+                <div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-black/20 to-transparent z-20" />
+              )}
             </div>
           </div>
         </div>
@@ -169,7 +240,7 @@ function Sidebar({
             px-6 py-4
             flex flex-col
             min-h-0
-            shadow-[0_20px_50px_rgba(0,0,0,0.3)]
+            shadow-[0_6px_18px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)]
             overflow-hidden
           "
           style={{
@@ -187,6 +258,7 @@ function Sidebar({
             <button
               onClick={() => navigate("/ai")}
               className="mt-1 hover:text-[#f6f6f6]/50 transition mb-2 text-[#F6F6F6]"
+              aria-label="AI 페이지로 이동"
             >
               <MdOutlineNavigateNext size={30} />
             </button>

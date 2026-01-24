@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { FaPlay } from "react-icons/fa6";
 
 type Album = { id: string; title: string; artist: string; year?: string; image?: string | null };
 
@@ -31,6 +30,7 @@ type ArtistAlbum = {
   title: string;
   year: string;
   album_image: string | null;
+  image_large_square?: string | null; // 있을 수도
 };
 
 const ALL_ALBUMS: Album[] = Array.from({ length: 12 }).map((_, i) => ({
@@ -52,6 +52,13 @@ export default function SearchAlbum() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const resolveImage = (url: string) => {
+    if (!url) return "";
+    if (url.startsWith("http") || url.startsWith("//")) return url;
+    if (API_BASE && url.startsWith("/")) return `${API_BASE.replace("/api/v1", "")}${url}`;
+    return url;
+  };
+
   // 아티스트별 앨범 정보 가져오기
   const fetchArtistAlbums = useCallback(
     async (artistIds: number[]) => {
@@ -61,71 +68,42 @@ export default function SearchAlbum() {
       const seenAlbumIds = new Set<string>();
 
       try {
-        console.log(`[SearchAlbum] 아티스트별 앨범 정보 가져오기 시작: ${artistIds.length}개 아티스트`);
-
         const promises = artistIds.map(async (artistId) => {
           try {
             const url = `${API_BASE}/artists/${artistId}/albums/`;
-            console.log(`[SearchAlbum] 아티스트 ${artistId}의 앨범 목록 요청: ${url}`);
-
             const res = await fetch(url, {
               method: "GET",
               headers: { "Content-Type": "application/json" },
             });
 
-            if (res.ok) {
-              const data: ArtistAlbum[] = await res.json();
-              console.log(`[SearchAlbum] 아티스트 ${artistId}의 앨범 목록 수신:`, {
-                artist_id: artistId,
-                album_count: data.length,
-                albums: data.map((a) => ({
-                  id: a.id,
-                  title: a.title,
-                  has_image: !!a.album_image,
-                  image_url: a.album_image,
-                })),
-              });
-
-              return { artistId, albums: data };
-            }
-            return null;
+            if (!res.ok) return null;
+            const data: ArtistAlbum[] = await res.json();
+            return { artistId, albums: data };
           } catch (e) {
-            console.error(`[SearchAlbum] 아티스트 ${artistId}의 앨범 목록 가져오기 실패:`, e);
+            if (__DEV__) console.error(`[SearchAlbum] 아티스트 ${artistId}의 앨범 목록 가져오기 실패:`, e);
             return null;
           }
         });
 
         const results = await Promise.all(promises);
 
-        // 중복 제거 (같은 앨범 ID는 한 번만 추가)
+        // 중복 제거
         results.forEach((result) => {
-          if (result) {
-            result.albums.forEach((album) => {
-              if (!seenAlbumIds.has(album.id)) {
-                seenAlbumIds.add(album.id);
-                allAlbums.push(album);
-              }
-            });
-          }
-        });
-
-        console.log(`[SearchAlbum] 최종 앨범 목록: ${allAlbums.length}개 앨범`);
-        allAlbums.forEach((album) => {
-          if (album.album_image) {
-            console.log(`[SearchAlbum] 📸 앨범 이미지:`, {
-              title: album.title,
-              id: album.id,
-              image_url: album.album_image,
-            });
-          }
+          if (!result) return;
+          result.albums.forEach((album) => {
+            if (!seenAlbumIds.has(album.id)) {
+              seenAlbumIds.add(album.id);
+              allAlbums.push(album);
+            }
+          });
         });
 
         setApiAlbums(allAlbums);
       } catch (e) {
-        console.error("[SearchAlbum] 아티스트별 앨범 정보 가져오기 오류:", e);
+        if (__DEV__) console.error("[SearchAlbum] 아티스트별 앨범 정보 가져오기 오류:", e);
       }
     },
-    [API_BASE]
+    [API_BASE, __DEV__]
   );
 
   // 검색 API 호출
@@ -154,22 +132,14 @@ export default function SearchAlbum() {
           headers: { "Content-Type": "application/json" },
         });
 
-        if (!res.ok) {
-          throw new Error(`API 오류: ${res.status}`);
-        }
+        if (!res.ok) throw new Error(`API 오류: ${res.status}`);
 
         const data: ApiSearchResponse = await res.json();
 
         // 고유한 artist_id 추출 (null 제외)
         const uniqueArtistIds = Array.from(
-          new Set(
-            data.results
-              .map((r) => r.artist_id)
-              .filter((id): id is number => id !== null)
-          )
-        ).slice(0,12);
-
-        console.log(`[SearchAlbum] 검색 결과에서 추출한 artist_ids:`, uniqueArtistIds);
+          new Set(data.results.map((r) => r.artist_id).filter((id): id is number => id !== null))
+        ).slice(0, 12);
 
         if (uniqueArtistIds.length > 0) {
           await fetchArtistAlbums(uniqueArtistIds);
@@ -178,7 +148,7 @@ export default function SearchAlbum() {
         }
       } catch (e: unknown) {
         if ((e as DOMException)?.name === "AbortError") return;
-        console.error("[SearchAlbum] 검색 API 오류:", e);
+        if (__DEV__) console.error("[SearchAlbum] 검색 API 오류:", e);
         setError(e instanceof Error ? e.message : "알 수 없는 오류");
         setApiAlbums([]);
       } finally {
@@ -187,42 +157,31 @@ export default function SearchAlbum() {
     })();
 
     return () => controller.abort();
-  }, [API_BASE, q, fetchArtistAlbums]);
+  }, [API_BASE, q, fetchArtistAlbums, __DEV__]);
 
-  const albums = useMemo(() => {
+  const albums = useMemo<Album[]>(() => {
     if (API_BASE && q.trim() && apiAlbums.length > 0) {
-      // API에서 가져온 앨범을 Album 형식으로 변환
-      // 아티스트 정보는 검색 결과에서 가져와야 하는데, 여기서는 앨범 정보만 있음
-      // 일단 앨범명만 표시하고, 나중에 필요하면 추가
       return apiAlbums.map((a) => ({
         id: a.id,
         title: a.title,
-        artist: "", // 아티스트 정보는 별도로 관리 필요
+        artist: "", // 필요하면 추가로 매핑
         year: a.year,
-        image: a.album_image,
+        image: a.image_large_square ?? a.album_image ?? null,
       }));
     }
     if (!q) return ALL_ALBUMS;
     const lower = q.toLowerCase();
-    return ALL_ALBUMS.filter(
-      (a) =>
-        a.title.toLowerCase().includes(lower) ||
-        a.artist.toLowerCase().includes(lower)
-    );
+    return ALL_ALBUMS.filter((a) => a.title.toLowerCase().includes(lower) || a.artist.toLowerCase().includes(lower));
   }, [API_BASE, q, apiAlbums]);
 
   return (
-    <section className="w-full mt-4 rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 px-8 py-10 min-h-[560px] shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
+    <section className="w-full mt-4 rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 px-6 py-8 min-h-[560px]">
       {loading && albums.length === 0 ? (
-        <div className="text-center text-white/20 py-12 uppercase font-light tracking-widest">검색 중...</div>
+        <div className="text-center text-white/20 py-12">검색 중...</div>
       ) : error && albums.length === 0 ? (
-        <div className="text-center text-red-400 py-12">
-          오류가 발생했습니다: {error}
-        </div>
+        <div className="text-center text-red-400 py-12">오류가 발생했습니다: {error}</div>
       ) : (
-        <>
-          {/* 앨범 그리드 */}
-          <div className="overflow-x-auto no-scrollbar">
+        <div className="overflow-x-auto no-scrollbar">
           <div
             className="
               grid
@@ -239,92 +198,59 @@ export default function SearchAlbum() {
                 type="button"
                 onClick={() => navigate(`/album/${a.id}`)}
                 className="
-                  group
-                  rounded-3xl
-                  p-2
-                  flex flex-col items-center text-left
-                  transition-all duration-500
-                  hover:-translate-y-2
+                  w-[220px] text-left group shrink-0
                 "
               >
-                {/* 앨범 커버 */}
-                <div className="w-[208px]">
+                {/* ✅ 커버: SearchHome 앨범 카드 규격과 동일 */}
                 <div
                   className="
-                    w-52 h-52
-                    rounded-[32px]
-                    bg-white/5
-                    transition-all duration-700
-                    border border-white/10
-                    group-hover:border-white/30
-                    group-hover:shadow-[0_30px_60px_rgba(0,0,0,0.5),0_0_40px_rgba(175,222,226,0.2)]
-                    overflow-hidden
-                    relative
-                    backdrop-blur-xl
+                    w-50 h-50 rounded-2xl
+                    bg-white/10 overflow-hidden relative
+                    transition-all duration-700 ease-out
+                    group-hover:shadow-[0_16px_28px_rgba(0,0,0,0.55)]
                   "
                 >
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent animate-pulse" />
                   {a.image ? (
-                    <>
-                      <img
-                        src={
-                          a.image.startsWith("http") || a.image.startsWith("//")
-                            ? a.image
-                            : API_BASE && a.image.startsWith("/")
-                            ? `${API_BASE.replace("/api/v1", "")}${a.image}`
-                            : a.image
-                        }
-                        alt={a.title}
-                        className="w-full h-full object-cover relative z-10 transition-transform duration-1000 group-hover:scale-110"
-                        onError={(e) => {
-                          if (__DEV__) {
-                            console.error("[SearchAlbum] ❌ 앨범 이미지 로드 실패:", {
-                              title: a.title,
-                              id: a.id,
-                              image_url: a.image,
-                            });
-                          }
-                          (e.target as HTMLImageElement).style.display = "none";
-                        }}
-                        onLoad={(e) => {
-                          const img = e.target as HTMLImageElement;
-                          const fallback = img.nextElementSibling as HTMLElement;
-                          if (fallback) fallback.style.display = "none";
-                        }}
-                        loading="lazy"
-                        decoding="async"
-                        fetchPriority="low"
-                      />
-                      
-                      {/* 오버레이 재생 아이콘 효과 */}
-                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20 duration-500">
-                        <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 scale-75 group-hover:scale-100 transition-transform duration-700">
-                          <FaPlay className="text-white ml-1" size={20} />
-                        </div>
-                      </div>
-                    </>
+                    <img
+                      src={resolveImage(a.image)}
+                      alt={a.title}
+                      className="
+                        w-full h-full object-cover
+                        transition-all duration-1000
+                        opacity-90 brightness-95
+                        group-hover:scale-[1.15]
+                        group-hover:opacity-100
+                        group-hover:brightness-110
+                      "
+                      onError={(e) => {
+                        if (__DEV__)
+                          console.error("[SearchAlbum] ❌ 앨범 이미지 로드 실패:", {
+                            title: a.title,
+                            id: a.id,
+                            image_url: a.image,
+                          });
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                      loading="lazy"
+                      decoding="async"
+                    />
                   ) : (
-                    <div className="w-full h-full bg-white/5" />
+                    <div className="w-full h-full bg-white/10" />
                   )}
                 </div>
 
-                {/* 텍스트 */}
-                <div className="mt-5 w-full min-w-0 px-1">
-                  <div className="text-base font-bold text-white truncate group-hover:text-[#AFDEE2] transition-colors tracking-tight">
-                    {a.title}
-                  </div>
-                  {a.artist ? (
-                    <div className="mt-1 text-sm text-white/30 truncate font-medium">{a.artist}</div>
-                  ) : (
-                    <div className="mt-1 text-xs font-light text-white/20 tracking-widest uppercase">앨범</div>
-                  )}
+                {/* ✅ 텍스트: SearchHome 앨범 카드 규격과 동일 */}
+                <div className="mt-3 ml-1 text-sm font-semibold text-[#F6F6F6] truncate group-hover:text-[#AFDEE2] transition-colors">
+                  {a.title}
                 </div>
-                </div>
+                {/* 필요하면 아래 한 줄 추가 가능 (SearchHome은 앨범에 artist 미표시였음) */}
+                {a.artist ? (
+                  <div className="mt-1 ml-1 text-xs text-[#F6F6F6]/60 truncate">{a.artist}</div>
+                ) : null}
               </button>
             ))}
           </div>
-          </div>
-        </>
+        </div>
       )}
     </section>
   );
