@@ -43,18 +43,12 @@ export default function InfiniteCanvas({ albums, onViewChange, onAlbumClick }: I
     return (
         <div
             ref={containerRef}
-            className="w-full h-screen overflow-hidden bg-[#f4f3ef] relative cursor-grab active:cursor-grabbing"
+            className="w-full h-screen overflow-hidden bg-[#f5f5f7] relative cursor-grab active:cursor-grabbing"
             onPointerDown={(e) => {
                 // Start dragging the proxy element when clicking anywhere on background
                 dragControls.start(e);
             }}
         >
-            {/* Background Pattern */}
-            <div className="absolute inset-0 pointer-events-none"
-                style={{
-                    background: 'radial-gradient(circle at center, #2C2C2C 0%, #121212 100%)'
-                }}
-            />
 
             {/* 3. Drag Proxy (Invisible) 
                 This element actually gets dragged. It has no visual presence but
@@ -94,7 +88,7 @@ export default function InfiniteCanvas({ albums, onViewChange, onAlbumClick }: I
 
             {/* UI Overlay */}
             <div className="absolute bottom-8 right-8 flex gap-2 pointer-events-none">
-                <div className="bg-black/40 backdrop-blur px-4 py-2 rounded-full text-xs font-mono text-white/50 border border-white/10 shadow-sm">
+                <div className="bg-white/60 backdrop-blur-md px-4 py-2 rounded-full text-xs font-mono text-black/50 border border-black/5 shadow-sm">
                     Drag anywhere to explore
                 </div>
             </div>

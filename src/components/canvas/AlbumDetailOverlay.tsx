@@ -16,21 +16,21 @@ export default function AlbumDetailOverlay({ album, onClose, onPlay }: AlbumDeta
             transition={{ duration: 0.3 }}
             className="fixed top-0 left-0 z-[100] h-full w-full md:w-[60%] shadow-[20px_0_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden"
         >
-            {/* Dynamic Background (Color Extraction Sim) */}
-            <div className="absolute inset-0 bg-[#121212]" />
+            {/* Dynamic Background (Color Extraction Sim) - Light Theme */}
+            <div className="absolute inset-0 bg-[#f8f8f8]" />
             <img
                 src={album.cover}
                 alt=""
-                className="absolute inset-0 w-full h-full object-cover opacity-60 blur-[80px] scale-125 saturate-150 pointer-events-none"
+                className="absolute inset-0 w-full h-full object-cover opacity-20 blur-[80px] scale-125 saturate-150 pointer-events-none"
             />
-            <div className="absolute inset-0 bg-black/30 pointer-events-none" /> {/* Dimmer */}
+            <div className="absolute inset-0 bg-white/40 pointer-events-none" /> {/* Lighten */}
 
             {/* Close Button */}
             <button
                 onClick={onClose}
-                className="absolute top-8 right-8 p-4 rounded-full bg-black/20 hover:bg-black/40 transition-colors border border-white/10 z-50 backdrop-blur-md"
+                className="absolute top-8 right-8 p-4 rounded-full bg-black/5 hover:bg-black/10 transition-colors border border-black/5 z-50 backdrop-blur-md"
             >
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
@@ -43,7 +43,7 @@ export default function AlbumDetailOverlay({ album, onClose, onPlay }: AlbumDeta
                         initial={{ y: 20, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         transition={{ delay: 0.2 }}
-                        className="text-white font-bold tracking-tighter leading-none mb-4 drop-shadow-2xl"
+                        className="text-black font-bold tracking-tighter leading-none mb-4 drop-shadow-sm"
                         style={{ fontSize: 'clamp(3rem, 6vw, 8rem)' }}
                     >
                         {album.title}
@@ -53,7 +53,7 @@ export default function AlbumDetailOverlay({ album, onClose, onPlay }: AlbumDeta
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.3 }}
-                        className="text-white/80 text-xl font-light tracking-widest uppercase ml-1 drop-shadow-md"
+                        className="text-black/60 text-xl font-light tracking-widest uppercase ml-1"
                     >
                         {album.artist}
                     </motion.p>
@@ -78,7 +78,7 @@ export default function AlbumDetailOverlay({ album, onClose, onPlay }: AlbumDeta
                 <div className="mt-auto pt-8 flex justify-center md:justify-end">
                     <button
                         onClick={onPlay}
-                        className="px-10 py-4 bg-white text-black text-lg font-bold rounded-full hover:scale-105 active:scale-95 transition-all shadow-xl hover:shadow-2xl"
+                        className="px-10 py-4 bg-black text-white text-lg font-bold rounded-full hover:scale-105 active:scale-95 transition-all shadow-xl hover:shadow-2xl"
                     >
                         PLAY NOW
                     </button>
