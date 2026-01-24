@@ -6,8 +6,8 @@ export async function extractPastelColors(url: string, count: number = 3): Promi
   return new Promise((resolve) => {
     // 1. 이미지 객체 생성 및 CORS 설정 (src 설정보다 먼저 와야 함)
     const img = new Image();
-    img.crossOrigin = "anonymous"; 
-    
+    img.crossOrigin = "anonymous";
+
     // 캐시 방지를 위해 타임스탬프 추가 (CORS 문제 해결에 도움)
     const cacheBuster = url.includes('?') ? `&t=${Date.now()}` : `?t=${Date.now()}`;
     img.src = url + cacheBuster;
@@ -31,7 +31,7 @@ export async function extractPastelColors(url: string, count: number = 3): Promi
         // 3. 색상 분포 수집
         for (let i = 0; i < imageData.length; i += step) {
           // 투명도가 낮으면 무시
-          if (imageData[i+3] < 128) continue;
+          if (imageData[i + 3] < 128) continue;
 
           // 색상을 약간 뭉뚱그려 빈도 계산 (비슷한 색상끼리 묶음)
           const r = Math.floor(imageData[i] / 16) * 16;
@@ -47,7 +47,7 @@ export async function extractPastelColors(url: string, count: number = 3): Promi
           .slice(0, count)
           .map(([rgbStr]) => {
             const [r, g, b] = rgbStr.split(",").map(Number);
-            
+
             // 단색이 강해지는 것을 방지하는 보정 로직
             // 1. 회색조(Grayscale)를 살짝 섞어 채도를 낮춤 (0.7:0.3 비율)
             const avg = (r + g + b) / 3;
@@ -94,4 +94,31 @@ function getDefaultPastels(count: number): string[] {
   ];
   const selected = palettes[Math.floor(Math.random() * palettes.length)];
   return selected.slice(0, count);
+}
+
+// RGB 문자열(rgb(r, g, b) 등)을 HSL 객체로 변환
+export function rgbStringToHsl(rgbStr: string): { h: number; s: number; l: number } | null {
+  const match = rgbStr.match(/\d+/g);
+  if (!match || match.length < 3) return null;
+
+  const r = parseInt(match[0]) / 255;
+  const g = parseInt(match[1]) / 255;
+  const b = parseInt(match[2]) / 255;
+
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0, s = 0, l = (max + min) / 2;
+
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+    h /= 6;
+  }
+
+  return { h: h * 360, s: s * 100, l: l * 100 };
 }

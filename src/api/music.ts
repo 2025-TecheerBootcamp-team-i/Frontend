@@ -253,7 +253,10 @@ export async function getTagGraph(musicId: number): Promise<TagGraphItem[]> {
     const maxPct = Math.max(...percentages);
 
     return rawData.map((item: any, index: number) => {
-      const pct = item.percentage ?? item.size ?? item.value ?? 10;
+      // 값을 숫자로 확실하게 변환
+      let pct = Number(item.percentage ?? item.size ?? item.value ?? 10);
+      if (Number.isNaN(pct)) pct = 10;
+
       return {
         name: item.name || item.tag_key || item.tag || item.label || `Tag ${index + 1}`,
         size: pct,
