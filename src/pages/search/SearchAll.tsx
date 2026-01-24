@@ -1,14 +1,12 @@
 // src/pages/search/SearchHome.tsx
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { MdOutlineNavigateNext } from "react-icons/md";
-import { FaPlay } from "react-icons/fa6";
-
+import { MdOutlineNavigateNext, MdPlayArrow } from "react-icons/md";
 import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
 
 /* =====================
-  Horizontal Scroller
+  Horizontal Scroller (규격 통일)
 ===================== */
 type HorizontalScrollerProps = {
   children: React.ReactNode;
@@ -19,7 +17,7 @@ type HorizontalScrollerProps = {
 function HorizontalScroller({
   children,
   scrollStep = 300,
-  gradientFromClass = "from-transparent",
+  gradientFromClass = "from-[#2d2d2d]/80",
 }: HorizontalScrollerProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [canScroll, setCanScroll] = useState(false);
@@ -50,15 +48,12 @@ function HorizontalScroller({
     update();
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <div className="relative mt-2">
-      <div
-        ref={ref}
-        onScroll={update}
-        className="overflow-x-auto overflow-y-hidden no-scrollbar"
-      >
+      <div ref={ref} onScroll={update} className="overflow-x-auto overflow-y-hidden no-scrollbar">
         {children}
       </div>
 
@@ -71,10 +66,10 @@ function HorizontalScroller({
           }}
           className="
             absolute left-1 top-1/2 -translate-y-1/2 z-10
-            h-10 w-10 rounded-full
-            bg-black/50 backdrop-blur-md text-[#f6f6f6]
+            h-9 w-9 rounded-full
+            bg-[#1d1d1d]/50 text-[#f6f6f6]
             flex items-center justify-center
-            hover:bg-black/70 transition-all border border-white/10
+            hover:bg-[#1d1d1d]/70 transition
           "
           aria-label="왼쪽으로 이동"
         >
@@ -91,10 +86,10 @@ function HorizontalScroller({
           }}
           className="
             absolute right-1 top-1/2 -translate-y-1/2 z-10
-            h-10 w-10 rounded-full
-            bg-black/50 backdrop-blur-md text-[#f6f6f6]
+            h-9 w-9 rounded-full
+            bg-[#1d1d1d]/50 text-[#f6f6f6]
             flex items-center justify-center
-            hover:bg-black/70 transition-all border border-white/10
+            hover:bg-[#1d1d1d]/70 transition
           "
           aria-label="오른쪽으로 이동"
         >
@@ -171,10 +166,14 @@ type ArtistAlbum = {
 };
 
 /* =====================
-  UI Helpers
+  UI Helpers (규격 통일)
 ===================== */
 function SkeletonBox({ className = "" }: { className?: string }) {
-  return <div className={["animate-pulse bg-gradient-to-br from-white/5 to-transparent", className].join(" ")} />;
+  return <div className={["animate-pulse bg-white/10", className].join(" ")} />;
+}
+
+function EmptyText({ children }: { children: React.ReactNode }) {
+  return <div className="text-sm text-[#F6F6F6]/55">{children}</div>;
 }
 
 function SectionShell({
@@ -187,25 +186,29 @@ function SectionShell({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 p-8 mb-10 overflow-hidden shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
-      <div className="flex items-center justify-between mb-8">
-        <h2
+    <section className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10">
+      <div className="px-8 pt-6 pb-2 flex items-center justify-between">
+        <button
+          type="button"
           onClick={onMore}
-          className="text-xl font-black tracking-[0.2em] text-white uppercase cursor-pointer hover:text-[#AFDEE2] transition-colors opacity-80"
+          className="text-lg font-semibold hover:text-[#f6f6f6]/50 text-[#F6F6F6]"
         >
           {title}
-        </h2>
+        </button>
 
         <button
           type="button"
           onClick={onMore}
-          className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-all"
+          className="text-[#F6F6F6] hover:text-[#f6f6f6]/50 transition text-xl leading-none"
+          aria-label={`${title} 더보기`}
+          title="더보기"
         >
-          <MdOutlineNavigateNext size={24} />
+          <MdOutlineNavigateNext size={30} />
         </button>
       </div>
-      <div className="border-b border-white/10 mb-8" />
-      <div>{children}</div>
+
+      <div className="mb-4 mx-4 border-b border-white/10" />
+      <div className="px-6 pb-6">{children}</div>
     </section>
   );
 }
@@ -220,7 +223,6 @@ export default function SearchHome() {
 
   const q = (sp.get("q") ?? "").trim();
   const search = q ? `?q=${encodeURIComponent(q)}` : "";
-
   const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
 
   const [apiSongs, setApiSongs] = useState<Song[]>([]);
@@ -242,12 +244,18 @@ export default function SearchHome() {
             if (!res.ok) return null;
             const data: ArtistDetail = await res.json();
             return { artistId, data };
-          } catch { return null; }
+          } catch {
+            return null;
+          }
         });
         const results = await Promise.all(promises);
-        results.forEach((r) => { if (r) detailsMap[r.artistId] = r.data; });
+        results.forEach((r) => {
+          if (r) detailsMap[r.artistId] = r.data;
+        });
         setArtistDetails(detailsMap);
-      } catch (e) { console.error(e); }
+      } catch (e) {
+        console.error(e);
+      }
     },
     [API_BASE]
   );
@@ -265,7 +273,9 @@ export default function SearchHome() {
             if (!res.ok) return null;
             const data: ArtistAlbum[] = await res.json();
             return { artistId, albums: data };
-          } catch { return null; }
+          } catch {
+            return null;
+          }
         });
         const results = await Promise.all(promises);
         results.forEach((r) => {
@@ -278,58 +288,89 @@ export default function SearchHome() {
           });
         });
         setApiAlbums(allAlbums);
-      } catch (e) { console.error(e); }
+      } catch (e) {
+        console.error(e);
+      }
     },
     [API_BASE]
   );
 
   useEffect(() => {
     if (!API_BASE || !q.trim()) {
-      setApiSongs([]); setApiArtists([]); setApiAlbums([]); setSearchResults([]); setArtistDetails({});
+      setApiSongs([]);
+      setApiArtists([]);
+      setApiAlbums([]);
+      setSearchResults([]);
+      setArtistDetails({});
       return;
     }
+
     const controller = new AbortController();
+
     (async () => {
       try {
         setLoading(true);
         const params = new URLSearchParams({ q, page_size: "30" });
-        const res = await fetch(`${API_BASE}/search?${params.toString()}`, { signal: controller.signal });
+        const res = await fetch(`${API_BASE}/search?${params.toString()}`, {
+          signal: controller.signal,
+        });
         if (!res.ok) throw new Error(`API 오류: ${res.status}`);
         const data: ApiSearchResponse = await res.json();
         setSearchResults(data.results);
+
         const convertedSongs: Song[] = data.results.map((r) => ({
           id: String(r.itunes_id),
           title: r.music_name,
           artist: r.artist_name,
-          duration: r.duration ? `${Math.floor(r.duration / 60)}:${(r.duration % 60).toString().padStart(2, "0")}` : "0:00",
+          duration: r.duration
+            ? `${Math.floor(r.duration / 60)}:${(r.duration % 60).toString().padStart(2, "0")}`
+            : "0:00",
           albumId: r.album_id,
           artistId: r.artist_id,
           albumName: r.album_name,
         }));
+
         const artistMap = new Map<number, Artist>();
         data.results.forEach((r) => {
           if (r.artist_id && !artistMap.has(r.artist_id)) {
             artistMap.set(r.artist_id, { id: String(r.artist_id), name: r.artist_name });
           }
         });
+
         setApiSongs(convertedSongs);
         setApiArtists(Array.from(artistMap.values()));
-        const uniqueArtistIds = Array.from(new Set(data.results.map((r) => r.artist_id).filter((id): id is number => id !== null))).slice(0, 8);
+
+        const uniqueArtistIds = Array.from(
+          new Set(data.results.map((r) => r.artist_id).filter((id): id is number => id !== null))
+        ).slice(0, 8);
+
         if (uniqueArtistIds.length > 0) {
           await Promise.all([fetchArtistAlbums(uniqueArtistIds), fetchArtistDetails(uniqueArtistIds)]);
         }
-      } catch (e: unknown) { if ((e as DOMException)?.name !== "AbortError") console.error(e); } finally { setLoading(false); }
+      } catch (e: unknown) {
+        if ((e as DOMException)?.name !== "AbortError") console.error(e);
+      } finally {
+        setLoading(false);
+      }
     })();
+
     return () => controller.abort();
   }, [API_BASE, q, fetchArtistAlbums, fetchArtistDetails]);
 
-  const artists = useMemo(() => apiArtists.map(a => ({ ...a, image: artistDetails[Number(a.id)]?.artist_image || null })), [apiArtists, artistDetails]);
-  const albums = useMemo<Album[]>(() => apiAlbums.map(a => ({ id: a.id, name: a.title, artist: "", image: a.image_large_square || a.album_image })), [apiAlbums]);
+  const artists = useMemo(
+    () => apiArtists.map((a) => ({ ...a, image: artistDetails[Number(a.id)]?.artist_image || null })),
+    [apiArtists, artistDetails]
+  );
+
+  const albums = useMemo<Album[]>(
+    () => apiAlbums.map((a) => ({ id: a.id, name: a.title, artist: "", image: a.image_large_square || a.album_image })),
+    [apiAlbums]
+  );
 
   const featured = useMemo(() => {
     if (!q.trim()) return null;
     const lower = q.toLowerCase().trim();
-    const exact = artists.find(a => a.name.toLowerCase().trim() === lower);
+    const exact = artists.find((a) => a.name.toLowerCase().trim() === lower);
     if (exact) return { type: "artist" as const, data: exact };
     if (artists.length > 0) return { type: "artist" as const, data: artists[0] };
     if (apiSongs.length > 0) return { type: "song" as const, data: apiSongs[0] };
@@ -343,202 +384,387 @@ export default function SearchHome() {
     return url;
   };
 
-  const toTrack = (r: ApiSearchResult): PlayerTrack => {
-    return {
-      id: String(r.itunes_id),
-      musicId: r.music_id || r.itunes_id,
-      title: r.music_name,
-      artist: r.artist_name,
-      coverUrl: r.album_image || "",
-      audioUrl: r.audio_url || "/audio/sample.mp3",
-      duration: r.duration ? `${Math.floor(r.duration / 60)}:${(r.duration % 60).toString().padStart(2, "0")}` : "0:00",
-    };
-  };
+  const toTrack = (r: ApiSearchResult): PlayerTrack => ({
+    id: String(r.itunes_id),
+    musicId: r.music_id || r.itunes_id,
+    title: r.music_name,
+    artist: r.artist_name,
+    coverUrl: r.album_image || "",
+    audioUrl: r.audio_url || "/audio/sample.mp3",
+    duration: r.duration
+      ? `${Math.floor(r.duration / 60)}:${(r.duration % 60).toString().padStart(2, "0")}`
+      : "0:00",
+  });
+
+  const hasQuery = !!q.trim();
+  const canUseApi = !!API_BASE;
 
   return (
-    <div className="w-full min-w-0 h-full flex flex-col p-8 font-sans">
-      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar">
-        <div className="space-y-10">
-              {!q.trim() && (
-                <section className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 p-12 text-center shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
-                  <div className="text-3xl font-black tracking-tighter text-white uppercase mb-4">검색할 준비가 되셨나요?</div>
-                  <p className="text-white/40 font-light tracking-wide">노래, 아티스트 또는 앨범을 입력하여 취향을 찾아보세요.</p>
-                </section>
-              )}
-
-          {/* 상위 결과와 곡 섹션 배치 - 레이아웃 고도화 */}
-          <div className="grid gap-6 grid-cols-[1fr_1.6fr] items-stretch">
-            <section className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 p-8 overflow-hidden shadow-[0_30px_80px_rgba(0,0,0,0.5)] relative group min-h-[320px] flex flex-col">
-              <div className="flex items-center justify-between mb-8">
-                <h2 className="text-xl font-black tracking-[0.2em] text-white uppercase opacity-80">상위 결과</h2>
+    <div className="w-full min-w-0 h-full flex flex-col">
+      <div className="flex-1 min-h-0 overflow-y-auto py-4">
+        <div className="space-y-4">
+          {/* 안내 섹션 규격 통일 */}
+          {(!hasQuery || !canUseApi) && (
+            <section className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 p-8">
+              <div className="text-lg font-semibold text-[#F6F6F6]">
+                {canUseApi ? "검색어를 입력해주세요" : "API_BASE 설정이 필요해요"}
               </div>
-              
-                  <div className="flex-1 relative">
+              <div className="mt-2 text-sm text-[#F6F6F6]/60">
+                {canUseApi
+                  ? "노래, 아티스트 또는 앨범을 입력하여 취향을 찾아보세요."
+                  : "VITE_API_BASE_URL 환경변수를 설정해야 검색 API를 호출할 수 있습니다."}
+              </div>
+            </section>
+          )}
+
+          {/* ✅ 상단 2열 규격 통일 */}
+          <div className="overflow-x-auto">
+            <div className="grid gap-4 grid-cols-[minmax(320px,0.8fr)_minmax(520px,1.2fr)] min-w-[920px]">
+              {/* 상위 결과 카드 */}
+              <section className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 overflow-hidden">
+                <div className="px-8 pt-6 pb-2 flex items-center justify-between">
+                  <div className="text-lg font-semibold text-[#F6F6F6]">상위 결과</div>
+                </div>
+                <div className="mx-4 border-b border-white/10" />
+
+                <div className="p-4">
+                  <div className="group relative h-full w-full rounded-3xl hover:bg-[#1d1d1d]/45 transition p-4">
                     {loading ? (
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2">
-                        <SkeletonBox className="w-[280px] h-[280px] rounded-full" />
-                      </div>
+                      hasQuery && (
+                        <div className="flex flex-col">
+                          <SkeletonBox className="w-[228px] h-[228px] rounded-2xl" />
+                          <SkeletonBox className="mt-5 h-5 w-44 rounded-md" />
+                          <SkeletonBox className="mt-2 h-4 w-28 rounded-md" />
+                        </div>
+                      )
                     ) : !featured ? (
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[280px] h-[280px] bg-white/5 rounded-full opacity-20" />
+                      <div className="flex flex-col">
+                        <div className="w-[228px] h-[228px] bg-white/10 rounded-2xl" />
+                        <div className="mt-5 min-w-0">
+                          <div className="text-lg font-semibold text-[#F6F6F6] truncate">
+                            {hasQuery ? "검색 결과 없음" : "검색어를 입력해주세요"}
+                          </div>
+                          <div className="mt-1 text-sm text-[#F6F6F6]/60 truncate">
+                            {hasQuery ? "다른 키워드로 다시 검색해주세요" : "상단 검색창에 검색어를 입력해보세요"}
+                          </div>
+                        </div>
+                      </div>
                     ) : (() => {
                       const isArtist = featured.type === "artist";
                       const data = featured.data;
-                      const r = searchResults.find(x => String(x.itunes_id) === data.id);
-                      let img = isArtist ? (data as Artist).image : r?.album_image;
+
+                      const r = !isArtist
+                        ? searchResults.find((x) => String(x.itunes_id) === (data as Song).id)
+                        : null;
+
+                      const img = isArtist ? (data as Artist).image : r?.album_image;
 
                       return (
-                        <div className="w-full h-full relative transition-all duration-700 ease-out group/card">
-                          {/* 이미지 컨테이너 (원) - 요청하신 위치(왼쪽)와 크기(280px) */}
-                          <div className={["absolute left-[100px] top-1/2 -translate-y-1/2 w-[300px] h-[300px] overflow-hidden shadow-[0_40px_80px_rgba(0,0,0,0.6),inset_0_2px_15px_rgba(255,255,255,0.2)] transition-all duration-1000 ease-out backdrop-blur-2xl z-10", isArtist ? "rounded-full border border-white/20 group-hover/card:border-white/40" : "rounded-[48px] border border-white/10 group-hover/card:border-white/20"].join(" ")}>
-                            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent animate-pulse" />
+                        <div className="flex flex-col">
+                          {/* ✅ 이미지 박스 규격 통일 (228, bg, rounded, w-full img) */}
+                          <div
+                            className={[
+                              "w-[228px] h-[228px] bg-[#3d3d3d]/10 relative overflow-hidden",
+                              isArtist ? "rounded-full" : "rounded-2xl",
+                            ].join(" ")}
+                          >
                             {img ? (
-                              <>
-                                <img 
-                                  src={resolveImage(img)} 
-                                  alt="" 
-                                  className={["absolute inset-0 w-full h-full object-cover transition-all duration-1000 group-hover/card:scale-110 brightness-95 group-hover/card:brightness-110", isArtist ? "opacity-80 group-hover/card:opacity-100" : ""].join(" ")} 
-                                />
-                                {isArtist && (
-                                  <>
-                                    <div className="absolute inset-0 bg-gradient-to-tr from-black/30 via-transparent to-white/20 pointer-events-none" />
-                                    <div className="absolute top-[8%] left-[15%] w-[45%] h-[25%] bg-gradient-to-b from-white/50 to-transparent rounded-[100%] rotate-[-15deg] blur-[3px] pointer-events-none opacity-80 group-hover/card:opacity-100 transition-opacity" />
-                                    <div className="absolute bottom-[5%] right-[10%] w-[35%] h-[20%] bg-white/30 blur-[10px] rounded-full pointer-events-none" />
-                                  </>
-                                )}
-                              </>
+                              <img
+                                src={resolveImage(img)}
+                                alt={isArtist ? (data as Artist).name : (data as Song).title}
+                                className="w-full h-full object-cover"
+                                loading="eager"
+                                fetchPriority="high"
+                                decoding="async"
+                              />
                             ) : (
-                              <div className="absolute inset-0 bg-white/5 flex items-center justify-center text-white/5 font-black text-4xl">?</div>
+                              <div className="w-full h-full bg-white/10" />
                             )}
-                            <div className="absolute inset-0 bg-black/10 opacity-0 group-hover/card:opacity-100 transition-opacity duration-700" />
+
+                            {/* hover overlay (그대로 두되 규격쪽 스타일만) */}
+                            <div className="absolute inset-0 bg-[#4d4d4d]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                           </div>
 
-                          {/* 이름 및 타입 (사각형 위치) - 이미지의 오른쪽 상단에 배치 */}
-                          <div className="absolute right-20 top-[5%] flex flex-col items-end max-w-[240px] z-20 text-right">
-                            <div className="text-5xl font-black tracking-tighter text-white truncate drop-shadow-lg group-hover/card:text-[#AFDEE2] transition-colors duration-500 w-full">
+                          {/* ✅ 텍스트 규격 통일 (카드 아래) */}
+                          <div className="mt-5 min-w-0">
+                            <div className="text-lg font-semibold text-[#F6F6F6] truncate">
                               {isArtist ? (data as Artist).name : (data as Song).title}
                             </div>
-                            <div className="mt-4 text-base font-black tracking-[0.2em] text-white/30 uppercase">
+                            <div className="mt-1 text-sm text-[#F6F6F6]/60 truncate">
                               {isArtist ? "아티스트" : (data as Song).artist}
                             </div>
                           </div>
-                          
-                          {/* 재생 버튼 (별 위치) - 박스 우측 하단 끝에 배치 */}
+
+                          {/* ✅ 재생 버튼 규격 통일 (SearchHome 스타일) */}
                           {((!isArtist && r) || (isArtist && apiSongs.length > 0)) && (
-                            <div 
-                              className="absolute right-0 bottom-0 opacity-0 translate-y-4 group-hover/card:opacity-100 group-hover/card:translate-y-0 transition-all duration-500 ease-out cursor-pointer z-20"
+                            <button
+                              type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 if (!isArtist && r) {
                                   setTrackAndPlay(toTrack(r));
                                 } else if (isArtist && apiSongs.length > 0) {
-                                  const firstSong = searchResults.find(x => String(x.itunes_id) === apiSongs[0].id);
+                                  const firstSong = searchResults.find(
+                                    (x) => String(x.itunes_id) === apiSongs[0].id
+                                  );
                                   if (firstSong) setTrackAndPlay(toTrack(firstSong));
                                 }
                               }}
+                              className="
+                                absolute right-0 bottom-4
+                                -translate-x-4 -translate-y-4
+                                w-12 h-12 rounded-full
+                                bg-[#AFDEE2] text-[#1d1d1d]
+                                grid place-items-center
+                                shadow-lg
+                                hover:bg-[#87B2B6] transition
+                                opacity-0 translate-y-1 pointer-events-none
+                                group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto
+                              "
+                              aria-label="재생"
+                              title="재생"
                             >
-                              <button className="w-20 h-20 rounded-full bg-[#AFDEE2] text-[#1d1d1d] flex items-center justify-center shadow-[0_20px_40px_rgba(175,222,226,0.5)] hover:scale-110 active:scale-95 transition-all duration-300 group/btn border-4 border-[#AFDEE2]/20">
-                                <FaPlay size={28} className="ml-1" />
-                              </button>
-                            </div>
+                              <MdPlayArrow size={26} />
+                            </button>
                           )}
                         </div>
                       );
                     })()}
                   </div>
-            </section>
+                </div>
+              </section>
 
-            {/* "곡" 섹션 - 타이틀 폰트 맞춤 및 크기 조정을 통해 4곡 노출 */}
-            <section className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 p-8 antialiased shadow-[0_30px_80_rgba(0,0,0,0.5)] flex flex-col min-h-[320px]">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-black tracking-[0.2em] text-white uppercase opacity-80">곡</h2>
-                <button onClick={() => navigate(`/search/song${search}`)} className="p-2 rounded-full hover:bg-white/10 text-white/30 hover:text-white transition-all"><MdOutlineNavigateNext size={28} /></button>
-              </div>
-              <div className="space-y-2 flex-1 flex flex-col justify-center">
-                {loading ? Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="flex items-center gap-6 p-2"><SkeletonBox className="h-16 w-16 rounded-2xl" /><div className="flex-1"><SkeletonBox className="h-5 w-40 mb-2" /><SkeletonBox className="h-3 w-28" /></div></div>
-                )) : apiSongs.length === 0 ? <div className="py-12 text-center text-white/20 font-bold tracking-widest text-base uppercase">검색 결과 없음</div>
-                : apiSongs.slice(0, 4).map(s => {
-                  const r = searchResults.find(x => String(x.itunes_id) === s.id);
-                  return (
-                    <div 
-                      key={s.id} 
-                      className="group flex items-center gap-6 p-2 rounded-3xl hover:bg-white/[0.08] transition-all duration-300 cursor-pointer"
-                      onClick={() => r && setTrackAndPlay(toTrack(r))}
-                    >
-                      {/* 이미지 크기를 16(64px)으로 조정하여 4곡이 들어가도록 함 */}
-                      <div className="h-16 w-16 rounded-2xl overflow-hidden bg-white/10 relative flex-shrink-0 shadow-xl border border-white/10 group-hover:scale-105 transition-transform duration-300">
-                        <img src={resolveImage(r?.album_image || "")} className="w-full h-full object-cover" alt="" />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <FaPlay className="text-white scale-110" size={20} />
+              {/* 곡 리스트 카드: 규격 통일 */}
+              <section className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 overflow-hidden">
+                <div className="px-8 pt-6 pb-2 flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/search/song${search}`)}
+                    className="text-lg font-semibold hover:text-[#f6f6f6]/50 text-[#F6F6F6]"
+                  >
+                    곡
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/search/song${search}`)}
+                    className="text-[#F6F6F6] hover:text-[#f6f6f6]/50 transition text-xl leading-none"
+                    aria-label="곡 더보기"
+                    title="더보기"
+                  >
+                    <MdOutlineNavigateNext size={30} />
+                  </button>
+                </div>
+
+                <div className="mx-4 border-b border-white/10" />
+
+                <div className="px-4">
+                  {loading && hasQuery ? (
+                    <div className="">
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} className="w-full px-2 py-3 border-b border-white/10 last:border-b-0">
+                          <div className="flex items-center gap-4">
+                            <SkeletonBox className="h-12 w-12 rounded-xl" />
+                            <div className="min-w-0 flex-1">
+                              <SkeletonBox className="h-4 w-48 rounded-md" />
+                              <SkeletonBox className="mt-2 h-3 w-28 rounded-md" />
+                            </div>
+                            <SkeletonBox className="h-4 w-10 rounded-md" />
+                          </div>
                         </div>
-                      </div>
-                      <div className="min-w-0 flex-1 px-1">
-                        <div className="text-xl font-bold text-white/95 truncate tracking-tight group-hover:text-[#AFDEE2] transition-colors">{s.title}</div>
-                        <div className="text-sm font-medium text-white/30 truncate tracking-wide mt-1">{s.artist}</div>
-                      </div>
-                      <div className="text-base font-black text-white/20 tabular-nums pr-4 group-hover:text-[#AFDEE2]/40 transition-colors">{s.duration}</div>
+                      ))}
                     </div>
-                  );
-                })}
-              </div>
-            </section>
+                  ) : apiSongs.length === 0 ? (
+                    <div className="px-4 py-6">
+                      <EmptyText>{hasQuery ? "해당 검색어의 곡이 없습니다." : "검색어를 입력하면 곡이 표시됩니다."}</EmptyText>
+                    </div>
+                  ) : (
+                    apiSongs.slice(0, 4).map((s) => {
+                      const r = searchResults.find((x) => String(x.itunes_id) === s.id);
+                      const albumImage = r?.album_image ?? null;
+
+                      return (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => r && setTrackAndPlay(toTrack(r))}
+                          className="w-full text-left px-2 py-3 hover:bg-white/5 transition border-b border-white/10 last:border-b-0"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="h-12 w-12 rounded-xl bg-white/10 overflow-hidden relative flex-shrink-0">
+                              {albumImage ? (
+                                <img
+                                  src={resolveImage(albumImage)}
+                                  alt={s.title}
+                                  className="w-full h-full object-cover"
+                                  loading="lazy"
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-white/10" />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="truncate text-sm font-semibold text-[#F6F6F6]">{s.title}</div>
+                              <div className="truncate text-xs text-[#F6F6F6]/60">{s.artist}</div>
+                            </div>
+                            <div className="w-12 text-right text-sm text-[#F6F6F6]/70 tabular-nums">{s.duration}</div>
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+
+                <div className="flex justify-center border-t border-white/10 p-4 text-[#D9D9D9]">
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/search/song${search}`)}
+                    aria-label="곡 더보기"
+                    title="더보기"
+                    className="text-xs text-[#f6f6f6]/40 hover:text-[#aaaaaa] transition"
+                    disabled={!hasQuery}
+                  >
+                    더보기
+                  </button>
+                </div>
+              </section>
+            </div>
           </div>
 
+          {/* 아티스트: 규격 통일 */}
           <SectionShell title="아티스트" onMore={() => navigate(`/search/artist${search}`)}>
-            <HorizontalScroller>
-              <div className="flex gap-10 px-4">
-                {loading ? Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="w-52"><SkeletonBox className="w-52 h-52 rounded-full" /><SkeletonBox className="mt-6 h-5 w-40 mx-auto" /></div>
-                )) : artists.length === 0 ? <div className="py-16 text-center w-full text-white/20 font-light tracking-widest uppercase text-lg">검색된 아티스트가 없습니다</div>
-                : artists.slice(0, 8).map(a => (
-                  <button key={a.id} onClick={() => navigate(`/artists/${a.id}`)} className="group w-52 text-center shrink-0">
-                    <div className="relative w-52 h-52 rounded-full overflow-hidden bg-white/5 transition-all duration-1000 ease-out group-hover:-translate-y-4 group-hover:shadow-[0_40px_80px_rgba(0,0,0,0.6),0_0_50px_rgba(175,222,226,0.3)] border border-white/20 group-hover:border-white/40 backdrop-blur-2xl shadow-[inset_0_2px_15px_rgba(255,255,255,0.2),0_15px_30px_rgba(0,0,0,0.4)]">
-                      <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent animate-pulse" />
-                      {a.image && (
-                        <>
-                          <img 
-                            src={resolveImage(a.image)} 
-                            className="absolute inset-0 w-full h-full object-cover transition-all duration-1000 group-hover:scale-125 opacity-80 group-hover:opacity-100 brightness-95 group-hover:brightness-110" 
-                            alt="" 
-                          />
-                          {/* 유리구슬 효과 레이어들 */}
-                          <div className="absolute inset-0 bg-gradient-to-tr from-black/30 via-transparent to-white/20 pointer-events-none" />
-                          <div className="absolute top-[8%] left-[15%] w-[45%] h-[25%] bg-gradient-to-b from-white/50 to-transparent rounded-[100%] rotate-[-15deg] blur-[3px] pointer-events-none opacity-80 group-hover:opacity-100 transition-opacity" />
-                          <div className="absolute bottom-[5%] right-[10%] w-[35%] h-[20%] bg-white/30 blur-[10px] rounded-full pointer-events-none" />
-                        </>
-                      )}
+            {loading && hasQuery ? (
+              <HorizontalScroller gradientFromClass="from-[#2d2d2d]/80">
+                <div className="flex gap-4 min-w-max px-2">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="w-[220px] text-left shrink-0">
+                      <SkeletonBox className="w-[208px] h-[208px] ml-2 rounded-full" />
+                      <SkeletonBox className="mt-3 ml-2 h-4 w-32 rounded-md" />
+                      <SkeletonBox className="mt-2 ml-2 h-3 w-16 rounded-md" />
                     </div>
-                    <div className="mt-8 text-lg font-bold text-white truncate tracking-tight group-hover:text-[#AFDEE2] transition-colors px-2">{a.name}</div>
-                    <div className="mt-2 text-xs font-light text-white/30 tracking-widest uppercase">아티스트</div>
-                  </button>
-                ))}
+                  ))}
+                </div>
+              </HorizontalScroller>
+            ) : artists.length === 0 ? (
+              <div className="px-2">
+                <EmptyText>{hasQuery ? "해당 검색어의 아티스트가 없습니다." : "검색어를 입력하면 아티스트가 표시됩니다."}</EmptyText>
               </div>
-            </HorizontalScroller>
+            ) : (
+              <HorizontalScroller gradientFromClass="from-[#2d2d2d]/80">
+                <div className="flex gap-4 min-w-max px-2">
+                {artists.slice(0, 8).map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => navigate(`/artists/${a.id}`)}
+                  className="w-[220px] text-left group shrink-0"
+                >
+                  <div
+                    className="
+                      w-[208px] h-[208px] ml-2 rounded-full
+                      bg-white/10 overflow-hidden relative
+                      transition-all duration-700 ease-out
+                      group-hover:shadow-[0_16px_28px_rgba(0,0,0,0.55)]
+
+                    "
+                  >
+                    {a.image ? (
+                      <>
+                        <img
+                          src={resolveImage(a.image)}
+                          alt={a.name}
+                          className="
+                            w-full h-full object-cover
+                            transition-all duration-1000
+                            opacity-90 brightness-95
+                            group-hover:scale-[1.15]
+                            group-hover:opacity-100
+                            group-hover:brightness-110
+                          "
+                          loading="lazy"
+                        />
+                      </>
+                    ) : (
+                      <div className="w-full h-full bg-white/10" />
+                    )}
+                  </div>
+
+                  <div className="mt-3 text-sm ml-2 font-semibold text-[#F6F6F6] truncate group-hover:text-[#AFDEE2] transition-colors">
+                    {a.name}
+                  </div>
+                  <div className="mt-1 text-xs ml-2 text-[#F6F6F6]/60 truncate">아티스트</div>
+                </button>
+              ))}
+
+
+                </div>
+              </HorizontalScroller>
+            )}
           </SectionShell>
 
+          {/* 앨범: 규격 통일 */}
           <SectionShell title="앨범" onMore={() => navigate(`/search/album${search}`)}>
-            <HorizontalScroller>
-              <div className="flex gap-10 px-4">
-                {loading ? Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="w-56"><SkeletonBox className="w-56 h-56 rounded-[40px]" /><SkeletonBox className="mt-6 h-6 w-44" /></div>
-                )) : albums.length === 0 ? <div className="py-16 text-center w-full text-white/20 font-light tracking-widest uppercase text-lg">검색된 앨범이 없습니다</div>
-                : albums.slice(0, 10).map(a => (
-                  <button key={a.id} onClick={() => navigate(`/album/${a.id}`)} className="group w-56 text-left shrink-0">
-                    <div className="relative w-56 h-56 rounded-[40px] overflow-hidden bg-white/5 transition-all duration-700 ease-out group-hover:-translate-y-3 group-hover:shadow-[0_30px_60px_rgba(0,0,0,0.5),0_0_40px_rgba(175,222,226,0.2)] border border-white/10 group-hover:border-white/30">
-                      <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent animate-pulse" />
-                      {a.image && <img src={resolveImage(a.image)} className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-115" alt="" />}
-                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center duration-500">
-                        <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 scale-75 group-hover:scale-100 transition-transform duration-700">
-                          <FaPlay className="text-white ml-1" size={24} />
-                        </div>
-                      </div>
+            {loading && hasQuery ? (
+              <HorizontalScroller gradientFromClass="from-[#2d2d2d]/80">
+                <div className="flex gap-2 min-w-max px-2">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="w-[220px] text-left shrink-0">
+                      <SkeletonBox className="w-48 h-48 rounded-2xl" />
+                      <SkeletonBox className="mt-3 ml-1 h-4 w-36 rounded-md" />
                     </div>
-                    <div className="mt-8 text-lg font-bold text-white truncate tracking-tight group-hover:text-[#AFDEE2] transition-colors px-2">{a.name}</div>
-                    <div className="mt-2 text-xs font-light text-white/30 tracking-widest uppercase px-2">앨범</div>
+                  ))}
+                </div>
+              </HorizontalScroller>
+            ) : albums.length === 0 ? (
+              <div className="px-2">
+                <EmptyText>{hasQuery ? "해당 검색어의 앨범이 없습니다." : "검색어를 입력하면 앨범이 표시됩니다."}</EmptyText>
+              </div>
+            ) : (
+              <HorizontalScroller gradientFromClass="from-[#2d2d2d]/80">
+                <div className="flex gap-2 min-w-max px-2">
+                {albums.slice(0, 10).map((a) => (
+                  <button
+                    key={a.id}
+                    type="button"
+                    onClick={() => navigate(`/album/${a.id}`)}
+                    className="w-[220px] text-left group shrink-0"
+                  >
+                    <div
+                      className="
+                        w-48 h-48 rounded-2xl
+                        bg-white/10 overflow-hidden relative
+                        transition-all duration-700 ease-out
+                        group-hover:shadow-[0_16px_28px_rgba(0,0,0,0.55)]
+                      "
+                    >
+                      {a.image ? (
+                        <>
+                          <img
+                            src={resolveImage(a.image)}
+                            alt={a.name}
+                            className="
+                              w-full h-full object-cover
+                              transition-all duration-1000
+                              opacity-90 brightness-95
+                              group-hover:scale-[1.15]
+                              group-hover:opacity-100
+                              group-hover:brightness-110
+                            "
+                            loading="lazy"
+                          />
+                        </>
+                      ) : (
+                        <div className="w-full h-full bg-white/10" />
+                      )}
+                    </div>
+
+                    <div className="mt-3 ml-1 text-sm font-semibold text-[#F6F6F6] truncate group-hover:text-[#AFDEE2] transition-colors">
+                      {a.name}
+                    </div>
                   </button>
                 ))}
-              </div>
-            </HorizontalScroller>
+                </div>
+              </HorizontalScroller>
+            )}
           </SectionShell>
         </div>
       </div>

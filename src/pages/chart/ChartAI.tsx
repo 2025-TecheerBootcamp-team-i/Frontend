@@ -244,7 +244,7 @@ export default function ChartAI() {
 
   if (loading) {
     return (
-      <section className="whitespace-nowrap rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 overflow-hidden p-10 text-[#f6f6f6] shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
+      <section className="whitespace-nowrap rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 overflow-hidden p-10 text-[#f6f6f6]">
         차트 데이터를 불러오는 중...
       </section>
     );
@@ -252,7 +252,7 @@ export default function ChartAI() {
 
   if (errorMsg) {
     return (
-      <section className="whitespace-nowrap rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 overflow-hidden p-10 text-white shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
+      <section className="whitespace-nowrap rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 overflow-hidden p-10 text-white">
         {errorMsg}
       </section>
     );
@@ -261,7 +261,7 @@ export default function ChartAI() {
   return (
     <>
       {/* ✅ 본문: Top100/기준 스타일로 통일 */}
-      <section className="whitespace-nowrap rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 overflow-hidden shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
+      <section className="whitespace-nowrap rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 overflow-hidden">
         <div className="overflow-x-auto">
           <div className="min-w-[920px]">
             {/* 상단 헤더 (Top100 스타일) */}
