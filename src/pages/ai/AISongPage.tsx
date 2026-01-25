@@ -132,7 +132,7 @@ function ActionCircle({
           disabled
             ? "bg-[#444444] text-white/30 cursor-not-allowed"
             : `
-              bg-[#3d3d3d]
+              bg-[#f6f6f6]/20
               text-[#f6f6f6]
               hover:bg-[#AFDEE2]
               hover:text-[#1f1f1f]
@@ -423,7 +423,6 @@ export default function AiSongPage() {
                 : user && typeof user.id === "string"
                   ? user.id
                   : undefined;
-        
 
         const mapped: AiTrack = {
           musicId: musicIdNum,
@@ -599,7 +598,8 @@ export default function AiSongPage() {
   };
 
   return (
-    <div className="w-full h-full overflow-x-auto pr-10">
+    // ✅ 전체 글씨체 한 단계 업: base -> lg
+    <div className="w-full h-full overflow-x-auto pr-10 text-lg">
       <section className="text-[#f6f6f6] min-w-[1000px]">
         <style className="whitespace-none">{FADE_STYLE}</style>
 
@@ -607,7 +607,7 @@ export default function AiSongPage() {
           <div
             className="
               fixed left-1/2 top-6 -translate-x-1/2 z-50
-              rounded-full bg-black/70 px-4 py-2 text-sm text-white
+              rounded-full bg-black/70 px-4 py-2 text-base text-white
               border border-white/10 backdrop-blur"
             role="status"
             aria-live="polite"
@@ -617,7 +617,7 @@ export default function AiSongPage() {
         )}
 
         {error && (
-          <div className="mt-4 rounded-2xl bg-red-500/10 border border-red-500/20 p-4 text-sm">
+          <div className="mt-4 rounded-2xl bg-red-500/10 border border-red-500/20 p-4 text-base">
             {error}
           </div>
         )}
@@ -630,7 +630,7 @@ export default function AiSongPage() {
               aria-label="뒤로가기"
               className="p-2 text-[#f6f6f6] rounded-full hover:bg-white/10 transition shrink-0"
             >
-              <IoChevronBack size={22} />
+              <IoChevronBack size={24} />
             </button>
 
             <div className="mt-10 flex flex-col min-w-0 w-full">
@@ -653,7 +653,7 @@ export default function AiSongPage() {
                       }}
                     />
                   ) : (
-                    <div className="h-full w-full flex items-center justify-center text-[#777777] text-sm">
+                    <div className="h-full w-full flex items-center justify-center text-[#777777] text-base">
                       커버 없음
                     </div>
                   )}
@@ -699,7 +699,7 @@ export default function AiSongPage() {
                           className={`
                             flex-1 min-w-0 w-full
                             bg-transparent outline-none border-0
-                            text-4xl font-semibold leading-tight
+                            text-5xl font-semibold leading-tight
                             ${
                               isOwner
                                 ? isEditingTitle
@@ -717,13 +717,13 @@ export default function AiSongPage() {
                         />
                       </div>
 
-                      <div className="text-sm text-[#f6f6f6]">
+                      <div className="text-base text-[#f6f6f6]">
                         {loading ? "불러오는 중..." : error ? "오류" : " "}
                       </div>
 
                       <div className="mt-4 flex items-center gap-3">
                         <div className="h-12 w-12 rounded-full bg-[#d9d9d9] shrink-0" />
-                        <div className="text-base text-[#f6f6f6]">{artist}</div>
+                        <div className="text-lg text-[#f6f6f6]">{artist}</div>
                       </div>
 
                       {styleText && (
@@ -732,7 +732,7 @@ export default function AiSongPage() {
                             <p
                               key={mode}
                               style={{ animation: "fadeSlideIn 180ms ease-out" }}
-                              className="flex-1 min-w-0 w-full text-sm text-[#f6f6f6] leading-snug whitespace-normal break-words"
+                              className="flex-1 min-w-0 w-full text-base text-[#f6f6f6] leading-snug whitespace-normal break-words"
                             >
                               {styleTextToShow}
                             </p>
@@ -754,12 +754,12 @@ export default function AiSongPage() {
                             </button>
                           </div>
 
-                          <div className="text-xs">
+                          <div className="text-sm">
                             {mode === "summary" ? (
                               <button
                                 type="button"
                                 onClick={() => setMode("full")}
-                                className="text-[#777777] hover:text-[#f6f6f6] underline underline-offset-2 transition"
+                                className="text-[#f6f6f6]/50 hover:text-[#f6f6f6] underline underline-offset-2 transition"
                               >
                                 + Show full style
                               </button>
@@ -767,7 +767,7 @@ export default function AiSongPage() {
                               <button
                                 type="button"
                                 onClick={() => setMode("summary")}
-                                className="text-[#777777] hover:text-[#f6f6f6] underline underline-offset-2 transition"
+                                className="text-[#f6f6f6]/50 hover:text-[#f6f6f6] underline underline-offset-2 transition"
                               >
                                 - Show summary
                               </button>
@@ -776,8 +776,8 @@ export default function AiSongPage() {
                         </div>
                       )}
 
-                      <div className="mt-6 flex items-center justify-between gap-4">
-                        <div className="text-sm text-[#f6f6f6]">
+                      <div className="mt-4 flex items-center justify-between gap-4">
+                        <div className="text-base text-[#f6f6f6]">
                           {track.createdAt} | {track.duration}
                         </div>
                       </div>
@@ -830,7 +830,7 @@ export default function AiSongPage() {
               </div>
 
               <div className="mt-8 mb-8 grid grid-cols-[220px_minmax(0,1fr)] gap-6 w-full min-w-0">
-                <pre className="whitespace-pre-wrap text-sm text-[#f6f6f6] leading-relaxed min-w-0">
+                <pre className="whitespace-pre-wrap text-base text-[#f6f6f6] leading-relaxed min-w-0">
                   {lyricsOrPrompt}
                 </pre>
                 <div />
@@ -851,7 +851,7 @@ export default function AiSongPage() {
             <div className="absolute inset-0 grid place-items-center p-6">
               <div className="w-full max-w-[420px] rounded-3xl bg-[#2d2d2d] border border-[#464646] shadow-2xl overflow-hidden">
                 <div className="px-6 py-4 flex items-center justify-between border-b border-[#464646]">
-                  <div className="text-base font-semibold text-[#F6F6F6]">
+                  <div className="text-lg font-semibold text-[#F6F6F6]">
                     플레이리스트 선택
                   </div>
                   <button
@@ -864,15 +864,15 @@ export default function AiSongPage() {
                   </button>
                 </div>
 
-                <div className="px-6 py-4 text-sm text-[#F6F6F6]/70">
+                <div className="px-6 py-4 text-base text-[#F6F6F6]/70">
                   선택한 {selectedCount}곡을 담을 플레이리스트를 골라주세요
                 </div>
 
                 <div className="max-h-[360px] overflow-y-auto border-t border-[#464646]">
                   {addTargets.length === 0 ? (
-                    <div className="px-6 py-6 text-sm text-[#aaa]">
+                    <div className="px-6 py-6 text-base text-[#aaa]">
                       담을 수 있는 플레이리스트가 없어요.
-                      <div className="mt-2 text-xs text-[#777]">
+                      <div className="mt-2 text-sm text-[#777]">
                         (liked 같은 시스템 플리는 제외됨)
                       </div>
                     </div>
@@ -884,10 +884,10 @@ export default function AiSongPage() {
                         onClick={() => addSelectedToPlaylist(p.id)}
                         className="w-full text-left px-6 py-4 hover:bg-white/5 transition border-b border-[#464646]"
                       >
-                        <div className="text-sm font-semibold text-[#F6F6F6] truncate">
+                        <div className="text-base font-semibold text-[#F6F6F6] truncate">
                           {p.title}
                         </div>
-                        <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">
+                        <div className="mt-1 text-sm text-[#F6F6F6]/60 truncate">
                           {p.owner} · {p.isPublic ? "공개" : "비공개"}
                         </div>
                       </button>
@@ -899,7 +899,7 @@ export default function AiSongPage() {
                   <button
                     type="button"
                     onClick={() => setAddOpen(false)}
-                    className="px-4 py-2 rounded-2xl text-sm text-[#F6F6F6] hover:bg-white/10 transition"
+                    className="px-4 py-2 rounded-2xl text-base text-[#F6F6F6] hover:bg-white/10 transition"
                   >
                     취소
                   </button>
