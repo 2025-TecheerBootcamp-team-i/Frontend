@@ -180,7 +180,7 @@ function HomePage() {
         setPopularLoading(true);
         setPopularError(null);
 
-        const data = await fetchPopularArtists(6);
+        const data = await fetchPopularArtists(20);
         if (!alive) return;
 
         setPopularArtists(data);
@@ -356,7 +356,7 @@ function HomePage() {
       <div className="min-w-[1280px]">
         {/* 인기 아티스트 */}
         <section className="mb-2">
-          <div className="relative">
+          <div className="relative overflow-x-auto pb-2">
             <div
               ref={scrollRef}
               // ✅ 줄어들면 줄바꿈/압축 대신 그냥 가로가 길어지게
