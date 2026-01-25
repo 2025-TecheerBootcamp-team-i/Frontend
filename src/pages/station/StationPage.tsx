@@ -105,7 +105,13 @@ export default function StationPage() {
     if (!station || error) {
         return (
             <div className="w-full min-h-screen bg-[#1D1D1D] text-white p-6">
-                <button onClick={() => navigate(-1)} className="mb-6 text-[#aaa] hover:text-white">
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        navigate("/home");
+                    }}
+                    className="mb-6 text-[#aaa] hover:text-white relative z-50"
+                >
                     <IoChevronBack size={24} />
                 </button>
                 <div className="text-xl font-semibold">스테이션을 찾을 수 없어요.</div>
@@ -134,8 +140,11 @@ export default function StationPage() {
 
                     {/* Back Button */}
                     <button
-                        onClick={() => navigate(-1)}
-                        className="absolute left-4 top-5 z-10 p-2 text-[#F6F6F6] rounded-full hover:bg-white/10 transition"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            navigate("/home");
+                        }}
+                        className="absolute left-4 top-5 z-[100] p-2 text-[#F6F6F6] rounded-full hover:bg-white/10 transition cursor-pointer"
                     >
                         <IoChevronBack size={24} />
                     </button>
