@@ -442,7 +442,7 @@ function HomePage() {
                         실시간 차트
                       </button>
 
-                      <div className="flex gap-4 shrink-0">
+                      <div className="flex gap-3 shrink-0">
                         {tabBtn("TOP100", "TOP 100")}
                         {tabBtn("DAILY", "일일차트")}
                         {tabBtn("AI", "AI 음악")}

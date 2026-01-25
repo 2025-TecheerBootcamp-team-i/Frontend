@@ -18,7 +18,7 @@ export default function MyPlaylistsPersonal() {
         return myPlaylists.map((p) => ({
         id: p.id,
         title: p.title,
-        owner: p.creator_nickname,
+        owner: p.creator_nickname ?? "—",
         }));
     }, [myPlaylists]);
 
@@ -26,14 +26,15 @@ export default function MyPlaylistsPersonal() {
         await createPlaylist();
     };
 
+    // ✅ 가로 5개(220px * 5) 고정 그리드
     const gridClass = useMemo(
         () =>
         `
             grid
-            gap-x-6
+            gap-x-5
             gap-y-12
             justify-between
-            [grid-template-columns:repeat(4,220px)]
+            [grid-template-columns:repeat(5,220px)]
         `,
         []
     );
@@ -41,13 +42,13 @@ export default function MyPlaylistsPersonal() {
     return (
         <section className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10">
         <div className="px-8 pt-6 pb-2 flex items-center justify-between">
-            <div className="text-xl font-semibold text-[#f6f6f6]">개인</div>
+            <div className="text-2xl font-bold text-[#f6f6f6]">개인</div>
 
             <button
             type="button"
             onClick={handleCreate}
             className="
-                w-9 h-9 rounded-full
+                w-10 h-10 rounded-full
                 border border-white/10 bg-white/5
                 text-white/40 grid place-items-center
                 hover:bg-white/10 hover:text-[#AFDEE2]
@@ -56,7 +57,7 @@ export default function MyPlaylistsPersonal() {
             aria-label="새 플레이리스트"
             title="새 플레이리스트"
             >
-            <FaPlus size={16} />
+            <FaPlus size={18} />
             </button>
         </div>
 
@@ -71,23 +72,23 @@ export default function MyPlaylistsPersonal() {
                 onClick={() => navigate(`/playlist/${it.id}`)}
                 className="w-[220px] text-left group"
                 >
-                {/* ✅ 카드 톤: MyPlaylistPage의 카드와 동일(rounded-2xl / bg-white/20 / hover) */}
+                {/* ✅ 카드 톤: MyPlaylistPage 카드와 동일 */}
                 <div className="relative aspect-square rounded-2xl overflow-hidden bg-white/20 group-hover:bg-white/10 transition-all duration-500 shadow-xl">
                     <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
                     <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
 
-                {/* ✅ 텍스트 간격: MyPlaylistPage 카드 텍스트와 동일 */}
+                {/* ✅ 텍스트: MyPlaylistPage와 동일하게 한 단계 키움 */}
                 <div className="mx-1 mt-3">
-                    <div className="text-sm font-semibold text-[#f6f6f6]/95 truncate group-hover:text-[#AFDEE2] transition-colors">
+                    <div className="text-base font-semibold text-[#f6f6f6]/95 truncate group-hover:text-[#AFDEE2] transition-colors">
                     {it.title}
                     </div>
-                    <div className="mt-1 text-xs text-[#f6f6f6]/20">{it.owner}</div>
+                    <div className="mt-1 text-sm text-[#f6f6f6]/20">{it.owner}</div>
                 </div>
                 </button>
             ))}
             </div>
         </div>
-        </section>
-    );
+    </section>
+  );
 }
