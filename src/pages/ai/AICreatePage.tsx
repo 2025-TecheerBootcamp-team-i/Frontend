@@ -1003,7 +1003,7 @@ export default function AiCreatePage() {
             className="h-[calc(100%-168px)] overflow-y-auto no-scrollbar"
           >
             {listLoading ? (
-              <div className="px-8 py-20 text-center text-sm font-black tracking-widest text-white/20 uppercase whitespace-normal">
+              <div className="px-8 py-20 text-center text-sm tracking-widest text-white/20 uppercase whitespace-normal">
                 로딩 중...
               </div>
             ) : (
