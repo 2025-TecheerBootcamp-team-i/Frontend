@@ -360,9 +360,12 @@ function HomePage() {
             <div
               ref={scrollRef}
               // ✅ 줄어들면 줄바꿈/압축 대신 그냥 가로가 길어지게
-              className="flex gap-8 min-w-max w-max px-4 py-6"
+              className="flex gap-8 min-w-max w-max px-4 py-6 min-h-[280px]"
             >
-              {popularLoading && <div className="text-[#F6F6F6]/70 px-2">로딩중...</div>}
+              {/* 로딩/에러 상태를 실제 콘텐츠 영역 안에서 처리 */}
+              {popularLoading && (
+                <div className="flex items-center justify-center w-full text-[#F6F6F6]/50">로딩중...</div>
+              )}
               {popularError && <div className="text-red-300 px-2">{popularError}</div>}
 
               {!popularLoading &&
@@ -389,6 +392,8 @@ function HomePage() {
                           <img
                             src={a.image_small_circle}
                             alt={a.artist_name}
+                            width={180}
+                            height={180}
                             className="w-full h-full object-cover transition-all duration-1000 group-hover:scale-125 opacity-80 group-hover:opacity-100 brightness-95 group-hover:brightness-110"
                             loading="lazy"
                             decoding="async"
@@ -462,11 +467,14 @@ function HomePage() {
 
                 <div className="border-b border-white/10" />
 
-                {chartLoading && <div className="p-4 text-[#f6f6f6]/50">차트 로딩중...</div>}
-                {chartError && <div className="p-4 text-red-400/80">{chartError}</div>}
+                {/* min-height로 레이아웃 고정 */}
+                <div className="divide-y divide-white/5 overflow-hidden min-h-[540px]">
+                  {chartLoading && (
+                    <div className="flex items-center justify-center h-[540px] text-[#f6f6f6]/50">차트 로딩중...</div>
+                  )}
+                  {chartError && <div className="p-4 text-red-400/80">{chartError}</div>}
 
-                <div className="divide-y divide-white/5 overflow-hidden">
-                  {previewRows.map((row) => (
+                  {!chartLoading && !chartError && previewRows.map((row) => (
                     <div
                       key={row.musicId}
                       className="
@@ -510,6 +518,8 @@ function HomePage() {
                           <img
                             src={row.albumImage}
                             alt={row.albumName}
+                            width={72}
+                            height={72}
                             className="w-[72px] h-[72px] rounded-2xl object-cover bg-[#D9D9D9] shrink-0 shadow-lg"
                             loading="lazy"
                             decoding="async"
@@ -522,9 +532,8 @@ function HomePage() {
                           />
                         ) : null}
                         <div
-                          className={`w-[72px] h-[72px] rounded-2xl bg-[#D9D9D9] shrink-0 ${
-                            row.albumImage ? "hidden" : ""
-                          }`}
+                          className={`w-[72px] h-[72px] rounded-2xl bg-[#D9D9D9] shrink-0 ${row.albumImage ? "hidden" : ""
+                            }`}
                         />
 
                         <div className="min-w-0">
@@ -579,40 +588,45 @@ function HomePage() {
 
             <div className="mb-4 border-b border-white/10" />
 
-            {playlistsLoading && <div className="p-8 text-white/50 text-lg">플레이리스트 로딩중...</div>}
-            {playlistsError && <div className="p-8 text-red-400/80 text-lg">{playlistsError}</div>}
+            {/* min-height로 레이아웃 고정 */}
+            <div className="min-h-[340px]">
+              {playlistsLoading && (
+                <div className="flex items-center justify-center h-[340px] text-white/50 text-lg">플레이리스트 로딩중...</div>
+              )}
+              {playlistsError && <div className="p-8 text-red-400/80 text-lg">{playlistsError}</div>}
 
-            {!playlistsLoading && !playlistsError && publicPlaylists.length > 0 && (
-              <HorizontalScroller gradientFromClass="from-transparent">
-                <div className="flex gap-2 min-w-max pr-2">
-                  {publicPlaylists.map((p) => (
-                    <button
-                      key={p.playlist_id}
-                      type="button"
-                      onClick={() => navigate(`/playlist/${p.playlist_id}`)}
-                      className="w-[260px] text-left group shrink-0"
-                    >
-                      <div className="w-[260px] h-[260px] rounded-[32px] bg-white/5 border border-white/10 group-hover:bg-white/10 transition-all duration-500 shadow-xl overflow-hidden relative">
-                        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
-                      </div>
-
-                      <div className="mt-5 px-2">
-                        <div className="text-lg font-bold text-[#F6F6F6] truncate group-hover:text-[#AFDEE2] transition-colors">
-                          {p.title}
+              {!playlistsLoading && !playlistsError && publicPlaylists.length > 0 && (
+                <HorizontalScroller gradientFromClass="from-transparent">
+                  <div className="flex gap-2 min-w-max pr-2">
+                    {publicPlaylists.map((p) => (
+                      <button
+                        key={p.playlist_id}
+                        type="button"
+                        onClick={() => navigate(`/playlist/${p.playlist_id}`)}
+                        className="w-[260px] text-left group shrink-0"
+                      >
+                        <div className="w-[260px] h-[260px] rounded-[32px] bg-white/5 border border-white/10 group-hover:bg-white/10 transition-all duration-500 shadow-xl overflow-hidden relative">
+                          <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
                         </div>
-                        <div className="mt-2 text-sm text-[#F6F6F6]/40 font-medium truncate">
-                          {p.creator_nickname} · {p.item_count}곡 · ♥ {p.like_count}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </HorizontalScroller>
-            )}
 
-            {!playlistsLoading && !playlistsError && publicPlaylists.length === 0 && (
-              <div className="px-4 mb-2 text-[#F6F6F6]/30 text-base text-left">인기 플레이리스트가 없습니다</div>
-            )}
+                        <div className="mt-5 px-2">
+                          <div className="text-lg font-bold text-[#F6F6F6] truncate group-hover:text-[#AFDEE2] transition-colors">
+                            {p.title}
+                          </div>
+                          <div className="mt-2 text-sm text-[#F6F6F6]/40 font-medium truncate">
+                            {p.creator_nickname} · {p.item_count}곡 · ♥ {p.like_count}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </HorizontalScroller>
+              )}
+
+              {!playlistsLoading && !playlistsError && publicPlaylists.length === 0 && (
+                <div className="px-4 mb-2 text-[#F6F6F6]/30 text-base text-left">인기 플레이리스트가 없습니다</div>
+              )}
+            </div>
           </div>
         </section>
       </div>

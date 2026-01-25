@@ -485,6 +485,8 @@ export default function SearchHome() {
                               <img
                                 src={resolveImage(img)}
                                 alt={isArtist ? (data as Artist).name : (data as Song).title}
+                                width={228}
+                                height={228}
                                 className="w-full h-full object-cover"
                                 loading="eager"
                                 fetchPriority="high"
@@ -608,6 +610,8 @@ export default function SearchHome() {
                                 <img
                                   src={resolveImage(albumImage)}
                                   alt={s.title}
+                                  width={48}
+                                  height={48}
                                   className="w-full h-full object-cover"
                                   loading="lazy"
                                 />
@@ -689,6 +693,8 @@ export default function SearchHome() {
                           <img
                             src={resolveImage(a.image)}
                             alt={a.name}
+                            width={208}
+                            height={208}
                             className="
                               w-full h-full object-cover
                               transition-all duration-1000
@@ -756,6 +762,8 @@ export default function SearchHome() {
                           <img
                             src={resolveImage(a.image)}
                             alt={a.name}
+                            width={192}
+                            height={192}
                             className="
                               w-full h-full object-cover
                               transition-all duration-1000
