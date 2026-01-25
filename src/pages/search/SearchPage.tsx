@@ -1,6 +1,5 @@
 import { NavLink, Outlet, useSearchParams } from "react-router-dom";
 
-
 function Tab({ to, label }: { to: string; label: string }) {
   return (
     <NavLink
@@ -8,10 +7,11 @@ function Tab({ to, label }: { to: string; label: string }) {
       end
       className={({ isActive }) =>
         [
-          "px-4 py-2 rounded-full text-base transition whitespace-nowrap",
+          // ✅ text-base → text-lg (한 단계 업)
+          "px-4 py-2 rounded-full text-lg transition whitespace-nowrap",
           isActive
-            ? "bg-[#E4524D]/80 text-[#F6F6F6]"
-            : "bg-white/20 text-[#F6F6F6] hover:bg-white/[0.08]",
+            ? "bg-[#E4524D]/80 text-[#f6f6f6] font-semibold scale-105 z-10"
+            : "bg-white/20 text-[#F6F6F6] hover:bg-white/[0.08] font-semibold hover:scale-105",
         ].join(" ")
       }
     >

@@ -213,18 +213,18 @@ export default function SearchArtist() {
     <section className="w-full mt-4 rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 px-6 py-8 min-h-[560px]">
       {/* 아티스트 그리드 */}
       {loading && artists.length === 0 ? (
-        <div className="text-center text-white/20 py-12">검색 중...</div>
+        <div className="text-center text-white/20 py-12 text-lg">검색 중...</div>
       ) : error && artists.length === 0 ? (
-        <div className="text-center text-red-400 py-12">오류가 발생했습니다: {error}</div>
+        <div className="text-center text-red-400 py-12 text-lg">오류가 발생했습니다: {error}</div>
       ) : (
         <div className="overflow-x-auto no-scrollbar">
           <div
             className="
               grid
               gap-x-10
-              gap-y-12
+              gap-y-14
               justify-between
-              [grid-template-columns:repeat(4,220px)]
+              [grid-template-columns:repeat(5,220px)]
               px-4
             "
           >
@@ -236,16 +236,16 @@ export default function SearchArtist() {
                 className="
                   group
                   rounded-3xl
-                  p-2
+                  p-3
                   flex flex-col items-center text-center
                   transition-all duration-500
                   hover:-translate-y-2
                 "
               >
-                {/* ✅ 썸네일: 유리구슬 효과 제거 (기본 스타일로 단순화) */}
+                {/* 썸네일: 조금 키움 (w-52/h-52 -> w-56/h-56) */}
                 <div
                   className="
-                    w-52 h-52
+                    w-56 h-56
                     rounded-full
                     bg-white/10
                     overflow-hidden
@@ -286,12 +286,24 @@ export default function SearchArtist() {
                     <div className="w-full h-full bg-white/10" />
                   )}
                 </div>
-
-                {/* 텍스트 */}
-                <div className="mt-6 break-words leading-snug text-base text-[#f6f6f6] truncate w-full group-hover:text-[#AFDEE2] transition-colors tracking-tight px-2">
+  
+                {/* 텍스트: 한 단계씩 업 */}
+                <div
+                  className="
+                    mt-6
+                    break-words leading-snug
+                    text-lg
+                    font-semibold
+                    text-[#f6f6f6]
+                    truncate w-full
+                    group-hover:text-[#AFDEE2]
+                    transition-colors tracking-tight
+                    px-2
+                  "
+                >
                   {a.name}
                 </div>
-                <div className="mt-1 text-xs font-medium text-[#f6f6f6]/30">아티스트</div>
+                <div className="mt-1 text-sm font-medium text-[#f6f6f6]/30">아티스트</div>
               </button>
             ))}
           </div>
@@ -299,4 +311,5 @@ export default function SearchArtist() {
       )}
     </section>
   );
+  
 }

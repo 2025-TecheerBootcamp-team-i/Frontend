@@ -177,18 +177,18 @@ export default function SearchAlbum() {
   return (
     <section className="w-full mt-4 rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 px-6 py-8 min-h-[560px]">
       {loading && albums.length === 0 ? (
-        <div className="text-center text-white/20 py-12">검색 중...</div>
+        <div className="text-center text-white/20 py-12 text-lg">검색 중...</div>
       ) : error && albums.length === 0 ? (
-        <div className="text-center text-red-400 py-12">오류가 발생했습니다: {error}</div>
+        <div className="text-center text-red-400 py-12 text-lg">오류가 발생했습니다: {error}</div>
       ) : (
         <div className="overflow-x-auto no-scrollbar">
           <div
             className="
               grid
               gap-x-10
-              gap-y-12
+              gap-y-14
               justify-between
-              [grid-template-columns:repeat(4,220px)]
+              [grid-template-columns:repeat(5,220px)]
               px-4
             "
           >
@@ -197,14 +197,12 @@ export default function SearchAlbum() {
                 key={a.id}
                 type="button"
                 onClick={() => navigate(`/album/${a.id}`)}
-                className="
-                  w-[220px] text-left group shrink-0
-                "
+                className="w-[220px] text-left group shrink-0"
               >
-                {/* ✅ 커버: SearchHome 앨범 카드 규격과 동일 */}
+                {/* 커버: 조금 키움 (w-50/h-50 -> w-52/h-52) */}
                 <div
                   className="
-                    w-50 h-50 rounded-2xl
+                    w-52 h-52 rounded-2xl
                     bg-white/10 overflow-hidden relative
                     transition-all duration-700 ease-out
                     group-hover:shadow-[0_16px_28px_rgba(0,0,0,0.55)]
@@ -238,14 +236,14 @@ export default function SearchAlbum() {
                     <div className="w-full h-full bg-white/10" />
                   )}
                 </div>
-
-                {/* ✅ 텍스트: SearchHome 앨범 카드 규격과 동일 */}
-                <div className="mt-3 ml-1 text-sm font-semibold text-[#F6F6F6] truncate group-hover:text-[#AFDEE2] transition-colors">
+  
+                {/* 텍스트: 한 단계 업 */}
+                <div className="mt-4 ml-1 text-lg font-semibold text-[#F6F6F6] truncate group-hover:text-[#AFDEE2] transition-colors">
                   {a.title}
                 </div>
-                {/* 필요하면 아래 한 줄 추가 가능 (SearchHome은 앨범에 artist 미표시였음) */}
+  
                 {a.artist ? (
-                  <div className="mt-1 ml-1 text-xs text-[#F6F6F6]/60 truncate">{a.artist}</div>
+                  <div className="mt-1 ml-1 text-sm text-[#F6F6F6]/60 truncate">{a.artist}</div>
                 ) : null}
               </button>
             ))}
@@ -254,4 +252,5 @@ export default function SearchAlbum() {
       )}
     </section>
   );
+  
 }
