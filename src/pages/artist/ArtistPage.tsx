@@ -662,7 +662,7 @@ export default function ArtistPage() {
         </section>
 
         {/* 아래 컨텐츠 */}
-        <div className="mt-[70px] px-4 space-y-8">
+        <div className="mt-[70px] px-4 space-y-6">
             {/* 곡 카드 */}
             <section className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 overflow-hidden shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
             <div className="px-8 pt-8 pb-3 flex items-center justify-between">

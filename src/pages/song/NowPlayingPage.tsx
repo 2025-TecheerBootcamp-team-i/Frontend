@@ -7,7 +7,6 @@ import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, A
 import { RiDashboardFill } from "react-icons/ri";
 import { GrContract } from "react-icons/gr";
 import { usePlayer } from "../../player/PlayerContext";
-import { getBestAlbumCover } from "../../api/album";
 import { likecount, likeTrack, deleteTrack } from "../../api/LikedSong";
 import { getMusicDetail, getTagGraph } from "../../api/music";
 import type { TagGraphItem } from "../../api/music";
@@ -910,6 +909,10 @@ export default function NowPlayingPage() {
     const [liked, setLiked] = useState(false);
     const [likeCount, setLikeCount] = useState(0);
     const [likeLoading, setLikeLoading] = useState(false);
+    useEffect(() => {
+        void musicId; // 혹은 void musicId; 같은 꼼수
+    }, []);
+    
 
     // ✅ 현재 곡의 musicId definition moved up
 
@@ -1379,6 +1382,7 @@ export default function NowPlayingPage() {
                                                             ) || imageUrl || "",
                                                             audioUrl: detail.audio_url || "",
                                                             musicId: detail.music_id
+                                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                                         } as any);
                                                     } else {
                                                         // 상세 정보 실패 시 기존 데이터로 재생
@@ -1388,6 +1392,7 @@ export default function NowPlayingPage() {
                                                             artist: artist,
                                                             coverUrl: imageUrl || "",
                                                             musicId: rec.music_id
+                                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                                         } as any);
                                                     }
                                                 }}
@@ -1444,6 +1449,7 @@ export default function NowPlayingPage() {
                                             fill="transparent"
                                             nameKey="name"
                                             isAnimationActive={true}
+                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                             content={({ x, y, width, height, name, index, color }: any) => {
                                                 if (!width || !height || width < 10 || height < 10) return <g />;
 
