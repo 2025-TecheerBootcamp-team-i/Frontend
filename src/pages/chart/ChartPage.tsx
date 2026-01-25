@@ -8,8 +8,8 @@
                 [
                 "px-4 py-2 rounded-full text-base transition whitespace-nowrap",
                 isActive
-                    ? "bg-[#E4524D]/80 text-[#F6F6F6]"
-                    : "bg-white/20 text-[#F6F6F6] hover:bg-white/[0.08]",
+                    ? "bg-[#E4524D]/80 text-[#f6f6f6] font-semibold scale-105 z-10"
+                    : "bg-white/20 text-[#F6F6F6] hover:bg-white/[0.08] font-semibold hover:scale-105",
                 ].join(" ")
             }
             >
