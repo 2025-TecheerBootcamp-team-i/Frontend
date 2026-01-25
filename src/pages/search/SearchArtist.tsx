@@ -1,20 +1,31 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 
 type Artist = { id: string; name: string; image?: string | null };
 
 // API 응답 타입
 type ApiSearchResult = {
-  itunes_id: number;
+  music_id: number;
+  itunes_id: number | null;
   music_name: string;
   artist_name: string;
   artist_id: number | null;
   album_name: string;
   album_id: number | null;
+  genre: string;
   duration: number | null;
   is_ai: boolean;
   audio_url: string | null;
   album_image: string | null;
+  in_db: boolean;
+  has_matching_tags: boolean;
+};
+
+// 연관 아티스트 타입
+type RelatedArtist = {
+  artist_id: number;
+  artist_name: string;
+  artist_image: string;
 };
 
 type ApiSearchResponse = {
@@ -22,13 +33,7 @@ type ApiSearchResponse = {
   next: string | null;
   previous: string | null;
   results: ApiSearchResult[];
-};
-
-// 아티스트 상세 API 응답 타입
-type ArtistDetail = {
-  artist_id: number;
-  artist_name: string;
-  artist_image: string | null;
+  related_artists: RelatedArtist[];
 };
 
 const ALL_ARTISTS: Artist[] = Array.from({ length: 12 }).map((_, i) => ({
@@ -48,68 +53,11 @@ export default function SearchArtist() {
   const [apiArtists, setApiArtists] = useState<Artist[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [artistDetails, setArtistDetails] = useState<Record<number, ArtistDetail>>({});
-
-  // 아티스트 상세 정보 가져오기 (이미지 포함)
-  const fetchArtistDetails = useCallback(
-    async (artistIds: number[]) => {
-      if (!API_BASE) return;
-
-      const detailsMap: Record<number, ArtistDetail> = {};
-
-      try {
-        console.log(`[SearchArtist] 아티스트 상세 정보 가져오기 시작: ${artistIds.length}개 아티스트`);
-
-        const promises = artistIds.map(async (artistId) => {
-          try {
-            const url = `${API_BASE}/artists/${artistId}/`;
-            console.log(`[SearchArtist] 아티스트 ${artistId} 상세 정보 요청: ${url}`);
-
-            const res = await fetch(url, {
-              method: "GET",
-              headers: { "Content-Type": "application/json" },
-            });
-
-            if (res.ok) {
-              const data: ArtistDetail = await res.json();
-              console.log(`[SearchArtist] 아티스트 ${artistId} 상세 정보 수신:`, {
-                artist_id: data.artist_id,
-                artist_name: data.artist_name,
-                has_image: !!data.artist_image,
-                image_url: data.artist_image,
-              });
-
-              return { artistId, data };
-            }
-            return null;
-          } catch (e) {
-            console.error(`[SearchArtist] 아티스트 ${artistId} 상세 정보 가져오기 실패:`, e);
-            return null;
-          }
-        });
-
-        const results = await Promise.all(promises);
-
-        results.forEach((result) => {
-          if (result) {
-            detailsMap[result.artistId] = result.data;
-          }
-        });
-
-        console.log(`[SearchArtist] 아티스트 상세 정보 가져오기 완료: ${Object.keys(detailsMap).length}개`);
-        setArtistDetails(detailsMap);
-      } catch (e) {
-        console.error("[SearchArtist] 아티스트 상세 정보 가져오기 오류:", e);
-      }
-    },
-    [API_BASE]
-  );
 
   // 검색 API 호출
   useEffect(() => {
     if (!API_BASE || !q.trim()) {
       setApiArtists([]);
-      setArtistDetails({});
       setError(null);
       return;
     }
@@ -137,59 +85,57 @@ export default function SearchArtist() {
         }
 
         const data: ApiSearchResponse = await res.json();
-
-        // 아티스트 정보 추출 (중복 제거)
-        const artistMap = new Map<number, Artist>();
-        data.results.forEach((r) => {
-          if (r.artist_id && !artistMap.has(r.artist_id)) {
-            artistMap.set(r.artist_id, {
-              id: String(r.artist_id),
-              name: r.artist_name,
-            });
-          }
+        
+        console.log(`[SearchArtist] 🔥🔥🔥 API 응답 받음:`, {
+          results_count: data.results?.length || 0,
+          related_artists_count: data.related_artists?.length || 0,
+          has_related_artists: !!data.related_artists,
         });
 
-        const extractedArtists = Array.from(artistMap.values());
-        setApiArtists(extractedArtists);
-
-        // 고유한 artist_id 추출
-        const uniqueArtistIds = Array.from(
-          new Set(
-            data.results
-              .map((r) => r.artist_id)
-              .filter((id): id is number => id !== null)
-          )
-        ).slice(0, 16);
-
-        if (uniqueArtistIds.length > 0) {
-          await fetchArtistDetails(uniqueArtistIds);
+        // related_artists를 직접 사용 (이미지 포함)
+        if (data.related_artists && data.related_artists.length > 0) {
+          const artists: Artist[] = data.related_artists.map((ra) => ({
+            id: String(ra.artist_id),
+            name: ra.artist_name,
+            image: ra.artist_image || null,
+          }));
+          setApiArtists(artists);
+          console.log(`[SearchArtist] ✅ ${artists.length}개 연관 아티스트 로드 완료`);
+        } else {
+          // related_artists가 없으면 기존 방식으로 폴백 (중복 제거)
+          const artistMap = new Map<number, Artist>();
+          data.results.forEach((r) => {
+            if (r.artist_id && !artistMap.has(r.artist_id)) {
+              artistMap.set(r.artist_id, {
+                id: String(r.artist_id),
+                name: r.artist_name,
+                image: null,
+              });
+            }
+          });
+          const extractedArtists = Array.from(artistMap.values());
+          setApiArtists(extractedArtists);
+          console.log(`[SearchArtist] ⚠️ related_artists 없음, results에서 ${extractedArtists.length}개 추출`);
         }
       } catch (e: unknown) {
         if ((e as DOMException)?.name === "AbortError") return;
         console.error("[SearchArtist] 검색 API 오류:", e);
         setError(e instanceof Error ? e.message : "알 수 없는 오류");
         setApiArtists([]);
-        setArtistDetails({});
       } finally {
         setLoading(false);
       }
     })();
 
     return () => controller.abort();
-  }, [API_BASE, q, fetchArtistDetails]);
+  }, [API_BASE, q]);
 
   const artists = useMemo(() => {
     let result: Artist[];
 
     if (API_BASE && q.trim() && apiArtists.length > 0) {
-      // API에서 가져온 아티스트에 이미지 정보 추가
-      result = apiArtists.map((artist) => {
-        const detail = artistDetails[Number(artist.id)];
-        return {
-          ...artist,
-          image: detail?.artist_image || null,
-        };
-      });
+      // API에서 가져온 아티스트 (이미지 포함)
+      result = apiArtists;
     } else {
       if (!q) {
         result = ALL_ARTISTS;
@@ -200,7 +146,7 @@ export default function SearchArtist() {
     }
 
     return result;
-  }, [API_BASE, q, apiArtists, artistDetails]);
+  }, [API_BASE, q, apiArtists]);
 
   const resolveImage = (url: string) => {
     if (!url) return "";
