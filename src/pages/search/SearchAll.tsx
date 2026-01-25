@@ -1,4 +1,4 @@
-// src/pages/search/SearchHome.tsx
+
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { MdOutlineNavigateNext, MdPlayArrow } from "react-icons/md";
@@ -173,7 +173,8 @@ function SkeletonBox({ className = "" }: { className?: string }) {
 }
 
 function EmptyText({ children }: { children: React.ReactNode }) {
-  return <div className="text-sm text-[#F6F6F6]/55">{children}</div>;
+  // ✅ text-sm → text-base
+  return <div className="text-base text-[#F6F6F6]/55">{children}</div>;
 }
 
 function SectionShell({
@@ -187,11 +188,12 @@ function SectionShell({
 }) {
   return (
     <section className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10">
-      <div className="px-8 pt-6 pb-2 flex items-center justify-between">
+      <div className="px-8 pt-6 pb-3 flex items-center justify-between">
         <button
           type="button"
           onClick={onMore}
-          className="text-lg font-semibold hover:text-[#f6f6f6]/50 text-[#F6F6F6]"
+          // ✅ text-lg → text-xl
+          className="text-2xl font-bold hover:text-[#f6f6f6]/50 text-[#F6F6F6]"
         >
           {title}
         </button>
@@ -199,11 +201,12 @@ function SectionShell({
         <button
           type="button"
           onClick={onMore}
+          // ✅ text-xl 유지(이미 큼). 아이콘만 한 단계 업
           className="text-[#F6F6F6] hover:text-[#f6f6f6]/50 transition text-xl leading-none"
           aria-label={`${title} 더보기`}
           title="더보기"
         >
-          <MdOutlineNavigateNext size={30} />
+          <MdOutlineNavigateNext size={34} />
         </button>
       </div>
 
@@ -363,7 +366,13 @@ export default function SearchHome() {
   );
 
   const albums = useMemo<Album[]>(
-    () => apiAlbums.map((a) => ({ id: a.id, name: a.title, artist: "", image: a.image_large_square || a.album_image })),
+    () =>
+      apiAlbums.map((a) => ({
+        id: a.id,
+        name: a.title,
+        artist: "",
+        image: a.image_large_square || a.album_image,
+      })),
     [apiAlbums]
   );
 
@@ -406,10 +415,12 @@ export default function SearchHome() {
           {/* 안내 섹션 규격 통일 */}
           {(!hasQuery || !canUseApi) && (
             <section className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 p-8">
-              <div className="text-lg font-semibold text-[#F6F6F6]">
+              {/* ✅ text-lg → text-xl */}
+              <div className="text-xl font-semibold text-[#F6F6F6]">
                 {canUseApi ? "검색어를 입력해주세요" : "API_BASE 설정이 필요해요"}
               </div>
-              <div className="mt-2 text-sm text-[#F6F6F6]/60">
+              {/* ✅ text-sm → text-base */}
+              <div className="mt-2 text-base text-[#F6F6F6]/60">
                 {canUseApi
                   ? "노래, 아티스트 또는 앨범을 입력하여 취향을 찾아보세요."
                   : "VITE_API_BASE_URL 환경변수를 설정해야 검색 API를 호출할 수 있습니다."}
@@ -422,8 +433,9 @@ export default function SearchHome() {
             <div className="grid gap-4 grid-cols-[minmax(320px,0.8fr)_minmax(520px,1.2fr)] min-w-[920px]">
               {/* 상위 결과 카드 */}
               <section className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 overflow-hidden">
-                <div className="px-8 pt-6 pb-2 flex items-center justify-between">
-                  <div className="text-lg font-semibold text-[#F6F6F6]">상위 결과</div>
+                <div className="px-8 pt-6 pb-3 flex items-center justify-between">
+                  {/* ✅ text-lg → text-xl */}
+                  <div className="text-2xl font-bold text-[#F6F6F6]">상위 결과</div>
                 </div>
                 <div className="mx-4 border-b border-white/10" />
 
@@ -441,10 +453,12 @@ export default function SearchHome() {
                       <div className="flex flex-col">
                         <div className="w-[228px] h-[228px] bg-white/10 rounded-2xl" />
                         <div className="mt-5 min-w-0">
-                          <div className="text-lg font-semibold text-[#F6F6F6] truncate">
+                          {/* ✅ text-lg → text-xl */}
+                          <div className="text-xl font-semibold text-[#F6F6F6] truncate">
                             {hasQuery ? "검색 결과 없음" : "검색어를 입력해주세요"}
                           </div>
-                          <div className="mt-1 text-sm text-[#F6F6F6]/60 truncate">
+                          {/* ✅ text-sm → text-base */}
+                          <div className="mt-1 text-base text-[#F6F6F6]/60 truncate">
                             {hasQuery ? "다른 키워드로 다시 검색해주세요" : "상단 검색창에 검색어를 입력해보세요"}
                           </div>
                         </div>
@@ -461,7 +475,6 @@ export default function SearchHome() {
 
                       return (
                         <div className="flex flex-col">
-                          {/* ✅ 이미지 박스 규격 통일 (228, bg, rounded, w-full img) */}
                           <div
                             className={[
                               "w-[228px] h-[228px] bg-[#3d3d3d]/10 relative overflow-hidden",
@@ -481,21 +494,20 @@ export default function SearchHome() {
                               <div className="w-full h-full bg-white/10" />
                             )}
 
-                            {/* hover overlay (그대로 두되 규격쪽 스타일만) */}
                             <div className="absolute inset-0 bg-[#4d4d4d]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                           </div>
 
-                          {/* ✅ 텍스트 규격 통일 (카드 아래) */}
                           <div className="mt-5 min-w-0">
-                            <div className="text-lg font-semibold text-[#F6F6F6] truncate">
+                            {/* ✅ text-lg → text-xl */}
+                            <div className="text-2xl font-bold text-[#F6F6F6] truncate">
                               {isArtist ? (data as Artist).name : (data as Song).title}
                             </div>
-                            <div className="mt-1 text-sm text-[#F6F6F6]/60 truncate">
+                            {/* ✅ text-sm → text-base */}
+                            <div className="mt-1 text-base text-[#F6F6F6]/60 truncate">
                               {isArtist ? "아티스트" : (data as Song).artist}
                             </div>
                           </div>
 
-                          {/* ✅ 재생 버튼 규격 통일 (SearchHome 스타일) */}
                           {((!isArtist && r) || (isArtist && apiSongs.length > 0)) && (
                             <button
                               type="button"
@@ -513,7 +525,7 @@ export default function SearchHome() {
                               className="
                                 absolute right-0 bottom-4
                                 -translate-x-4 -translate-y-4
-                                w-12 h-12 rounded-full
+                                w-14 h-14 rounded-full
                                 bg-[#AFDEE2] text-[#1d1d1d]
                                 grid place-items-center
                                 shadow-lg
@@ -536,22 +548,23 @@ export default function SearchHome() {
 
               {/* 곡 리스트 카드: 규격 통일 */}
               <section className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 overflow-hidden">
-                <div className="px-8 pt-6 pb-2 flex items-center justify-between">
+                <div className="px-8 pt-6 pb-3 flex items-center justify-between">
                   <button
                     type="button"
                     onClick={() => navigate(`/search/song${search}`)}
-                    className="text-lg font-semibold hover:text-[#f6f6f6]/50 text-[#F6F6F6]"
+                    // ✅ text-lg → text-xl
+                    className="text-2xl font-bold hover:text-[#f6f6f6]/50 text-[#F6F6F6]"
                   >
                     곡
                   </button>
                   <button
                     type="button"
                     onClick={() => navigate(`/search/song${search}`)}
-                    className="text-[#F6F6F6] hover:text-[#f6f6f6]/50 transition text-xl leading-none"
+                    className="text-[#F6F6F6] hover:text-[#f6f6f6]/50 transition text-2xl leading-none"
                     aria-label="곡 더보기"
                     title="더보기"
                   >
-                    <MdOutlineNavigateNext size={30} />
+                    <MdOutlineNavigateNext size={34} />
                   </button>
                 </div>
 
@@ -603,10 +616,15 @@ export default function SearchHome() {
                               )}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <div className="truncate text-sm font-semibold text-[#F6F6F6]">{s.title}</div>
-                              <div className="truncate text-xs text-[#F6F6F6]/60">{s.artist}</div>
+                              {/* ✅ text-sm → text-base */}
+                              <div className="truncate text-base font-semibold text-[#F6F6F6]">{s.title}</div>
+                              {/* ✅ text-xs → text-sm */}
+                              <div className="truncate text-sm text-[#F6F6F6]/60">{s.artist}</div>
                             </div>
-                            <div className="w-12 text-right text-sm text-[#F6F6F6]/70 tabular-nums">{s.duration}</div>
+                            {/* ✅ text-sm 유지/업: text-base */}
+                            <div className="w-12 text-right text-base text-[#F6F6F6]/70 tabular-nums">
+                              {s.duration}
+                            </div>
                           </div>
                         </button>
                       );
@@ -620,7 +638,8 @@ export default function SearchHome() {
                     onClick={() => navigate(`/search/song${search}`)}
                     aria-label="곡 더보기"
                     title="더보기"
-                    className="text-xs text-[#f6f6f6]/40 hover:text-[#aaaaaa] transition"
+                    // ✅ text-xs → text-sm
+                    className="text-sm text-[#f6f6f6]/40 hover:text-[#aaaaaa] transition"
                     disabled={!hasQuery}
                   >
                     더보기
@@ -651,51 +670,48 @@ export default function SearchHome() {
             ) : (
               <HorizontalScroller gradientFromClass="from-[#2d2d2d]/80">
                 <div className="flex gap-4 min-w-max px-2">
-                {artists.slice(0, 8).map((a) => (
-                <button
-                  key={a.id}
-                  type="button"
-                  onClick={() => navigate(`/artists/${a.id}`)}
-                  className="w-[220px] text-left group shrink-0"
-                >
-                  <div
-                    className="
-                      w-[208px] h-[208px] ml-2 rounded-full
-                      bg-white/10 overflow-hidden relative
-                      transition-all duration-700 ease-out
-                      group-hover:shadow-[0_16px_28px_rgba(0,0,0,0.55)]
+                  {artists.slice(0, 8).map((a) => (
+                    <button
+                      key={a.id}
+                      type="button"
+                      onClick={() => navigate(`/artists/${a.id}`)}
+                      className="w-[220px] text-left group shrink-0"
+                    >
+                      <div
+                        className="
+                          w-[208px] h-[208px] ml-2 rounded-full
+                          bg-white/10 overflow-hidden relative
+                          transition-all duration-700 ease-out
+                          group-hover:shadow-[0_16px_28px_rgba(0,0,0,0.55)]
+                        "
+                      >
+                        {a.image ? (
+                          <img
+                            src={resolveImage(a.image)}
+                            alt={a.name}
+                            className="
+                              w-full h-full object-cover
+                              transition-all duration-1000
+                              opacity-90 brightness-95
+                              group-hover:scale-[1.15]
+                              group-hover:opacity-100
+                              group-hover:brightness-110
+                            "
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-white/10" />
+                        )}
+                      </div>
 
-                    "
-                  >
-                    {a.image ? (
-                      <>
-                        <img
-                          src={resolveImage(a.image)}
-                          alt={a.name}
-                          className="
-                            w-full h-full object-cover
-                            transition-all duration-1000
-                            opacity-90 brightness-95
-                            group-hover:scale-[1.15]
-                            group-hover:opacity-100
-                            group-hover:brightness-110
-                          "
-                          loading="lazy"
-                        />
-                      </>
-                    ) : (
-                      <div className="w-full h-full bg-white/10" />
-                    )}
-                  </div>
-
-                  <div className="mt-3 text-sm ml-2 font-semibold text-[#F6F6F6] truncate group-hover:text-[#AFDEE2] transition-colors">
-                    {a.name}
-                  </div>
-                  <div className="mt-1 text-xs ml-2 text-[#F6F6F6]/60 truncate">아티스트</div>
-                </button>
-              ))}
-
-
+                      {/* ✅ text-sm → text-base */}
+                      <div className="mt-3 text-base ml-2 font-semibold text-[#F6F6F6] truncate group-hover:text-[#AFDEE2] transition-colors">
+                        {a.name}
+                      </div>
+                      {/* ✅ text-xs → text-sm */}
+                      <div className="mt-1 text-sm ml-2 text-[#F6F6F6]/60 truncate">아티스트</div>
+                    </button>
+                  ))}
                 </div>
               </HorizontalScroller>
             )}
@@ -721,23 +737,22 @@ export default function SearchHome() {
             ) : (
               <HorizontalScroller gradientFromClass="from-[#2d2d2d]/80">
                 <div className="flex gap-2 min-w-max px-2">
-                {albums.slice(0, 10).map((a) => (
-                  <button
-                    key={a.id}
-                    type="button"
-                    onClick={() => navigate(`/album/${a.id}`)}
-                    className="w-[220px] text-left group shrink-0"
-                  >
-                    <div
-                      className="
-                        w-48 h-48 rounded-2xl
-                        bg-white/10 overflow-hidden relative
-                        transition-all duration-700 ease-out
-                        group-hover:shadow-[0_16px_28px_rgba(0,0,0,0.55)]
-                      "
+                  {albums.slice(0, 10).map((a) => (
+                    <button
+                      key={a.id}
+                      type="button"
+                      onClick={() => navigate(`/album/${a.id}`)}
+                      className="w-[220px] text-left group shrink-0"
                     >
-                      {a.image ? (
-                        <>
+                      <div
+                        className="
+                          w-48 h-48 rounded-2xl
+                          bg-white/10 overflow-hidden relative
+                          transition-all duration-700 ease-out
+                          group-hover:shadow-[0_16px_28px_rgba(0,0,0,0.55)]
+                        "
+                      >
+                        {a.image ? (
                           <img
                             src={resolveImage(a.image)}
                             alt={a.name}
@@ -751,17 +766,17 @@ export default function SearchHome() {
                             "
                             loading="lazy"
                           />
-                        </>
-                      ) : (
-                        <div className="w-full h-full bg-white/10" />
-                      )}
-                    </div>
+                        ) : (
+                          <div className="w-full h-full bg-white/10" />
+                        )}
+                      </div>
 
-                    <div className="mt-3 ml-1 text-sm font-semibold text-[#F6F6F6] truncate group-hover:text-[#AFDEE2] transition-colors">
-                      {a.name}
-                    </div>
-                  </button>
-                ))}
+                      {/* ✅ text-sm → text-base */}
+                      <div className="mt-3 ml-1 text-base font-semibold text-[#F6F6F6] truncate group-hover:text-[#AFDEE2] transition-colors">
+                        {a.name}
+                      </div>
+                    </button>
+                  ))}
                 </div>
               </HorizontalScroller>
             )}
