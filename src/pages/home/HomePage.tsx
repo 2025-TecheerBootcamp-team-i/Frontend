@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { fetchPopularArtists, type PopularArtist } from "../../api/artist";
 import { fetchChart, type ChartData, type ChartType, type ChartRow as ApiChartRow } from "../../api/chart";
 
+
 import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
 
@@ -11,6 +12,7 @@ import { MdOutlineNavigateNext } from "react-icons/md";
 import { FaPlay } from "react-icons/fa6";
 
 import DjStationSection from "./DjStationSection";
+
 
 
 
@@ -45,6 +47,8 @@ function HomePage() {
 
 
 
+
+
   const TAB_TO_CHARTTYPE: Record<"TOP100" | "DAILY" | "AI", ChartType> = {
     TOP100: "realtime",
     DAILY: "daily",
@@ -73,7 +77,7 @@ function HomePage() {
         setPopularLoading(true);
         setPopularError(null);
 
-        const data = await fetchPopularArtists(6);
+        const data = await fetchPopularArtists(20);
         if (!alive) return;
 
         setPopularArtists(data);
@@ -165,6 +169,8 @@ function HomePage() {
     };
   }, []);
 
+
+
   const tabBtn = (key: "TOP100" | "DAILY" | "AI", label: string) => {
     const active = tab === key;
     return (
@@ -172,7 +178,7 @@ function HomePage() {
         type="button"
         onClick={() => setTab(key)}
         className={[
-          "h-10 text-base px-4 py-2 rounded-full transition whitespace-nowrap",
+          "h-8 text-sm px-3 py-1.5 rounded-full transition whitespace-nowrap",
           active
             ? "bg-[#E4524D]/80 text-[#f6f6f6] font-semibold scale-105 z-10"
             : "bg-white/20 text-[#F6F6F6] hover:bg-white/[0.08] font-semibold hover:scale-105",
@@ -223,13 +229,16 @@ function HomePage() {
       <div className="min-w-[1280px]">
         {/* 인기 아티스트 */}
         <section className="mb-2">
-          <div className="relative">
+          <div className="relative overflow-x-auto pb-2">
             <div
               ref={scrollRef}
               // ✅ 줄어들면 줄바꿈/압축 대신 그냥 가로가 길어지게
-              className="flex gap-8 min-w-max w-max px-4 py-6"
+              className="flex gap-8 min-w-max w-max px-4 py-6 min-h-[280px]"
             >
-              {popularLoading && <div className="text-[#F6F6F6]/70 px-2">로딩중...</div>}
+              {/* 로딩/에러 상태를 실제 콘텐츠 영역 안에서 처리 */}
+              {popularLoading && (
+                <div className="flex items-center justify-center w-full text-[#F6F6F6]/50">로딩중...</div>
+              )}
               {popularError && <div className="text-red-300 px-2">{popularError}</div>}
 
               {!popularLoading &&
@@ -256,6 +265,8 @@ function HomePage() {
                           <img
                             src={a.image_small_circle}
                             alt={a.artist_name}
+                            width={180}
+                            height={180}
                             className="w-full h-full object-cover transition-all duration-1000 group-hover:scale-125 opacity-80 group-hover:opacity-100 brightness-95 group-hover:brightness-110"
                             loading="lazy"
                             decoding="async"
@@ -304,11 +315,11 @@ function HomePage() {
               <div className="min-w-full">
                 <div className="flex items-center justify-between gap-4 pt-2 mb-4">
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-4 mb-1 min-w-0">
+                    <div className="flex items-end gap-4 mb-1 min-w-0">
                       <button
                         type="button"
                         onClick={goChart}
-                        className="px-2 text-5xl font-bold text-[#f6f6f6] leading-none hover:text-[#f6f6f6]/50 transition whitespace-nowrap"
+                        className="px-2 text-[43px] font-bold text-[#f6f6f6] leading-none hover:text-[#f6f6f6]/50 transition whitespace-nowrap"
                       >
                         실시간 차트
                       </button>
@@ -333,11 +344,14 @@ function HomePage() {
 
                 <div className="border-b border-white/10" />
 
-                {chartLoading && <div className="p-4 text-[#f6f6f6]/50">차트 로딩중...</div>}
-                {chartError && <div className="p-4 text-red-400/80">{chartError}</div>}
+                {/* min-height로 레이아웃 고정 */}
+                <div className="divide-y divide-white/5 overflow-hidden min-h-[540px]">
+                  {chartLoading && (
+                    <div className="flex items-center justify-center h-[540px] text-[#f6f6f6]/50">차트 로딩중...</div>
+                  )}
+                  {chartError && <div className="p-4 text-red-400/80">{chartError}</div>}
 
-                <div className="divide-y divide-white/5 overflow-hidden">
-                  {previewRows.map((row) => (
+                  {!chartLoading && !chartError && previewRows.map((row) => (
                     <div
                       key={row.musicId}
                       className="
@@ -381,6 +395,8 @@ function HomePage() {
                           <img
                             src={row.albumImage}
                             alt={row.albumName}
+                            width={72}
+                            height={72}
                             className="w-[72px] h-[72px] rounded-2xl object-cover bg-[#D9D9D9] shrink-0 shadow-lg"
                             loading="lazy"
                             decoding="async"
@@ -440,6 +456,8 @@ function HomePage() {
 
         {/* DJ Station */}
         <DjStationSection />
+
+
       </div>
     </div >
   );

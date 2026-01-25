@@ -56,24 +56,29 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          // Vendor chunks - separate heavy libraries
+          // Vendor chunks - 순환 의존성 방지를 위해 단순화
           if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
-              return 'react-vendor';
-            }
-            if (id.includes('framer-motion')) {
-              return 'framer-motion';
-            }
+            // Spline은 별도 분리 (매우 큼)
             if (id.includes('@splinetool')) {
               return 'spline';
             }
+            // framer-motion 분리
+            if (id.includes('framer-motion')) {
+              return 'framer-motion';
+            }
+            // recharts/d3 분리
+            if (id.includes('recharts') || id.includes('d3-')) {
+              return 'charts';
+            }
+            // react-icons 분리
             if (id.includes('react-icons')) {
               return 'icons';
             }
+            // axios 분리
             if (id.includes('axios')) {
               return 'axios';
             }
-            // Other vendor libraries
+            // 나머지 모든 node_modules는 vendor로
             return 'vendor';
           }
           // Split by feature

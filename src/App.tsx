@@ -1,9 +1,11 @@
 import { Suspense, lazy } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import MainLayout from "./components/layout/MainLayout";
-import MainLayout2 from "./components/layout/MainLayout2";
-import PlainLayout from "./components/layout/PlainLayout";
-import Nolayout from "./components/layout/Nolayout";
+
+// ✅ 모든 레이아웃을 lazy loading으로 변경 - 초기 번들 크기 감소
+const MainLayout = lazy(() => import("./components/layout/MainLayout"));
+const MainLayout2 = lazy(() => import("./components/layout/MainLayout2"));
+const PlainLayout = lazy(() => import("./components/layout/PlainLayout"));
+const Nolayout = lazy(() => import("./components/layout/Nolayout"));
 
 // Lazy load all pages for better performance
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
@@ -92,7 +94,7 @@ export default function App() {
             <Route path="/canvas" element={<Suspense fallback={<PageLoader />}><InteractiveCanvasPage /></Suspense>} />
 
             {/* ✅ 사이드바가 필요한 모든 페이지 */}
-            <Route element={<MainLayout />}>
+            <Route element={<Suspense fallback={<PageLoader />}><MainLayout /></Suspense>}>
               <Route path="/home" element={<Suspense fallback={<PageLoader />}><HomePage /></Suspense>} />
               <Route path="/chart" element={<Suspense fallback={<PageLoader />}><ChartPage /></Suspense>}>
                 <Route index element={<Navigate to="top100" replace />} />
@@ -120,7 +122,7 @@ export default function App() {
             </Route>
 
             {/* ✅ 메인 레이아웃에 패딩이 없는 버전 */}
-            <Route element={<MainLayout2 />}>
+            <Route element={<Suspense fallback={<PageLoader />}><MainLayout2 /></Suspense>}>
               <Route path="/artists/:artistId" element={<Suspense fallback={<PageLoader />}><ArtistPage /></Suspense>} />
               <Route path="/artists/:artistId/tracks" element={<Suspense fallback={<PageLoader />}><ArtistTracksPage /></Suspense>} />
               <Route path="/artists/:artistId/albums" element={<Suspense fallback={<PageLoader />}><ArtistAlbumsPage /></Suspense>} />
@@ -133,12 +135,13 @@ export default function App() {
             </Route>
 
             {/* ✅ 사이드바 없는 구간 (곡 상세보기 용도) */}
-            <Route element={<PlainLayout />}>
+            <Route element={<Suspense fallback={<PageLoader />}><PlainLayout /></Suspense>}>
               <Route path="/now-playing" element={<Suspense fallback={<PageLoader />}><NowPlayingPage /></Suspense>} />
             </Route>
 
             {/* ✅ 사이드바, 헤더, 플레이바 없는 구간 (로그인/회원가입 용도) */}
-            <Route element={<Nolayout />}>
+            {/* Nolayout은 lazy loading되어 Spline 번들이 분리됨 */}
+            <Route element={<Suspense fallback={<AuthFallback />}><Nolayout /></Suspense>}>
               <Route
                 index
                 element={

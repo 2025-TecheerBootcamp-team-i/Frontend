@@ -717,14 +717,16 @@ export default function SearchSong() {
                       albumImage && (albumImage.startsWith("http") || albumImage.startsWith("//"))
                         ? albumImage
                         : albumImage && API_BASE && albumImage.startsWith("/")
-                        ? `${API_BASE.replace("/api/v1", "")}${albumImage}`
-                        : albumImage || "";
+                          ? `${API_BASE.replace("/api/v1", "")}${albumImage}`
+                          : albumImage || "";
 
                     return albumImage ? (
                       <>
                         <img
                           src={src}
                           alt={s.title}
+                          width={48}
+                          height={48}
                           className="w-full h-full object-cover relative z-10"
                           onError={(e) => {
                             if (__DEV__) {
