@@ -124,13 +124,13 @@ function BaseModal({
         <button type="button" className="absolute inset-0 bg-black/50" onClick={onClose} aria-label="닫기" />
         <div className="absolute inset-0 grid place-items-center p-6">
           <div
-            className={`w-full ${maxWidthClass} rounded-3xl bg-[#2d2d2d] border border-[#464646] shadow-2xl overflow-hidden`}
+            className={`w-full ${maxWidthClass} rounded-3xl bg-[#3d3d3d]/80 border border-white/10 shadow-2xl overflow-hidden`}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-label={title}
           >
-            <div className="px-6 py-4 flex items-center justify-between border-b border-[#464646]">
+            <div className="px-6 py-4 flex items-center justify-between border-b border-white/10">
               {/* ✅ text-base → text-lg */}
               <div className="text-lg font-semibold text-[#F6F6F6]">{title}</div>
               <button
@@ -756,7 +756,7 @@ export default function SearchSong() {
 
                 <div className="min-w-0">
                   {/* ✅ text-base → text-lg */}
-                  <div className="ml-1 text-lg text-[#f6f6f6] truncate group-hover:text-[#AFDEE2] transition-colors">
+                  <div className="ml-1 text-base text-[#f6f6f6] truncate group-hover:text-[#AFDEE2] transition-colors">
                     {s.title}
                     {s.isAi && (
                       <span className="shrink-0 ml-3 text-xs font-black px-2 py-0.5 rounded-full bg-[#E4524D]/20 text-[#E4524D] border border-[#E4524D]/20 uppercase">
@@ -785,7 +785,7 @@ export default function SearchSong() {
           선택한 {selectedCount}곡을 담을 플레이리스트를 골라주세요
         </div>
 
-        <div className="max-h-[360px] overflow-y-auto border-t border-[#464646]">
+        <div className="max-h-[360px] overflow-y-auto border-t border-white/10">
           {addTargetsLoading ? (
             // ✅ text-sm → text-base
             <div className="px-6 py-6 text-base text-[#aaa]">플레이리스트 불러오는 중...</div>
@@ -801,12 +801,12 @@ export default function SearchSong() {
                 key={p.playlist_id}
                 type="button"
                 onClick={() => addSelectedToPlaylist(p.playlist_id.toString())}
-                className="w-full text-left px-6 py-4 hover:bg-white/5 transition border-b border-[#464646]"
+                className="w-full text-left px-6 py-4 hover:bg-white/5 transition border-b border-white/10"
               >
                 {/* ✅ text-sm → text-base */}
                 <div className="text-base font-semibold text-[#F6F6F6] truncate">{p.title}</div>
                 {/* ✅ text-xs → text-sm */}
-                <div className="mt-1 text-sm text-[#F6F6F6]/60 truncate">
+                <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">
                   {p.creator_nickname} · {p.visibility === "public" ? "공개" : "비공개"}
                 </div>
               </button>
@@ -814,7 +814,7 @@ export default function SearchSong() {
           )}
         </div>
 
-        <div className="px-6 py-4 border-t border-[#464646] flex justify-end">
+        <div className="px-6 py-4 border-t border-white/10 flex justify-end">
           <button
             type="button"
             onClick={() => setAddOpen(false)}
@@ -848,11 +848,11 @@ export default function SearchSong() {
                 type="button"
                 onClick={() => runPendingPlay("replace")}
                 // ✅ text-sm → text-base
-                className="w-full px-4 py-3 rounded-2xl text-base text-[#F6F6F6] outline outline-1 outline-[#464646] hover:bg-white/10 transition text-left"
+                className="w-full px-4 py-3 rounded-2xl text-base text-[#F6F6F6] outline outline-1 outline-white/10 hover:bg-white/10 transition text-left"
               >
                 <div className="font-semibold text-[#afdee2]">현재 재생 대기목록 지우고 재생</div>
                 {/* ✅ text-xs → text-sm */}
-                <div className="mt-1 text-sm text-[#999]">
+                <div className="mt-1 text-xs text-[#999]">
                   지금 재생 대기목록을 초기화하고 선택한 곡들로 새로 재생합니다.
                 </div>
               </button>
@@ -861,17 +861,17 @@ export default function SearchSong() {
                 type="button"
                 onClick={() => runPendingPlay("enqueue")}
                 // ✅ text-sm → text-base
-                className="w-full px-4 py-3 rounded-2xl text-base text-[#F6F6F6] outline outline-1 outline-[#464646] hover:bg-white/10 transition text-left"
+                className="w-full px-4 py-3 rounded-2xl text-base text-[#F6F6F6] outline outline-1 outline-white/10 hover:bg-white/10 transition text-left"
               >
                 <div className="font-semibold text-[#afdee2]">재생 대기목록 맨 뒤에 추가</div>
                 {/* ✅ text-xs → text-sm */}
-                <div className="mt-1 text-sm text-[#999]">
+                <div className="mt-1 text-xs text-[#999]">
                   현재 재생은 유지하고, 선택한 곡들을 재생 대기 목록 마지막에 둡니다.
                 </div>
               </button>
             </div>
 
-            <div className="px-6 py-4 border-t border-[#464646] flex justify-end">
+            <div className="px-6 py-4 border-t border-white/10 flex justify-end">
               <button
                 type="button"
                 onClick={() => {

@@ -3,10 +3,10 @@ import { useNavigate, useParams } from "react-router-dom";
 import { IoChevronBack } from "react-icons/io5";
 
 import {
-  fetchArtistDetail,
-  fetchArtistAlbums,
-  type ArtistDetail,
-  type ArtistAlbum,
+    fetchArtistDetail,
+    fetchArtistAlbums,
+    type ArtistDetail,
+    type ArtistAlbum,
 } from "../../api/artist";
 
 export default function ArtistAlbumsPage() {
@@ -97,70 +97,99 @@ export default function ArtistAlbumsPage() {
 
     return (
         <div className="w-full min-w-0">
-        {/* 상단 간단 헤더(뒤로 + 타이틀) */}
-        {/* 타이틀 라인 */}
-        <div className="sticky bg-[#2d2d2d] border-b border-[#464646] pb-4 top-0 z-20 pt-5 px-4 mb-4">
-            <div className="flex items-center gap-3">
-            <button
-                type="button"
-                onClick={() => navigate(-1)}
-                className="p-2 text-[#F6F6F6] rounded-full hover:bg-white/10 transition"
-                aria-label="뒤로가기"
-            >
-                <IoChevronBack size={22} />
-            </button>
-            <h1 className="text-xl font-semibold text-[#F6F6F6]">{artist.artist_name} · 앨범</h1>
-            </div>
-        </div>
-
-        <section className="mt-4 mx-4 rounded-3xl bg-[#2d2d2d]/80 border border-[#2d2d2d]">
-            {/* 헤더 */}
-            <div className="px-8 pt-6 pb-2 flex items-center justify-between">
-            <div className="text-lg font-semibold text-[#F6F6F6]">앨범 전체보기</div>
-            </div>
-
-            {/* ✅ 헤더랑 같은 기준선 */}
-            <div className="mb-4 mx-4 border-b border-[#464646]" />
-
-            {/* 카드 그리드 */}
-            <div className="px-6 pb-8 overflow-x-auto">
-            <div
-                className="
-                grid
-                gap-x-6
-                gap-y-12
-                justify-between
-                [grid-template-columns:repeat(4,220px)]
-                "
-            >
-                {album.map((t) => (
+            {/* 상단 sticky 헤더 */}
+            <div className="sticky top-0 z-20 pt-5 px-4 pb-4 mb-4 bg-white/[0.05] backdrop-blur-2xl border border-white/10">
+                <div className="flex items-center gap-3">
                 <button
-                    key={t.id}
                     type="button"
-                    onClick={() => navigate(`/album/${t.id}`)}
-                    className="w-[220px] text-left group"
+                    onClick={() => navigate(-1)}
+                    className="p-2 text-[#F6F6F6] rounded-full hover:bg-white/10 transition"
+                    aria-label="뒤로가기"
                 >
-                        <div className="aspect-square rounded-2xl bg-[#6b6b6b]/40 group-hover:bg-[#6b6b6b]/55 transition">
-                            {t.album_image ? (
-                                <img
-                                src={t.album_image}
-                                alt={t.title}
-                                className="w-full h-full rounded-2xl object-cover"
-                                />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center text-[#F6F6F6] text-xl">
-                                {t.title?.[0] ?? "?"}
-                                </div>
-                            )}
-                        </div>
-                    <div className="mt-3 text-sm font-semibold text-[#F6F6F6] truncate">
-                    {t.title}
-                    </div>
+                    <IoChevronBack size={22} />
                 </button>
-                ))}
+                <h1 className="text-xl font-semibold text-[#F6F6F6]">
+                    {artist.artist_name} · 앨범
+                </h1>
+                </div>
             </div>
+        
+            {/* 메인 카드 */}
+            <div className="px-4">
+            <section className="w-full mt-4 rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 px-6 py-8">
+                {/* 카드 헤더 */}
+                <div className="px-2 pb-4 border-b border-white/10">
+                <div className="flex items-end justify-between">
+                    <div className="flex items-center gap-4">
+                    <h2 className="text-2xl font-bold text-[#F6F6F6]">앨범 전체보기</h2>
+                    <div className="text-base text-white/40">총 {album.length}개</div>
+                    </div>
+                </div>
+                </div>
+        
+                {/* 앨범 그리드 */}
+                <div className="mt-6 overflow-x-auto no-scrollbar">
+                <div
+                    className="
+                    grid
+                    gap-x-10
+                    gap-y-14
+                    justify-between
+                    [grid-template-columns:repeat(5,220px)]
+                    px-4
+                    "
+                >
+                    {album.map((t) => (
+                    <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => navigate(`/album/${t.id}`)}
+                        className="w-[220px] text-left group shrink-0"
+                    >
+                        {/* 커버 */}
+                        <div
+                        className="
+                            w-52 h-52 rounded-2xl
+                            bg-white/10 overflow-hidden relative
+                            transition-all duration-700 ease-out
+                            group-hover:shadow-[0_16px_28px_rgba(0,0,0,0.55)]
+                        "
+                        >
+                        {t.album_image ? (
+                            <img
+                            src={t.album_image}
+                            alt={t.title}
+                            className="
+                                w-full h-full object-cover
+                                transition-all duration-1000
+                                opacity-90 brightness-95
+                                group-hover:scale-[1.15]
+                                group-hover:opacity-100
+                                group-hover:brightness-110
+                            "
+                            loading="lazy"
+                            decoding="async"
+                            onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = "none";
+                            }}
+                            />
+                        ) : (
+                            <div className="w-full h-full bg-white/10 flex items-center justify-center text-white/30 text-4xl font-black">
+                            {t.title?.[0] ?? "?"}
+                            </div>
+                        )}
+                        </div>
+        
+                        {/* 텍스트 */}
+                        <div className="mt-4 ml-1 text-lg font-semibold text-[#F6F6F6] truncate group-hover:text-[#AFDEE2] transition-colors">
+                        {t.title}
+                        </div>
+                    </button>
+                    ))}
+                </div>
+                </div>
+            </section>
             </div>
-        </section>
         </div>
     );
 }

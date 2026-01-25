@@ -491,11 +491,11 @@ export default function ArtistPage() {
             </button>
 
             <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-            <div className="text-xl font-semibold">아티스트를 찾을 수 없어요.</div>
-            <div className="mt-2 text-sm text-[#aaa]">
+            <div className="text-2xl font-semibold">아티스트를 찾을 수 없어요.</div>
+            <div className="mt-2 text-base text-[#aaa]">
                 요청한 ID: <span className="text-white">{artistId ?? "(없음)"}</span>
             </div>
-            {error && <div className="mt-2 text-sm text-red-400">오류: {error}</div>}
+            {error && <div className="mt-2 text-base text-red-400">오류: {error}</div>}
 
             <button
                 type="button"
@@ -572,7 +572,7 @@ export default function ArtistPage() {
                 aria-label="뒤로가기"
                 title="뒤로가기"
             >
-                <IoChevronBack size={22} />
+                <IoChevronBack size={24} />
             </button>
 
             {/* 내용 */}
@@ -584,10 +584,10 @@ export default function ArtistPage() {
                 {/* 텍스트 + 재생 */}
                 <div className="flex items-end gap-5">
                     <div>
-                    <div className="text-3xl font-extrabold text-[#F6F6F6] leading-none">
+                    <div className="text-4xl font-semibold text-[#F6F6F6] leading-none">
                         {artist.name}
                     </div>
-                    <div className="mt-2 text-sm text-[#F6F6F6]/60">아티스트</div>
+                    <div className="mt-2 text-base text-[#F6F6F6]/60">아티스트</div>
                     </div>
 
                     {/* ✅ 상단 재생 버튼: 아티스트 전체재생 */}
@@ -668,14 +668,14 @@ export default function ArtistPage() {
             <div className="px-8 pt-8 pb-3 flex items-center justify-between">
                 <button
                 onClick={() => navigate(`/artists/${artist.id}/tracks`)}
-                className="px-3 text-2xl font-black tracking-[0.15em] hover:text-[#AFDEE2] text-white uppercase opacity-95 whitespace-nowrap transition"
+                className="px-3 text-3xl font-bold hover:text-[#f6f6f6]/50 text-[#f6f6f6] whitespace-nowrap transition"
                 >
                 곡
                 </button>
                 <button
                 type="button"
                 onClick={() => navigate(`/artists/${artist.id}/tracks`)}
-                className="px-3 shrink-0 text-white/40 hover:text-white transition text-xl leading-non"
+                className="px-3 shrink-0 hover:text-[#f6f6f6]/50 text-[#f6f6f6] transition text-2xl leading-non"
                 aria-label="곡 더보기"
                 title="더보기"
                 >
@@ -698,14 +698,14 @@ export default function ArtistPage() {
                     className={[
                     "w-full text-left",
                     "grid grid-cols-[56px_1fr_90px] min-[1200px]:grid-cols-[56px_1fr_200px_450px] items-center",
-                    "py-3 px-3",
+                    "py-2 px-3",
                     "gap-x-4",
                     "border-b border-white/5",
-                    "hover:bg-white/10 transition rounded-xl",
+                    "hover:bg-white/10 transition",
                     ].join(" ")}
                 >
                     {/* 앨범 이미지 */}
-                    <div className="w-12 h-12 rounded-xl bg-white/10 overflow-hidden relative flex-shrink-0 shadow-lg border border-white/10">
+                    <div className="w-14 h-14 rounded-xl bg-white/10 overflow-hidden relative flex-shrink-0 shadow-lg border border-white/10">
                     {t.albumImage ? (
                         <>
                         <img
@@ -733,15 +733,15 @@ export default function ArtistPage() {
                     </div>
 
                     <div className="min-w-0">
-                    <div className="text-base font-bold text-white truncate tracking-tight">{t.title}</div>
-                    <div className="mt-1 text-xs text-white/40 truncate font-medium">{artist.name}</div>
+                    <div className="text-base text-white font-semibold truncate">{t.title}</div>
+                    <div className="mt-1 text-sm text-white/40 truncate">{artist.name}</div>
                     </div>
 
                     {/* 바꾸지 말아주세요! */}
-                    <div className="hidden min-[1200px]:block text-sm text-white/50 text-right truncate">
+                    <div className="hidden min-[1200px]:block text-base text-white/50 text-right truncate">
                     {t.album}
                     </div>
-                    <div className="text-sm text-white/30 font-bold tabular-nums text-right">{t.duration}</div>
+                    <div className="text-base text-white/30 tabular-nums text-right">{t.duration}</div>
                 </div>
                 ))}
 
@@ -751,7 +751,7 @@ export default function ArtistPage() {
                     type="button"
                     aria-label="전체 곡으로 이동"
                     title="전체 곡"
-                    className="hover:text-white text-sm font-medium transition"
+                    className="hover:text-white text-base font-semibold transition"
                 >
                     더보기
                 </button>
@@ -764,14 +764,14 @@ export default function ArtistPage() {
             <div className="px-8 pt-8 pb-3 flex items-center justify-between">
                 <button
                 onClick={() => navigate(`/artists/${artist.id}/albums`)}
-                className="px-3 text-2xl font-black tracking-[0.15em] hover:text-[#AFDEE2] text-white uppercase opacity-95 whitespace-nowrap transition"
+                className="px-3 text-3xl font-bold hover:text-[#f6f6f6]/50 text-[#f6f6f6] whitespace-nowrap transition"
                 >
                 앨범
                 </button>
                 <button
                 onClick={() => navigate(`/artists/${artist.id}/albums`)}
                 type="button"
-                className="px-3 shrink-0 text-white/40 hover:text-white transition text-xl leading-non"
+                className="px-3 shrink-0 hover:text-[#f6f6f6]/50 text-[#f6f6f6] transition text-2xl leading-non"
                 aria-label="앨범 더보기"
                 title="더보기"
                 >
@@ -789,41 +789,42 @@ export default function ArtistPage() {
                         key={al.id}
                         type="button"
                         onClick={() => navigate(`/album/${al.id}`)}
-                        className="w-[200px] text-left group shrink-0"
+                        className="w-[220px] text-left group shrink-0"
                     >
-                        <div className="aspect-square rounded-[32px] bg-white/5 group-hover:bg-white/10 transition-all duration-500 overflow-hidden relative shadow-xl border border-white/10 group-hover:border-white/20">
-                            <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent animate-pulse" />
-                            {al.albumImage ? (
-                                <>
-                                <img
-                                    src={
-                                    al.albumImage.startsWith("http") || al.albumImage.startsWith("//")
-                                        ? al.albumImage
-                                        : API_BASE && al.albumImage.startsWith("/")
-                                        ? `${API_BASE.replace("/api/v1", "")}${al.albumImage}`
-                                        : al.albumImage
-                                    }
-                                    alt={al.title}
-                                    className="w-full h-full object-cover relative z-10 transition-transform duration-1000 group-hover:scale-110"
-                                    loading="lazy"
-                                    decoding="async"
-                                    fetchPriority="low"
-                                    onError={(e) => {
-                                    (e.target as HTMLImageElement).style.display = "none";
-                                    }}
-                                />
-                                </>
-                            ) : (
-                                <div className="w-full h-full bg-white/5" />
-                            )}
+                        <div className="aspect-square rounded-[32px] bg-white/5 group-hover:bg-white/10 transition-all duration-500 overflow-hidden relative shadow-xl group-hover:border-white/20">
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent animate-pulse" />
+                        {al.albumImage ? (
+                            <>
+                            <img
+                                src={
+                                al.albumImage.startsWith("http") || al.albumImage.startsWith("//")
+                                    ? al.albumImage
+                                    : API_BASE && al.albumImage.startsWith("/")
+                                    ? `${API_BASE.replace("/api/v1", "")}${al.albumImage}`
+                                    : al.albumImage
+                                }
+                                alt={al.title}
+                                className="w-full h-full object-cover relative z-10 transition-transform duration-1000 group-hover:scale-110"
+                                loading="lazy"
+                                decoding="async"
+                                fetchPriority="low"
+                                onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = "none";
+                                }}
+                            />
+                            </>
+                        ) : (
+                            <div className="w-full h-full bg-white/5" />
+                        )}
                         </div>
-                        <div className="mt-4 px-1">
-                            <div className="text-base font-bold text-white truncate group-hover:text-[#AFDEE2] transition-colors">
+
+                        <div className="mt-2 px-1">
+                        <div className="text-base text-[#f6f6f6] font-semibold truncate group-hover:text-[#afdee2] transition-colors">
                             {al.title}
-                            </div>
-                            <div className="mt-1 text-xs font-medium text-white/30">
+                        </div>
+                        <div className="mt-1 text-sm text-white/40">
                             {al.year}
-                            </div>
+                        </div>
                         </div>
                     </button>
                     ))}
@@ -831,6 +832,7 @@ export default function ArtistPage() {
                 </HorizontalScroller>
             </div>
             </section>
+
         </div>
         </div>
     );
