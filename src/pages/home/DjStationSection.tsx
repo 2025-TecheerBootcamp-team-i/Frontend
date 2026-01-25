@@ -52,7 +52,32 @@ export default function DjStationSection() {
         };
     }, []);
 
-    if (loading) return null; // Or a loading skeleton
+    if (loading) {
+        return (
+            <section className="mb-8">
+                <div className="flex items-center justify-between mb-0">
+                    <h2 className="text-4xl font-bold text-white px-2">DJ 스테이션</h2>
+                </div>
+                <HorizontalScroller gradientFromClass="from-[#121212]">
+                    <div className="flex gap-4 min-w-max px-2 pt-2 pb-8">
+                        {/* Generate 5 skeleton items */}
+                        {Array.from({ length: 5 }).map((_, i) => (
+                            <div
+                                key={i}
+                                className="
+                                    w-[180px] h-[180px] 
+                                    rounded-[24px] 
+                                    bg-white/5 
+                                    animate-pulse
+                                "
+                            />
+                        ))}
+                    </div>
+                </HorizontalScroller>
+            </section>
+        );
+    }
+
     if (error) return null; // Hide section on error
     if (stations.length === 0) return null;
 

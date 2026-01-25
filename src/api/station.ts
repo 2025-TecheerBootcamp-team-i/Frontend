@@ -30,14 +30,42 @@ const MOCK_STATIONS: StationCategory[] = [
  * DJ Station curated list fetching
  * Endpoint: /tracks/station/curated
  */
+
+// Simple in-memory cache
+let cachedStations: StationCategory[] | null = null;
+
 export async function fetchDjStations(): Promise<StationCategory[]> {
+    // Return cached data if available
+    if (cachedStations) {
+        return cachedStations;
+    }
+
     try {
         const res = await axiosInstance.get("/tracks/station/curated");
-        if (Array.isArray(res.data)) return res.data as StationCategory[];
-        if (res.data && Array.isArray(res.data.results)) return res.data.results as StationCategory[];
-        return MOCK_STATIONS; // Fallback to mock if format is unexpected
+        let data: StationCategory[] = [];
+
+        if (Array.isArray(res.data)) {
+            data = res.data as StationCategory[];
+        } else if (res.data && Array.isArray(res.data.results)) {
+            data = res.data.results as StationCategory[];
+        } else {
+            // Fallback to mock if format is unexpected
+            data = MOCK_STATIONS;
+        }
+
+        // Save to cache
+        cachedStations = data;
+        return data;
+
     } catch (e) {
         console.warn("Backend not deployed yet, using mock data for DJ Station");
+        // Don't cache errors (or maybe cache mock data on error?)
+        // For now, let's just return mock but not cache it permanently so retries can happen? 
+        // Actually, if backend is down, we probably want to keep trying or just show mock.
+        // Let's caching mock data behavior for consistency if we want "instant" load next time too?
+        // But user might want real data. Let's NOT cache the error fallback for now, 
+        // so it retries on next page visit if it failed. 
+        // However, if the issue is "slow load" and it's timing out, we definitely want some fallback usage.
         return MOCK_STATIONS;
     }
 }
