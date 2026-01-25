@@ -90,14 +90,14 @@ function BaseModal({ open, title, onClose, children, maxWidthClass = "max-w-[420
         <button type="button" className="absolute inset-0 bg-black/50" onClick={onClose} aria-label="닫기" />
         <div className="absolute inset-0 grid place-items-center p-6">
           <div
-            className={`w-full ${maxWidthClass} rounded-3xl bg-[#2d2d2d] border border-[#464646] shadow-2xl overflow-hidden`}
+            className={`w-full ${maxWidthClass} rounded-3xl bg-[#3d3d3d]/80 border border-white/10 shadow-2xl overflow-hidden`}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-label={title}
           >
-            <div className="px-6 py-4 flex items-center justify-between border-b border-[#464646]">
-              <div className="text-base font-semibold text-[#F6F6F6]">{title}</div>
+            <div className="px-6 py-4 flex items-center justify-between border-b border-white/10">
+              <div className="text-lg font-semibold text-[#F6F6F6]">{title}</div>
               <button
                 type="button"
                 onClick={onClose}
@@ -138,26 +138,26 @@ function PlaylistPickModal({
 }) {
   return (
     <BaseModal open={open} onClose={onClose} title="플레이리스트 선택" maxWidthClass="max-w-[420px]">
-      <div className="px-6 py-4 text-sm text-[#F6F6F6]/70">
+      <div className="px-6 py-4 text-base text-[#F6F6F6]/70">
         선택한 {selectedCount}곡을 담을 플레이리스트를 골라주세요
       </div>
 
-      <div className="max-h-[360px] overflow-y-auto border-t border-[#464646]">
+      <div className="max-h-[360px] overflow-y-auto border-t border-white/10">
         {loading ? (
-          <div className="px-6 py-6 text-sm text-[#aaa]">플레이리스트 불러오는 중...</div>
+          <div className="px-6 py-6 text-base text-[#aaa]">플레이리스트 불러오는 중...</div>
         ) : error ? (
-          <div className="px-6 py-6 text-sm text-red-400">오류: {error}</div>
+          <div className="px-6 py-6 text-base text-red-400">오류: {error}</div>
         ) : targets.length === 0 ? (
-          <div className="px-6 py-6 text-sm text-[#aaa]">담을 수 있는 플레이리스트가 없어요.</div>
+          <div className="px-6 py-6 text-base text-[#aaa]">담을 수 있는 플레이리스트가 없어요.</div>
         ) : (
           targets.map((p) => (
             <button
               key={p.playlist_id}
               type="button"
               onClick={() => onPick(String(p.playlist_id))}
-              className="w-full text-left px-6 py-4 hover:bg-white/5 transition border-b border-[#464646]"
+              className="w-full text-left px-6 py-4 hover:bg-white/5 transition border-b border-white/10"
             >
-              <div className="text-sm font-semibold text-[#F6F6F6] truncate">{p.title}</div>
+              <div className="text-base font-semibold text-[#F6F6F6] truncate">{p.title}</div>
               <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">
                 {p.creator_nickname} · {p.visibility === "public" ? "공개" : "비공개"}
               </div>
@@ -166,11 +166,11 @@ function PlaylistPickModal({
         )}
       </div>
 
-      <div className="px-6 py-4 border-t border-[#464646] flex justify-end">
+      <div className="px-6 py-4 border-t border-white/10 flex justify-end">
         <button
           type="button"
           onClick={onClose}
-          className="px-4 py-2 rounded-2xl text-sm text-[#F6F6F6] hover:bg-white/10 transition"
+          className="px-4 py-2 rounded-2xl text-base text-[#F6F6F6] hover:bg-white/10 transition"
         >
           취소
         </button>
@@ -201,7 +201,7 @@ function PlayModeConfirmModal({
 
   return (
     <BaseModal open={open && !!pending} onClose={onClose} title="재생 방식 선택" maxWidthClass="max-w-[440px]">
-      <div className="px-6 py-4 text-sm text-[#F6F6F6]/70">
+      <div className="px-6 py-4 text-base text-[#F6F6F6]/70">
         선택한 {count}곡을 {isShuffle ? "셔플로 " : ""}어떻게 재생할까요?
       </div>
 
@@ -209,7 +209,7 @@ function PlayModeConfirmModal({
         <button
           type="button"
           onClick={() => onChoose("replace")}
-          className="w-full px-4 py-3 rounded-2xl text-sm text-[#F6F6F6] outline outline-1 outline-[#464646] hover:bg-white/10 transition text-left"
+          className="w-full px-4 py-3 rounded-2xl text-base text-[#F6F6F6] outline outline-1 outline-white/10 hover:bg-white/10 transition text-left"
         >
           <div className="font-semibold text-[#afdee2]">현재 재생 대기목록 지우고 재생</div>
           <div className="mt-1 text-xs text-[#999]">지금 재생 대기목록을 초기화하고 선택한 곡들로 새로 재생합니다.</div>
@@ -218,18 +218,18 @@ function PlayModeConfirmModal({
         <button
           type="button"
           onClick={() => onChoose("enqueue")}
-          className="w-full px-4 py-3 rounded-2xl text-sm text-[#F6F6F6] outline outline-1 outline-[#464646] hover:bg-white/10 transition text-left"
+          className="w-full px-4 py-3 rounded-2xl text-base text-[#F6F6F6] outline outline-1 outline-white/10 hover:bg-white/10 transition text-left"
         >
           <div className="font-semibold text-[#afdee2]">재생 대기목록 맨 뒤에 추가</div>
           <div className="mt-1 text-xs text-[#999]">현재 재생은 유지하고, 선택한 곡들을 재생 대기 목록 마지막에 둡니다.</div>
         </button>
       </div>
 
-      <div className="px-6 py-4 border-t border-[#464646] flex justify-end">
+      <div className="px-6 py-4 border-t border-white/10 flex justify-end">
         <button
           type="button"
           onClick={onClose}
-          className="px-4 py-2 rounded-2xl text-sm text-[#F6F6F6] hover:bg-white/10 transition"
+          className="px-4 py-2 rounded-2xl text-base text-[#F6F6F6] hover:bg-white/10 transition"
         >
           취소
         </button>
@@ -463,7 +463,9 @@ export default function ChartAI() {
   // ✅ 액션
   const handleAction = (key: ActionKey) => {
     if (!requireLogin("로그인 후 이용 가능합니다.")) return;
-    if (selectedCount === 0) return;
+
+    const needsSelection = key === "play" || key === "shuffle" || key === "add" || key === "like";
+    if (needsSelection && selectedCount === 0) return;
 
     if (key === "play" || key === "shuffle") {
       setPendingPlay({ key, tracks: checkedTracks });
@@ -502,8 +504,8 @@ export default function ChartAI() {
             <div className="px-8 py-6 border-b border-white/10">
               <div className="flex pt-2 items-end justify-between gap-4">
                 <div className="flex items-center gap-6">
-                  <h2 className="text-2xl px-2 font-semibold text-[#f6f6f6]">실시간 AI 음악 차트</h2>
-                  <div className="text-sm text-[#f6f6f6]/40 tracking-wider">
+                  <h2 className="text-3xl px-2 font-bold text-[#f6f6f6]">실시간 AI 음악 차트</h2>
+                  <div className="text-base text-[#f6f6f6]/40 tracking-wider">
                     {chart?.generatedAt ? formatGeneratedAt(chart.generatedAt) : ""}
                   </div>
                 </div>
@@ -513,21 +515,23 @@ export default function ChartAI() {
               <div className="px-2 mt-4 flex flex-nowrap gap-3">
                 {actions.map((a) => {
                   const disabled = selectedCount === 0;
+                  const needSel = a.key === "play" || a.key === "shuffle" || a.key === "add" || a.key === "like";
+
                   return (
                     <button
                       key={a.key}
                       type="button"
                       onClick={() => handleAction(a.key)}
-                      disabled={disabled}
+                      disabled={disabled && needSel}
                       className={[
                         "shrink-0 px-4 py-2 rounded-2xl border border-[#f6f6f6]/10",
-                        "text-sm font-bold transition-all flex items-center gap-2.5",
-                        disabled
+                        "text-base font-bold transition-all flex items-center gap-2.5",
+                        disabled && needSel
                           ? "text-[#f6f6f6]/20 border-[#f6f6f6]/5 cursor-not-allowed"
                           : "text-[#f6f6f6]/80 hover:bg-[#f6f6f6]/10 hover:text-[#f6f6f6] hover:border-[#f6f6f6]/20",
                       ].join(" ")}
                     >
-                      <span className="text-xl">{a.icon}</span>
+                      <span className="text-2xl">{a.icon}</span>
                       <span className="whitespace-nowrap tracking-tight">{a.label}</span>
                     </button>
                   );
@@ -537,7 +541,7 @@ export default function ChartAI() {
 
             {/* 테이블 헤더 */}
             <div>
-              <div className={`grid ${GRID} items-center justify-center py-3 px-4 text-sm text-[#f6f6f6]/30`}>
+              <div className={`grid ${GRID} items-center justify-center py-3 px-4 text-base text-[#f6f6f6]/40`}>
                 <div className="flex items-center justify-center">
                   <input
                     type="checkbox"
@@ -585,7 +589,7 @@ export default function ChartAI() {
                     {/* 순위 + 변동 + 재생 */}
                     <div className="flex items-center gap-3">
                       <div className="relative w-8 flex items-center justify-center">
-                        <span className="ml-1 text-[15px] text-[#f6f6f6]/90 transition-opacity group-hover:opacity-0 tabular-nums">
+                        <span className="ml-1 text-base font-bold text-[#f6f6f6]/90 transition-opacity group-hover:opacity-0 tabular-nums">
                           {row.rank}
                         </span>
                         <button
@@ -602,7 +606,7 @@ export default function ChartAI() {
                         </button>
                       </div>
 
-                      <div className="ml-2 text-xs font-medium w-10">
+                      <div className="ml-1 text-sm font-semibold w-10">
                         {(() => {
                           const change = row.rankChange;
                           if (change === null || change === 0) return <span className="ml-1 text-white/20">—</span>;
@@ -633,27 +637,27 @@ export default function ChartAI() {
                       </div>
 
                       <div className="min-w-0">
-                        <div className="text-sm text-[#f6f6f6]/95 truncate group-hover:text-[#AFDEE2] transition-colors">
+                        <div className="text-base font-semibold text-[#f6f6f6] truncate group-hover:text-[#AFDEE2] transition-colors">
                           {row.musicName}
                           {row.isAi && (
-                            <span className="shrink-0 ml-3 text-[10px] font-black px-2 py-0.5 rounded-full bg-[#E4524D]/20 text-[#E4524D] border border-[#E4524D]/20 uppercase">
+                            <span className="shrink-0 ml-3 text-xs font-black px-2.5 py-1 rounded-full bg-[#E4524D]/20 text-[#E4524D] border border-[#E4524D]/20 uppercase">
                               AI
                             </span>
                           )}
                         </div>
-                        <div className="text-[12px] font-medium text-white/40 truncate tracking-wide mt-1 md:hidden">
+                        <div className="text-sm font-medium text-white/40 truncate tracking-wide mt-1 md:hidden">
                           {row.artistName}
                         </div>
                       </div>
                     </div>
 
                     {/* 아티스트 */}
-                    <div className="pl-2 text-sm text-[#f6f6f6]/60 truncate group-hover:text-white/80 transition-colors">
+                    <div className="pl-2 text-base text-[#f6f6f6]/60 truncate group-hover:text-white/80 transition-colors">
                       {row.artistName}
                     </div>
 
                     {/* 앨범 */}
-                    <div className="pl-2 text-sm text-[#f6f6f6]/40 truncate group-hover:text-white/60 transition-colors">
+                    <div className="pl-2 text-base text-[#f6f6f6]/40 truncate group-hover:text-white/60 transition-colors">
                       {row.albumName}
                     </div>
                   </div>
