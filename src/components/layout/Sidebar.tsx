@@ -15,7 +15,7 @@ function Sidebar() {
   const { myPlaylists, createPlaylist } = usePlaylists();
   const handleCreatePlaylist = async () => {
     await createPlaylist();
-  };  
+  };
 
   // ✅ 프로필 정보 (닉네임 + 사진)
   const [profile, setProfile] = useState(getProfile());
@@ -132,6 +132,8 @@ function Sidebar() {
                 <img
                   src={profile.avatar}
                   alt={profile.name}
+                  width={96}
+                  height={96}
                   className="w-full h-full object-cover"
                 />
               ) : null}
