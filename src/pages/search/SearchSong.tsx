@@ -27,6 +27,7 @@ type Song = {
   isAi?: boolean;
   albumId?: number | null;
   artistId?: number | null;
+  albumImage?: string | null;
 };
 
 type ApiSearchResult = {
@@ -275,6 +276,7 @@ export default function SearchSong() {
           isAi: r.is_ai,
           albumId: r.album_id,
           artistId: r.artist_id,
+          albumImage: r.album_image,
         }));
 
         setApiSongs(converted);
@@ -410,27 +412,23 @@ export default function SearchSong() {
 
     const audioUrl = await fetchTrackAudioUrl(String(musicId));
 
-    const apiSong = apiSongs.find((as) => as.id === s.id);
+    // API에서 직접 제공하는 album_image 사용
     let coverUrl: string | undefined = undefined;
+    const albumImage = s.albumImage;
 
-    if (apiSong?.albumId) {
-      const album = albums[apiSong.albumId];
-      const albumImage = album?.image_large_square || album?.album_image;
-
-      if (albumImage) {
-        if (albumImage.startsWith("http") || albumImage.startsWith("//")) {
-          coverUrl = albumImage;
-        } else if (API_BASE && albumImage.startsWith("/")) {
-          coverUrl = `${API_BASE.replace("/api/v1", "")}${albumImage}`;
-        } else {
-          coverUrl = albumImage;
-        }
+    if (albumImage) {
+      if (albumImage.startsWith("http") || albumImage.startsWith("//")) {
+        coverUrl = albumImage;
+      } else if (API_BASE && albumImage.startsWith("/")) {
+        coverUrl = `${API_BASE.replace("/api/v1", "")}${albumImage}`;
+      } else {
+        coverUrl = albumImage;
       }
     }
 
     if (__DEV__) {
       // eslint-disable-next-line no-console
-      console.log(`[SearchSong] track ready`, { id: s.id, musicId, title: s.title, audioUrl, coverUrl });
+      console.log(`[SearchSong] track ready`, { id: s.id, musicId, title: s.title, audioUrl, coverUrl, albumImage: s.albumImage });
     }
 
     return {
@@ -694,13 +692,8 @@ export default function SearchSong() {
                 {/* 앨범 이미지 */}
                 <div className="ml-2 w-12 h-12 rounded-xl bg-white/5 overflow-hidden relative flex-shrink-0 shadow-lg">
                   {(() => {
-                    const apiSong = apiSongs.find((as) => as.id === s.id);
-                    let albumImage: string | null = null;
-
-                    if (apiSong?.albumId) {
-                      const album = albums[apiSong.albumId];
-                      albumImage = album?.image_large_square || album?.album_image || null;
-                    }
+                    // API에서 직접 제공하는 album_image 사용
+                    const albumImage = s.albumImage;
 
                     const src =
                       albumImage && (albumImage.startsWith("http") || albumImage.startsWith("//"))
@@ -720,7 +713,7 @@ export default function SearchSong() {
                               // eslint-disable-next-line no-console
                               console.error("[SearchSong] ❌ 곡 앨범 이미지 로드 실패:", {
                                 song: s.title,
-                                album_id: apiSong?.albumId,
+                                album_id: s.albumId,
                                 image_url: albumImage,
                               });
                             }
