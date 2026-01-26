@@ -178,7 +178,7 @@ function HomePage() {
         type="button"
         onClick={() => setTab(key)}
         className={[
-          "h-10 text-sm px-4 py-2 rounded-full transition whitespace-nowrap",
+          "h-10 text-sm px-4 py-1 rounded-full transition whitespace-nowrap",
           active
             ? "bg-[#E4524D]/80 text-[#f6f6f6] font-semibold scale-105 z-10"
             : "bg-white/20 text-[#F6F6F6] hover:bg-white/[0.08] font-semibold hover:scale-105",
@@ -315,11 +315,11 @@ function HomePage() {
               <div className="min-w-full">
                 <div className="flex items-center justify-between gap-4 pt-2 mb-4">
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-end gap-4 mb-1 min-w-0">
+                    <div className="flex items-center gap-4 mb-1 min-w-0">
                       <button
                         type="button"
                         onClick={goChart}
-                        className="px-2 text-[43px] font-bold text-[#f6f6f6] leading-none hover:text-[#f6f6f6]/50 transition whitespace-nowrap"
+                        className="px-2 text-[35px] font-bold text-[#f6f6f6] leading-none hover:text-[#f6f6f6]/50 transition whitespace-nowrap"
                       >
                         실시간 차트
                       </button>
@@ -335,7 +335,7 @@ function HomePage() {
                   <button
                     type="button"
                     onClick={goChart}
-                    className="px-3 shrink-0 text-[#f6f6f6] hover:text-[#f6f6f6]/50 text-3xl leading-none transition"
+                    className="px-3 shrink-0 text-[#f6f6f6] hover:text-[#f6f6f6]/50 text-xl leading-none transition"
                     aria-label="차트로 이동"
                   >
                     <MdOutlineNavigateNext size={40} />
@@ -345,7 +345,7 @@ function HomePage() {
                 <div className="border-b border-white/10" />
 
                 {/* min-height로 레이아웃 고정 */}
-                <div className="divide-y divide-white/5 overflow-hidden min-h-[540px]">
+                <div className="divide-y divide-white/5 overflow-hidden min-h-[500px]">
                   {chartLoading && (
                     <div className="flex items-center justify-center h-[540px] text-[#f6f6f6]/50">차트 로딩중...</div>
                   )}
@@ -363,7 +363,7 @@ function HomePage() {
                       "
                     >
                       <div className="relative flex items-center justify-center">
-                        <span className="text-2xl font-bold text-[#F6F6F6] transition-opacity group-hover:opacity-0">
+                        <span className="text-xl font-bold text-[#F6F6F6] transition-opacity group-hover:opacity-0">
                           {row.rank}
                         </span>
 
@@ -373,14 +373,14 @@ function HomePage() {
                             e.stopPropagation();
                             setTrackAndPlay(toTrack(row));
                           }}
-                          className="absolute opacity-0 transition-opacity group-hover:opacity-100 text-[#AFDEE2] text-3xl"
+                          className="absolute opacity-0 transition-opacity group-hover:opacity-100 text-[#AFDEE2] text-2xl"
                           aria-label="재생"
                         >
                           <FaPlay />
                         </button>
                       </div>
 
-                      <div className="text-center text-base font-bold">
+                      <div className="text-center text-sm font-bold">
                         {(() => {
                           const change = row.rankChange;
                           if (change === null || change === 0) return <span className="text-[#AAAAAA]">—</span>;
@@ -397,7 +397,7 @@ function HomePage() {
                             alt={row.albumName}
                             width={72}
                             height={72}
-                            className="w-[72px] h-[72px] rounded-2xl object-cover bg-[#D9D9D9] shrink-0 shadow-lg"
+                            className="w-[60px] h-[60px] rounded-2xl object-cover bg-[#D9D9D9] shrink-0 shadow-lg"
                             loading="lazy"
                             decoding="async"
                             fetchPriority="low"
@@ -409,13 +409,13 @@ function HomePage() {
                           />
                         ) : null}
                         <div
-                          className={`w-[72px] h-[72px] rounded-2xl bg-[#D9D9D9] shrink-0 ${row.albumImage ? "hidden" : ""
+                          className={`w-[60px] h-[60px] rounded-2xl bg-[#D9D9D9] shrink-0 ${row.albumImage ? "hidden" : ""
                             }`}
                         />
 
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 min-w-0">
-                            <div className="text-xl font-semibold text-[#F6F6F6] whitespace-nowrap truncate tracking-tight">
+                            <div className="text-lg font-semibold text-[#F6F6F6] whitespace-nowrap truncate tracking-tight">
                               {row.musicName}
                             </div>
                             {row.isAi && (
@@ -429,9 +429,9 @@ function HomePage() {
                       </div>
 
                       {/* ✅ 반응형 끔: hidden sm:block 제거 */}
-                      <div className="text-lg text-[#F6F6F6]/80 whitespace-nowrap font-medium">{row.artistName}</div>
+                      <div className="text-base text-[#F6F6F6]/80 whitespace-nowrap font-medium">{row.artistName}</div>
 
-                      <div className="text-right pr-5 text-lg text-[#F6F6F6]/55 whitespace-nowrap font-mono">
+                      <div className="text-right pr-5 text-base text-[#F6F6F6]/55 whitespace-nowrap">
                         {formatDuration(row.durationSec)}
                       </div>
                     </div>

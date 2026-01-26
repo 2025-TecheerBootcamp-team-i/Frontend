@@ -1611,7 +1611,7 @@ export default function NowPlayingPage() {
                         <button
                             type="button"
                             onClick={toggleLeft}
-                            className="w-10 h-24 rounded-r-2xl bg-white/[0.03] backdrop-blur-md border border-white/5 border-l-0 flex items-center justify-center transition-all hover:bg-white/[0.08] shadow-lg text-white/30 hover:text-white"
+                            className="w-16 h-36 rounded-r-2xl bg-white/[0.03] backdrop-blur-md border border-white/5 border-l-0 flex items-center justify-center transition-all hover:bg-white/[0.08] shadow-lg text-white/30 hover:text-white"
                             aria-label="분석 대시보드 토글"
                         >
                             <RiDashboardFill size={20} />
@@ -1625,7 +1625,7 @@ export default function NowPlayingPage() {
                         <button
                             type="button"
                             onClick={toggleRight}
-                            className="w-10 h-24 rounded-l-2xl bg-white/[0.03] backdrop-blur-md border border-white/5 border-r-0 flex items-center justify-center transition-all hover:bg-white/[0.08] shadow-lg text-white/30 hover:text-white"
+                            className="w-16 h-36 rounded-l-2xl bg-white/[0.03] backdrop-blur-md border border-white/5 border-r-0 flex items-center justify-center transition-all hover:bg-white/[0.08] shadow-lg text-white/30 hover:text-white"
                             aria-label="재생목록 토글"
                         >
                             <MdQueueMusic size={22} />
