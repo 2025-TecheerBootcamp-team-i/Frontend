@@ -96,7 +96,7 @@ function SimpleWordCloud({
             .rotate(() => (~~(Math.random() * 2) * 90))
             .spiral('rectangular') // 더 꽉 차 보이게 배치
             .font("Pretendard")
-            .fontSize((d) => {
+            .fontSize((d: any) => {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const val = (d as any).size as number;
                 const vals = words.map(w => w.value);
@@ -108,7 +108,7 @@ function SimpleWordCloud({
                 // 더 풍성해보이게 크기 키움 (14~50 -> 16~64)
                 return 16 + (normalized * 48);
             })
-            .on("end", (drawnWords) => {
+            .on("end", (drawnWords: any[]) => {
                 g.selectAll("text")
                     .data(drawnWords)
                     .enter().append("text")
@@ -165,12 +165,12 @@ function SimpleWordCloud({
 
 let __npHintStyleInjected = false;
 function ensureNowPlayingHintStyle() {
-  if (__npHintStyleInjected) return;
-  __npHintStyleInjected = true;
+    if (__npHintStyleInjected) return;
+    __npHintStyleInjected = true;
 
-  const style = document.createElement("style");
-  style.setAttribute("data-nowplaying-hint", "true");
-  style.innerHTML = `
+    const style = document.createElement("style");
+    style.setAttribute("data-nowplaying-hint", "true");
+    style.innerHTML = `
     @keyframes np-tab-hint {
       0%, 100% { 
         transform: scaleX(1); 
@@ -187,7 +187,7 @@ function ensureNowPlayingHintStyle() {
       will-change: transform;
     }
   `;
-  document.head.appendChild(style);
+    document.head.appendChild(style);
 }
 
 type LyricLine = { t: number; text: string; timestamp?: string | null };
@@ -431,7 +431,7 @@ export default function NowPlayingPage() {
         // 4순위 (fallback): current.coverUrl
         return processImageUrl(current.coverUrl);
     }, [current, musicDetail, processImageUrl]);
-    
+
 
     // ✅ (추가) 앨범 커버 색상 추출하여 트리맵에 적용
     useEffect(() => {
@@ -774,12 +774,12 @@ export default function NowPlayingPage() {
         // 페이지 들어오면 4초 정도만 힌트 주고 자동 종료
         const t = window.setTimeout(() => setHintTabs(false), 1800);
         return () => window.clearTimeout(t);
-        }, []);
-    
-        // 사용자가 한 번이라도 패널 열면 힌트 즉시 종료
-        useEffect(() => {
+    }, []);
+
+    // 사용자가 한 번이라도 패널 열면 힌트 즉시 종료
+    useEffect(() => {
         if (leftOpen || rightOpen) setHintTabs(false);
-        }, [leftOpen, rightOpen]);
+    }, [leftOpen, rightOpen]);
 
     // ✅ 패널이 열릴 때 차트 렌더링 지연 (ResponsiveContainer 크기 문제 해결)
     useEffect(() => {
@@ -1442,18 +1442,18 @@ export default function NowPlayingPage() {
                 {!leftOpen && (
                     <div className="absolute left-0 top-1/2 z-20" style={{ transform: "translateY(-50%)" }}>
                         <button
-                        type="button"
-                        onClick={toggleLeft}
-                        className={[
-                            "w-20 h-44 rounded-r-2xl bg-white/[0.03] backdrop-blur-md border border-white/5 border-l-0",
-                            "flex items-center justify-center transition-all hover:bg-white/[0.08] shadow-lg",
-                            leftOpen ? "text-white" : "text-white/30 hover:text-white",
-                            // ✅ 힌트: 닫혀있을 때만 커졌다 작아짐
-                            hintTabs && !leftOpen ? "np-tab-hint" : "",
-                        ].join(" ")}
-                        aria-label="분석 대시보드 토글"
+                            type="button"
+                            onClick={toggleLeft}
+                            className={[
+                                "w-20 h-44 rounded-r-2xl bg-white/[0.03] backdrop-blur-md border border-white/5 border-l-0",
+                                "flex items-center justify-center transition-all hover:bg-white/[0.08] shadow-lg",
+                                leftOpen ? "text-white" : "text-white/30 hover:text-white",
+                                // ✅ 힌트: 닫혀있을 때만 커졌다 작아짐
+                                hintTabs && !leftOpen ? "np-tab-hint" : "",
+                            ].join(" ")}
+                            aria-label="분석 대시보드 토글"
                         >
-                        <RiDashboardFill size={20} />
+                            <RiDashboardFill size={20} />
                         </button>
                     </div>
                 )}
@@ -1462,18 +1462,18 @@ export default function NowPlayingPage() {
                 {!rightOpen && (
                     <div className="absolute right-0 top-1/2 z-20" style={{ transform: "translateY(-50%)" }}>
                         <button
-                        type="button"
-                        onClick={toggleRight}
-                        className={[
-                            "w-20 h-44 rounded-l-2xl bg-white/[0.03] backdrop-blur-md border border-white/5 border-r-0",
-                            "flex items-center justify-center transition-all hover:bg-white/[0.08] shadow-lg",
-                            rightOpen ? "text-white" : "text-white/30 hover:text-white",
-                            // ✅ 힌트: 닫혀있을 때만 커졌다 작아짐
-                            hintTabs && !rightOpen ? "np-tab-hint" : "",
-                        ].join(" ")}
-                        aria-label="재생목록 토글"
+                            type="button"
+                            onClick={toggleRight}
+                            className={[
+                                "w-20 h-44 rounded-l-2xl bg-white/[0.03] backdrop-blur-md border border-white/5 border-r-0",
+                                "flex items-center justify-center transition-all hover:bg-white/[0.08] shadow-lg",
+                                rightOpen ? "text-white" : "text-white/30 hover:text-white",
+                                // ✅ 힌트: 닫혀있을 때만 커졌다 작아짐
+                                hintTabs && !rightOpen ? "np-tab-hint" : "",
+                            ].join(" ")}
+                            aria-label="재생목록 토글"
                         >
-                        <MdQueueMusic size={22} />
+                            <MdQueueMusic size={22} />
                         </button>
                     </div>
                 )}

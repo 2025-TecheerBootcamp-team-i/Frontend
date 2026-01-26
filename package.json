@@ -15,8 +15,6 @@
   "dependencies": {
     "@splinetool/react-spline": "^4.1.0",
     "@splinetool/runtime": "^1.12.39",
-    "@types/d3": "^7.4.3",
-    "@types/d3-cloud": "^1.2.9",
     "axios": "^1.13.2",
     "d3": "^7.9.0",
     "d3-cloud": "^1.2.8",
@@ -32,6 +30,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
+    "@types/d3": "^7.4.3",
+    "@types/d3-cloud": "^1.2.9",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
