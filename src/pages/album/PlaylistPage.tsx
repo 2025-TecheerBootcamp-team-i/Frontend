@@ -4,7 +4,6 @@ import {
     getPlaylistDetail,
     likePlaylist,
     unlikePlaylist,
-    deletePlaylistItems,
     deletePlaylistItem,
     type PlaylistDetail,
     type PlaylistItem,

@@ -450,20 +450,6 @@ export default function MyPlaylistPage() {
   /* =====================
    파생 데이터는 useMemo로 계산
   ===================== */
-
-  // 개인 목록(시스템 liked 제외)
-  function pickCoverUrl(p: any): string | null {
-  return (
-    p.cover_image ??
-    p.coverImage ??
-    p.cover_url ??
-    p.coverUrl ??
-    p.thumbnail ??
-    p.thumbnail_url ??
-    null
-  );
-  }
-
   // 개인 목록(시스템 liked 제외) + ✅ cover 주입
   const personalAll: PlaylistItem[] = useMemo(() => {
     return myPlaylists.map((p) => {
