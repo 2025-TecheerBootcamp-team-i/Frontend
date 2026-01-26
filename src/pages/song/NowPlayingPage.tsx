@@ -45,6 +45,14 @@ function ensureNowPlayingEqStyle() {
 }
 
 // ✅ D3 Word Cloud Component (Custom Implementation for React 19 stability)
+interface Word extends cloud.Word {
+    text: string;
+    size: number;
+    x?: number;
+    y?: number;
+    rotate?: number;
+}
+
 function SimpleWordCloud({
     words,
     baseColor
@@ -87,18 +95,15 @@ function SimpleWordCloud({
         const g = svg.append("g")
             .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
 
-        const layout = cloud()
+        const layout = cloud<Word>()
             .size([width, height])
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .words(words.map((d) => ({ text: d.text, size: d.value } as any)))
+            .words(words.map((d) => ({ text: d.text, size: d.value })))
             .padding(6) // 글자 간격 조정 (2 -> 6)
             .rotate(() => (~~(Math.random() * 2) * 90))
             .spiral('rectangular') // 더 꽉 차 보이게 배치
             .font("Pretendard")
             .fontSize((d) => {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const val = (d as any).size as number;
+                const val = d.size as number;
                 const vals = words.map(w => w.value);
                 const max = Math.max(...vals, 1);
                 const min = Math.min(...vals, 0);
@@ -112,14 +117,11 @@ function SimpleWordCloud({
                 g.selectAll("text")
                     .data(drawnWords)
                     .enter().append("text")
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    .style("font-size", (d: any) => d.size + "px")
+                    .style("font-size", (d) => (d.size || 16) + "px")
                     .style("font-family", "Pretendard")
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    .style("font-weight", (d: any) => d.size > 40 ? "800" : (d.size > 24 ? "700" : "500")) // 두께감 조정
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    .style("fill", (d: any) => {
-                        const fontSize = d.size;
+                    .style("font-weight", (d) => (d.size && d.size > 40) ? "800" : ((d.size && d.size > 24) ? "700" : "500")) // 두께감 조정
+                    .style("fill", (d) => {
+                        const fontSize = d.size || 16;
                         // 폰트 크기 범위(16~64)에 맞춰 정규화
                         const normalized = (fontSize - 16) / 48;
 
@@ -141,10 +143,8 @@ function SimpleWordCloud({
                         return `hsl(0, 0%, ${targetL}%)`;
                     })
                     .attr("text-anchor", "middle")
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    .attr("transform", (d: any) => "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")")
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    .text((d: any) => d.text)
+                    .attr("transform", (d) => "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")")
+                    .text((d) => d.text || "")
                     .style("cursor", "default")
                     .style("opacity", 0)
                     .transition()
@@ -165,12 +165,12 @@ function SimpleWordCloud({
 
 let __npHintStyleInjected = false;
 function ensureNowPlayingHintStyle() {
-  if (__npHintStyleInjected) return;
-  __npHintStyleInjected = true;
+    if (__npHintStyleInjected) return;
+    __npHintStyleInjected = true;
 
-  const style = document.createElement("style");
-  style.setAttribute("data-nowplaying-hint", "true");
-  style.innerHTML = `
+    const style = document.createElement("style");
+    style.setAttribute("data-nowplaying-hint", "true");
+    style.innerHTML = `
     @keyframes np-tab-hint {
       0%, 100% { 
         transform: scaleX(1); 
@@ -187,7 +187,7 @@ function ensureNowPlayingHintStyle() {
       will-change: transform;
     }
   `;
-  document.head.appendChild(style);
+    document.head.appendChild(style);
 }
 
 type LyricLine = { t: number; text: string; timestamp?: string | null };
@@ -431,7 +431,7 @@ export default function NowPlayingPage() {
         // 4순위 (fallback): current.coverUrl
         return processImageUrl(current.coverUrl);
     }, [current, musicDetail, processImageUrl]);
-    
+
 
     // ✅ (추가) 앨범 커버 색상 추출하여 트리맵에 적용
     useEffect(() => {
@@ -774,12 +774,12 @@ export default function NowPlayingPage() {
         // 페이지 들어오면 4초 정도만 힌트 주고 자동 종료
         const t = window.setTimeout(() => setHintTabs(false), 1800);
         return () => window.clearTimeout(t);
-        }, []);
-    
-        // 사용자가 한 번이라도 패널 열면 힌트 즉시 종료
-        useEffect(() => {
+    }, []);
+
+    // 사용자가 한 번이라도 패널 열면 힌트 즉시 종료
+    useEffect(() => {
         if (leftOpen || rightOpen) setHintTabs(false);
-        }, [leftOpen, rightOpen]);
+    }, [leftOpen, rightOpen]);
 
     // ✅ 패널이 열릴 때 차트 렌더링 지연 (ResponsiveContainer 크기 문제 해결)
     useEffect(() => {
@@ -1442,18 +1442,18 @@ export default function NowPlayingPage() {
                 {!leftOpen && (
                     <div className="absolute left-0 top-1/2 z-20" style={{ transform: "translateY(-50%)" }}>
                         <button
-                        type="button"
-                        onClick={toggleLeft}
-                        className={[
-                            "w-20 h-44 rounded-r-2xl bg-white/[0.03] backdrop-blur-md border border-white/5 border-l-0",
-                            "flex items-center justify-center transition-all hover:bg-white/[0.08] shadow-lg",
-                            leftOpen ? "text-white" : "text-white/30 hover:text-white",
-                            // ✅ 힌트: 닫혀있을 때만 커졌다 작아짐
-                            hintTabs && !leftOpen ? "np-tab-hint" : "",
-                        ].join(" ")}
-                        aria-label="분석 대시보드 토글"
+                            type="button"
+                            onClick={toggleLeft}
+                            className={[
+                                "w-20 h-44 rounded-r-2xl bg-white/[0.03] backdrop-blur-md border border-white/5 border-l-0",
+                                "flex items-center justify-center transition-all hover:bg-white/[0.08] shadow-lg",
+                                leftOpen ? "text-white" : "text-white/30 hover:text-white",
+                                // ✅ 힌트: 닫혀있을 때만 커졌다 작아짐
+                                hintTabs && !leftOpen ? "np-tab-hint" : "",
+                            ].join(" ")}
+                            aria-label="분석 대시보드 토글"
                         >
-                        <RiDashboardFill size={20} />
+                            <RiDashboardFill size={20} />
                         </button>
                     </div>
                 )}
@@ -1462,18 +1462,18 @@ export default function NowPlayingPage() {
                 {!rightOpen && (
                     <div className="absolute right-0 top-1/2 z-20" style={{ transform: "translateY(-50%)" }}>
                         <button
-                        type="button"
-                        onClick={toggleRight}
-                        className={[
-                            "w-20 h-44 rounded-l-2xl bg-white/[0.03] backdrop-blur-md border border-white/5 border-r-0",
-                            "flex items-center justify-center transition-all hover:bg-white/[0.08] shadow-lg",
-                            rightOpen ? "text-white" : "text-white/30 hover:text-white",
-                            // ✅ 힌트: 닫혀있을 때만 커졌다 작아짐
-                            hintTabs && !rightOpen ? "np-tab-hint" : "",
-                        ].join(" ")}
-                        aria-label="재생목록 토글"
+                            type="button"
+                            onClick={toggleRight}
+                            className={[
+                                "w-20 h-44 rounded-l-2xl bg-white/[0.03] backdrop-blur-md border border-white/5 border-r-0",
+                                "flex items-center justify-center transition-all hover:bg-white/[0.08] shadow-lg",
+                                rightOpen ? "text-white" : "text-white/30 hover:text-white",
+                                // ✅ 힌트: 닫혀있을 때만 커졌다 작아짐
+                                hintTabs && !rightOpen ? "np-tab-hint" : "",
+                            ].join(" ")}
+                            aria-label="재생목록 토글"
                         >
-                        <MdQueueMusic size={22} />
+                            <MdQueueMusic size={22} />
                         </button>
                     </div>
                 )}

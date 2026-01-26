@@ -7,12 +7,15 @@ import type { PlayerTrack } from "../../player/PlayerContext";
 import { getCurrentUserId } from "../../utils/auth";
 
 import {
-  getPlaylistById,
-  getUserPlaylists,
-  subscribePlaylists,
-  updatePlaylist,
-  LIKED_SYSTEM_ID,
-} from "../../mocks/playlistMock";
+  listMyPlaylists,
+  addPlaylistItems,
+  type PlaylistSummary,
+} from "../../api/playlist";
+import {
+  likeTrack,
+  deleteTrack,
+  likecount,
+} from "../../api/LikedSong";
 
 import {
   MdPlayArrow,
@@ -128,10 +131,9 @@ function ActionCircle({
         w-12 h-12 rounded-full
         flex items-center justify-center
         transition-all duration-200
-        ${
-          disabled
-            ? "bg-[#444444] text-white/30 cursor-not-allowed"
-            : `
+        ${disabled
+          ? "bg-[#444444] text-white/30 cursor-not-allowed"
+          : `
               bg-[#f6f6f6]/20
               text-[#f6f6f6]
               hover:bg-[#AFDEE2]
@@ -167,13 +169,23 @@ export default function AiSongPage() {
 
   // ✅ 담기 모달 상태
   const [addOpen, setAddOpen] = useState(false);
-  const [addTargets, setAddTargets] = useState(() => getUserPlaylists());
+  const [addTargets, setAddTargets] = useState<PlaylistSummary[]>([]);
 
   useEffect(() => {
-    const syncTargets = () => setAddTargets(getUserPlaylists());
-    syncTargets();
-    return subscribePlaylists(syncTargets);
-  }, []);
+    // 플레이리스트 목록 로드 (Real API)
+    const loadPlaylists = async () => {
+      try {
+        const myPlaylists = await listMyPlaylists();
+        setAddTargets(myPlaylists);
+      } catch (err) {
+        console.error("Failed to load user playlists:", err);
+      }
+    };
+
+    if (addOpen) {
+      loadPlaylists();
+    }
+  }, [addOpen]);
 
   useEffect(() => {
     if (!copyToast) return;
@@ -212,51 +224,43 @@ export default function AiSongPage() {
   const OWNER_ID = String(track?.ownerId ?? "").trim();
   const isOwner = OWNER_ID.length > 0 && OWNER_ID === CURRENT_USER_ID;
 
-  // ✅ liked 동기화
+  // ✅ liked 동기화 (Real API)
   useEffect(() => {
     if (!track) return;
 
-    const syncLiked = () => {
-      const likedPl = getPlaylistById(LIKED_SYSTEM_ID);
-      const isLiked = !!likedPl?.tracks?.some(
-        (t) => t.id === track.musicId.toString()
-      );
-      setLiked(isLiked);
+    const syncLiked = async () => {
+      try {
+        const res = await likecount(track.musicId);
+        setLiked(res.is_liked);
+      } catch (e) {
+        console.error("Failed to fetch like status", e);
+      }
     };
 
     syncLiked();
-    return subscribePlaylists(syncLiked);
   }, [track]);
 
-  const toggleLike = () => {
+  const toggleLike = async () => {
     if (!track) return;
 
-    const likedPl = getPlaylistById(LIKED_SYSTEM_ID);
-    if (!likedPl) {
-      console.warn("liked 시스템 플레이리스트를 찾지 못했습니다.");
-      return;
+    const prevLiked = liked;
+    // 낙관적 업데이트
+    setLiked(!prevLiked);
+
+    try {
+      if (prevLiked) {
+        // 취소
+        await deleteTrack(track.musicId);
+      } else {
+        // 좋아요
+        await likeTrack(track.musicId);
+      }
+    } catch (e) {
+      console.error("like toggle failed", e);
+      // 롤백
+      setLiked(prevLiked);
+      setCopyToast("요청 처리에 실패했습니다.");
     }
-
-    const trackIdStr = track.musicId.toString();
-    const exists = likedPl.tracks.some((t) => t.id === trackIdStr);
-
-    if (exists) {
-      const next = likedPl.tracks.filter((t) => t.id !== trackIdStr);
-      updatePlaylist(LIKED_SYSTEM_ID, { tracks: next });
-      return;
-    }
-
-    const incoming = {
-      id: trackIdStr,
-      title: track.title,
-      artist: track.artist ?? "AI Artist",
-      album: "",
-      duration: track.duration ?? "0:00",
-      likeCount: 0,
-      kind: "track" as const,
-    };
-
-    updatePlaylist(LIKED_SYSTEM_ID, { tracks: [...likedPl.tracks, incoming] });
   };
 
   const commitTitle = async () => {
@@ -480,33 +484,22 @@ export default function AiSongPage() {
   const selectedCount = selectedTracks.length;
 
   // ✅ 담기(현재 곡 1개 → 특정 플리)
-  const addSelectedToPlaylist = (playlistId: string) => {
+  const addSelectedToPlaylist = async (playlistId: number) => {
     if (selectedCount === 0) return;
 
-    const curr = getPlaylistById(playlistId);
-    if (!curr) return;
+    try {
+      // 선택된 musicId들 추출 (여기선 단일 곡)
+      const musicIds = selectedTracks.map(t => t.musicId ?? parseInt(t.id));
 
-    const incoming = selectedTracks.map((t) => ({
-      id: t.id,
-      title: t.title,
-      artist: t.artist,
-      album: "",
-      duration: t.duration ?? "0:00",
-      likeCount: 0,
-      kind: "track" as const,
-    }));
+      // API 호출
+      await addPlaylistItems(playlistId, musicIds);
 
-    const exists = new Set(curr.tracks.map((x) => x.id));
-    const merged = [...curr.tracks];
-
-    for (const tr of incoming) {
-      if (exists.has(tr.id)) continue;
-      merged.push(tr);
-      exists.add(tr.id);
+      setCopyToast("플레이리스트에 곡을 추가했습니다.");
+      setAddOpen(false);
+    } catch (err) {
+      console.error("Failed to add tracks to playlist:", err);
+      setCopyToast("추가에 실패했습니다.");
     }
-
-    updatePlaylist(playlistId, { tracks: merged });
-    setAddOpen(false);
   };
 
   const shareSelected = async () => {
@@ -540,29 +533,6 @@ export default function AiSongPage() {
     if (!ok) return;
 
     const trackIdStr = track.musicId.toString();
-
-    // 1) 플레이리스트들에서 제거(프론트 상태 정리)
-    try {
-      const pls = getUserPlaylists();
-      for (const p of pls) {
-        const curr = getPlaylistById(p.id);
-        if (!curr) continue;
-        if (!curr.tracks?.some((t) => t.id === trackIdStr)) continue;
-        updatePlaylist(p.id, {
-          tracks: curr.tracks.filter((t) => t.id !== trackIdStr),
-        });
-      }
-
-      // liked에서도 제거
-      const likedPl = getPlaylistById(LIKED_SYSTEM_ID);
-      if (likedPl?.tracks?.some((t) => t.id === trackIdStr)) {
-        updatePlaylist(LIKED_SYSTEM_ID, {
-          tracks: likedPl.tracks.filter((t) => t.id !== trackIdStr),
-        });
-      }
-    } catch (e) {
-      console.error("playlist cleanup failed", e);
-    }
 
     // 2) 서버 삭제
     if (API_BASE) {
@@ -666,10 +636,9 @@ export default function AiSongPage() {
                         className={`
                           flex items-end gap-3 w-full
                           border-b-2 pb-3
-                          ${
-                            isEditingTitle && isOwner
-                              ? "border-[#f6f6f6]"
-                              : "border-[#464646]"
+                          ${isEditingTitle && isOwner
+                            ? "border-[#f6f6f6]"
+                            : "border-[#464646]"
                           }
                           ${isOwner ? "hover:border-[#7a7a7a]" : ""}
                         `}
@@ -700,12 +669,11 @@ export default function AiSongPage() {
                             flex-1 min-w-0 w-full
                             bg-transparent outline-none border-0
                             text-5xl font-semibold leading-tight
-                            ${
-                              isOwner
-                                ? isEditingTitle
-                                  ? "text-[#f6f6f6] cursor-text"
-                                  : "text-[#f6f6f6] cursor-pointer"
-                                : "text-[#f6f6f6] cursor-default"
+                            ${isOwner
+                              ? isEditingTitle
+                                ? "text-[#f6f6f6] cursor-text"
+                                : "text-[#f6f6f6] cursor-pointer"
+                              : "text-[#f6f6f6] cursor-default"
                             }
                             ${!isEditingTitle ? "truncate" : ""}
                           `}
@@ -879,16 +847,16 @@ export default function AiSongPage() {
                   ) : (
                     addTargets.map((p) => (
                       <button
-                        key={p.id}
+                        key={p.playlist_id}
                         type="button"
-                        onClick={() => addSelectedToPlaylist(p.id)}
+                        onClick={() => addSelectedToPlaylist(p.playlist_id)}
                         className="w-full text-left px-6 py-4 hover:bg-white/5 transition border-b border-[#464646]"
                       >
                         <div className="text-base font-semibold text-[#F6F6F6] truncate">
                           {p.title}
                         </div>
                         <div className="mt-1 text-sm text-[#F6F6F6]/60 truncate">
-                          {p.owner} · {p.isPublic ? "공개" : "비공개"}
+                          {p.creator_nickname} · {p.visibility === "public" ? "공개" : "비공개"}
                         </div>
                       </button>
                     ))
