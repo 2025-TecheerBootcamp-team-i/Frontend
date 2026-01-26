@@ -1503,7 +1503,7 @@ export default function NowPlayingPage() {
                                 {hasTrack && (
                                     <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" style={{ width: 820, height: 240, opacity: 0.75, zIndex: 0 }}>
                                         <div className="w-full h-full flex items-end justify-center gap-[10px]">
-                                            {Array.from({ length: 26 }).map((_, i) => {
+                                            {Array.from({ length: 35 }).map((_, i) => {
                                                 const eqActive = hasTrack && isPlaying;
                                                 const dur = 1.6 + (i % 7) * 0.18;
                                                 const delay = (i % 11) * 0.07;
