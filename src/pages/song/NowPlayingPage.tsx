@@ -2,7 +2,7 @@ import axios from "axios";
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import type { DragEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { MdFavorite, MdAutoAwesome, MdQueueMusic, MdClose, MdDelete, MdDragIndicator, MdPlayArrow, MdPause, MdSkipNext, MdSkipPrevious, MdShuffle, MdRepeat } from "react-icons/md";
+import { MdFavorite, MdQueueMusic, MdClose, MdDelete, MdDragIndicator, MdPlayArrow } from "react-icons/md";
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, ReferenceLine } from "recharts";
 import * as D3 from "d3";
 import cloud from "d3-cloud";
@@ -165,29 +165,29 @@ function SimpleWordCloud({
 
 let __npHintStyleInjected = false;
 function ensureNowPlayingHintStyle() {
-  if (__npHintStyleInjected) return;
-  __npHintStyleInjected = true;
+    if (__npHintStyleInjected) return;
+    __npHintStyleInjected = true;
 
-  const style = document.createElement("style");
-  style.setAttribute("data-nowplaying-hint", "true");
-  style.innerHTML = `
-    @keyframes np-tab-hint {
-      0%, 100% { 
-        transform: scaleX(1); 
-        filter: brightness(1);
-      }
-      50% { 
-        transform: scaleX(1.2); 
-        filter: brightness(5);
+    const style = document.createElement("style");
+    style.setAttribute("data-nowplaying-hint", "true");
+    style.innerHTML = `
+        @keyframes np-tab-hint {
+        0%, 100% { 
+            transform: scaleX(1); 
+            filter: brightness(1);
         }
-    }
-    .np-tab-hint {
-      animation: np-tab-hint 0.9s ease-in-out infinite;
-      transform-origin: center;
-      will-change: transform;
-    }
-  `;
-  document.head.appendChild(style);
+        50% { 
+            transform: scaleX(1.2); 
+            filter: brightness(5);
+            }
+        }
+        .np-tab-hint {
+        animation: np-tab-hint 0.9s ease-in-out infinite;
+        transform-origin: center;
+        will-change: transform;
+        }
+    `;
+    document.head.appendChild(style);
 }
 
 type LyricLine = { t: number; text: string; timestamp?: string | null };
@@ -223,14 +223,8 @@ export default function NowPlayingPage() {
         queue,
         history,
         isPlaying,
-        toggle,
         removeFromQueue,
         moveQueueItem,
-        shuffleQueue,
-        nextTrack,
-        previousTrack,
-        repeatMode,
-        toggleRepeat,
         setTrackAndPlay,
     } = usePlayer();
 
@@ -313,7 +307,7 @@ export default function NowPlayingPage() {
                                     return;
                                 }
                             }
-                        } catch (err) { /* ignore */ }
+                        } catch { /* ignore */ }
                     }
                 }
 
@@ -949,10 +943,6 @@ export default function NowPlayingPage() {
         setOverIndex(null);
     };
 
-    const handleStartStation = () => {
-        if (!current) return;
-    };
-
     return (
         <div className="relative h-full w-full text-[#F6F6F6] overflow-hidden">
 
@@ -1495,15 +1485,6 @@ export default function NowPlayingPage() {
 
                     <button
                         type="button"
-                        onClick={handleStartStation}
-                        className="text-white/60 hover:text-white transition"
-                        title="스테이션 시작"
-                    >
-                        <MdAutoAwesome size={24} />
-                    </button>
-
-                    <button
-                        type="button"
                         onClick={() => navigate(-1)}
                         className="text-white/60 hover:text-white transition"
                         title="축소하기"
@@ -1587,21 +1568,6 @@ export default function NowPlayingPage() {
                                 ))}
                             </div>
                         )}
-                    </div>
-
-                    {/* 하단 컨트롤 바 - 투명하게 배치 */}
-                    <div className="p-10 bg-gradient-to-t from-black/40 to-transparent">
-                        <div className="max-w-4xl mx-auto flex flex-col items-center gap-8">
-                            <div className="flex items-center gap-10">
-                                <button onClick={shuffleQueue} className="text-white/40 hover:text-white transition"><MdShuffle size={24} /></button>
-                                <button onClick={previousTrack} className="text-white/60 hover:text-white transition"><MdSkipPrevious size={36} /></button>
-                                <button onClick={toggle} className="h-16 w-16 rounded-full bg-[#E4524D] text-white flex items-center justify-center hover:scale-105 transition shadow-xl">
-                                    {isPlaying ? <MdPause size={36} /> : <MdPlayArrow size={36} className="ml-1" />}
-                                </button>
-                                <button onClick={nextTrack} className="text-white/60 hover:text-white transition"><MdSkipNext size={36} /></button>
-                                <button onClick={toggleRepeat} className={repeatMode === "one" ? "text-[#AFDEE2]" : "text-white/40 hover:text-white transition"}><MdRepeat size={24} /></button>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
