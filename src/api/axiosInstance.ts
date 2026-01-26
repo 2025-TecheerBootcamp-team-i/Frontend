@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const axiosInstance = axios.create({
-    // 백엔드 및 서버 주소
+  // 백엔드 및 서버 주소
   baseURL: import.meta.env.VITE_API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
@@ -30,11 +30,11 @@ axiosInstance.interceptors.response.use(
   (res) => res,
   async (err) => {
     const originalRequest = err.config;
-    
+
     // 401 에러이고, 재시도하지 않은 요청인 경우
     if (err?.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      
+
       const refreshToken = localStorage.getItem("refresh_token");
       if (refreshToken) {
         try {
@@ -42,10 +42,10 @@ axiosInstance.interceptors.response.use(
           const response = await axiosInstance.post("/auth/refresh/", {
             refresh: refreshToken,
           });
-          
+
           const newAccessToken = response.data.access;
           localStorage.setItem("access_token", newAccessToken);
-          
+
           // 원래 요청 재시도
           originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
           return axiosInstance(originalRequest);
@@ -59,7 +59,7 @@ axiosInstance.interceptors.response.use(
         }
       }
     }
-    
+
     console.error("[API ERROR]", err?.response?.status, err?.response?.data ?? err);
     return Promise.reject(err);
   }
