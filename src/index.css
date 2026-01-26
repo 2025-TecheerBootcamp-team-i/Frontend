@@ -1,3 +1,86 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@keyframes floatX {
+    0% { transform: translateX(0); }
+    50% { transform: translateX(4px); }
+    100% { transform: translateX(0); }
+}
+
+.animate-floatX {
+    animation: floatX 4s ease-in-out infinite;
+}
+
+/* 스크롤은 되는데 스크롤바만 숨김 */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none; /* IE, Edge */
+    scrollbar-width: none; /* Firefox */
+}
+
+/* 전체 스크롤바 */
+::-webkit-scrollbar {
+    width: 8px;      /* 세로 스크롤바 두께 */
+    height: 8px;     /* 가로 스크롤바 두께 */
+}
+
+/* 스크롤바 트랙(배경) */
+::-webkit-scrollbar-track {
+    background: transparent; /* or #2d2d2d */
+}
+
+/* 스크롤바 손잡이 */
+::-webkit-scrollbar-thumb {
+    background-color: #555555;
+    border-radius: 999px;
+}
+
+/* hover 시 */
+::-webkit-scrollbar-thumb:hover {
+    background-color: #777777;
+}
+
+
+@keyframes bgGradientMove {
+    0% { background-position: 50% 0%; }
+    50% { background-position: 50% 100%; }
+    100% { background-position: 50% 0%; }
+    }
+    
+    .animate-bgGradient {
+        animation: bgGradientMove 18s ease-in-out infinite;
+}
+
+@keyframes bgShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes bgShift2 {
+  0%   { background-position: 120% 0%; }
+  50%  { background-position: 0% 120%; }
+  100% { background-position: 120% 0%; }
+}
+
+.animate-bgShift {
+  animation: bgShift 12s ease-in-out infinite;
+  will-change: background-position;
+  background-size: 240% 240%;
+}
+
+.animate-bgShift2 {
+  animation: bgShift2 16s ease-in-out infinite;
+  will-change: background-position;
+  background-size: 260% 260%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-bgShift,
+  .animate-bgShift2 {
+    animation: none;
+  }
+}
