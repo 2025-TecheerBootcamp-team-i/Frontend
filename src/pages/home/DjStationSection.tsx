@@ -10,14 +10,14 @@ import { HorizontalScroller } from "../../components/common/HorizontalScroller";
 export const CATEGORY_STYLES: Record<string, string> = {
     // Premium dark fluid abstract - no overlay needed, naturally dark
     // User provided image 'smile.jpg' with 40% dark overlay for text visibility
-    "신나는 노래": "bg-[linear-gradient(rgba(0,0,0,0.4),rgba(0,0,0,0.4)),url('/images/music_station/smile.webp')] bg-cover bg-center",
-    "우울할 때": "bg-[linear-gradient(rgba(0,0,0,0.4),rgba(0,0,0,0.4)),url('/images/music_station/Melancholy.webp')] bg-cover bg-center",
-    "달달한 노래": "bg-[linear-gradient(rgba(0,0,0,0.4),rgba(0,0,0,0.4)),url('/images/music_station/sweet.webp')] bg-cover bg-center",
-    "운전할 때": "bg-[linear-gradient(rgba(0,0,0,0.4),rgba(0,0,0,0.4)),url('/images/music_station/drive.webp')] bg-cover bg-center",
-    "운동할 때": "bg-[linear-gradient(rgba(0,0,0,0.4),rgba(0,0,0,0.4)),url('/images/music_station/sports.webp')] bg-cover bg-center",
-    "집중 할때": "bg-[linear-gradient(rgba(0,0,0,0.4),rgba(0,0,0,0.4)),url('/images/music_station/Focus.webp')] bg-cover bg-center",
-    "이별 노래": "bg-[linear-gradient(rgba(0,0,0,0.4),rgba(0,0,0,0.4)),url('/images/music_station/broken.webp')] bg-cover bg-center",
-    "잠 안 올때": "bg-[linear-gradient(rgba(0,0,0,0.4),rgba(0,0,0,0.4)),url('/images/music_station/midnight.webp')] bg-cover bg-center",
+    "신나는 노래": "bg-[linear-gradient(rgba(0,0,0,0.4),rgba(0,0,0,0.4)),url('/images/feel_station/smile.webp')] bg-cover bg-center",
+    "우울할 때": "bg-[linear-gradient(rgba(0,0,0,0.4),rgba(0,0,0,0.4)),url('/images/feel_station/Melancholy.webp')] bg-cover bg-center",
+    "달달한 노래": "bg-[linear-gradient(rgba(0,0,0,0.4),rgba(0,0,0,0.4)),url('/images/feel_station/sweet.webp')] bg-cover bg-center",
+    "운전할 때": "bg-[linear-gradient(rgba(0,0,0,0.4),rgba(0,0,0,0.4)),url('/images/feel_station/drive.webp')] bg-cover bg-center",
+    "운동할 때": "bg-[linear-gradient(rgba(0,0,0,0.4),rgba(0,0,0,0.4)),url('/images/feel_station/sports.webp')] bg-cover bg-center",
+    "집중 할때": "bg-[linear-gradient(rgba(0,0,0,0.4),rgba(0,0,0,0.4)),url('/images/feel_station/Focus.webp')] bg-cover bg-center",
+    "이별 노래": "bg-[linear-gradient(rgba(0,0,0,0.4),rgba(0,0,0,0.4)),url('/images/feel_station/broken.webp')] bg-cover bg-center",
+    "잠 안 올때": "bg-[linear-gradient(rgba(0,0,0,0.4),rgba(0,0,0,0.4)),url('/images/feel_station/midnight.webp')] bg-cover bg-center",
 };
 
 // Fallback style for unknown categories
@@ -34,9 +34,11 @@ export default function DjStationSection() {
         (async () => {
             try {
                 setLoading(true);
-                const data = await fetchDjStations();
+                const sections = await fetchDjStations();
                 if (alive) {
-                    setStations(data);
+                    // Extract "Mood Station" or use first section as fallback
+                    const moodSection = sections.find(s => s.theme.includes("느낌")) || sections[0];
+                    setStations(moodSection ? moodSection.station_data : []);
                 }
             } catch (err) {
                 if (alive) {
@@ -56,7 +58,7 @@ export default function DjStationSection() {
         return (
             <section className="mb-8">
                 <div className="flex items-center justify-between mb-0">
-                    <h2 className="text-4xl font-bold text-white px-2">DJ 스테이션</h2>
+                    <h2 className="text-4xl font-bold text-white px-2">느낌별 스테이션</h2>
                 </div>
                 <HorizontalScroller gradientFromClass="from-[#121212]">
                     <div className="flex gap-4 min-w-max px-2 pt-2 pb-8">
@@ -84,7 +86,7 @@ export default function DjStationSection() {
     return (
         <section className="mb-8">
             <div className="flex items-center justify-between mb-0">
-                <h2 className="text-4xl font-bold text-white px-2">DJ 스테이션</h2>
+                <h2 className="text-4xl font-bold text-white px-2">느낌별 스테이션</h2>
             </div>
 
             <HorizontalScroller gradientFromClass="from-[#121212]">

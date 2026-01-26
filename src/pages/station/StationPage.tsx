@@ -9,6 +9,7 @@ import type { PlayerTrack } from "../../player/PlayerContext";
 import { fetchDjStations, type StationCategory, type StationTrack } from "../../api/station";
 import { requireLogin } from "../../api/auth";
 import { CATEGORY_STYLES } from "../home/DjStationSection";
+import { GENRE_IMAGES } from "../home/GenreStationSection";
 
 function formatSeconds(sec: number | null | undefined): string {
     if (typeof sec !== "number" || Number.isNaN(sec)) return "0:00";
@@ -37,7 +38,11 @@ export default function StationPage() {
                 const stations = await fetchDjStations();
                 if (!alive) return;
 
-                const found = stations.find((s) => s.category === decodedCategory);
+                // Search through all sections to find the matching category
+                // Flatten all station_data from all sections
+                const allCategories = stations.flatMap(section => section.station_data);
+                const found = allCategories.find((s) => s.category === decodedCategory);
+
                 if (found) {
                     setStation(found);
                 } else {
@@ -56,10 +61,24 @@ export default function StationPage() {
     // Image for header
     const stationImage = useMemo(() => {
         if (!decodedCategory) return null;
+
+        // 1. Try Mood Styles (DjStation)
         const style = CATEGORY_STYLES[decodedCategory];
-        if (!style) return null;
-        const match = style.match(/url\(['"]?([^'"]+)['"]?\)/);
-        return match ? match[1] : null;
+        if (style) {
+            const match = style.match(/url\(['"]?([^'"]+)['"]?\)/);
+            return match ? match[1] : null;
+        }
+
+        // 2. Try Genre Images (GenreStation)
+        // Check exact match first, then case-insensitive match
+        const exactGenre = GENRE_IMAGES[decodedCategory];
+        if (exactGenre) return exactGenre;
+
+        const lowerCategory = decodedCategory.toLowerCase();
+        const foundKey = Object.keys(GENRE_IMAGES).find(k => k.toLowerCase() === lowerCategory);
+        if (foundKey) return GENRE_IMAGES[foundKey];
+
+        return null;
     }, [decodedCategory]);
 
     const handlePlayAll = () => {
