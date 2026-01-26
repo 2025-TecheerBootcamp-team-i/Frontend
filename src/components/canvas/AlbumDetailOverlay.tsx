@@ -5,9 +5,10 @@ interface AlbumDetailOverlayProps {
     album: CanvasAlbum;
     onClose: () => void;
     onPlay: () => void;
+    isPlaying?: boolean;
 }
 
-export default function AlbumDetailOverlay({ album, onClose, onPlay }: AlbumDetailOverlayProps) {
+export default function AlbumDetailOverlay({ album, onClose, onPlay, isPlaying = false }: AlbumDetailOverlayProps) {
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -66,22 +67,58 @@ export default function AlbumDetailOverlay({ album, onClose, onPlay }: AlbumDeta
                         layoutId={`album-cover-${album.id}`} // Shared layout ID for Magic Motion
                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     >
-                        <img
-                            src={album.cover}
-                            alt={album.title}
-                            className="w-[35vw] h-[35vw] max-w-[450px] max-h-[450px] object-cover rounded-full shadow-2xl border border-white/20"
-                        />
+
+
+                        {/* Vinyl Disc Container */}
+                        <motion.div
+                            className="relative z-10 w-[35vw] h-[35vw] max-w-[450px] max-h-[450px] rounded-full shadow-2xl"
+                            animate={{ rotate: isPlaying ? 360 : 0 }}
+                            transition={{
+                                duration: isPlaying ? 2 : 0.6, // Spin faster when playing
+                                repeat: isPlaying ? Infinity : 0,
+                                ease: "linear",
+                            }}
+                        >
+                            <img
+                                src={album.cover}
+                                alt={album.title}
+                                onClick={onPlay}
+                                className="w-full h-full object-cover rounded-full border border-white/20 cursor-pointer"
+                            />
+                            {/* Vinyl Center Hole / Spindle */}
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-[#1a1a1a] rounded-full border border-white/10 z-20 shadow-inner" />
+                            {/* Vinyl Texture Gradient Overlay */}
+                            <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle,transparent_35%,rgba(0,0,0,0.3)_60%,rgba(0,0,0,0.5)_95%)] pointer-events-none" />
+                            <div className="absolute inset-0 rounded-full border-[15px] border-black/5 pointer-events-none" />
+                        </motion.div>
+
+                        {/* Tone Arm - Placed AFTER disc for z-index stacking */}
+                        <div className="absolute -top-16 -right-12 z-50 w-32 h-40 pointer-events-none">
+                            <motion.div
+                                className="w-full h-full origin-[75%_12.5%]" // Pivot point
+                                initial={{ rotate: 0 }}
+                                animate={{ rotate: isPlaying ? 32 : 0 }}
+                                transition={{ type: "spring", stiffness: 40, damping: 12 }}
+                            >
+                                <svg width="100%" height="100%" viewBox="0 0 100 120" style={{ overflow: 'visible', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.3))' }}>
+                                    {/* Pivot Base */}
+                                    <circle cx="75" cy="15" r="14" fill="#e5e5e5" stroke="#999" strokeWidth="1" />
+                                    <circle cx="75" cy="15" r="4" fill="#333" />
+
+                                    {/* Arm Stick */}
+                                    <path d="M75 15 L35 90" stroke="#d4d4d4" strokeWidth="5" strokeLinecap="round" />
+
+                                    {/* Headshell (Needle Holder) */}
+                                    <rect x="25" y="85" width="22" height="30" rx="4" fill="#222" transform="rotate(20 35 90)" />
+                                    <rect x="30" y="110" width="4" height="6" fill="#000" transform="rotate(20 35 90)" /> {/* Needle */}
+                                </svg>
+                            </motion.div>
+                        </div>
                     </motion.div>
                 </div>
 
-                {/* Bottom - Play Button Only (Metadata Removed) */}
-                <div className="mt-auto pt-8 flex justify-center md:justify-end">
-                    <button
-                        onClick={onPlay}
-                        className="px-10 py-4 bg-black text-white text-lg font-bold rounded-full hover:scale-105 active:scale-95 transition-all shadow-xl hover:shadow-2xl"
-                    >
-                        PLAY NOW
-                    </button>
+                {/* Bottom - Play Button Removed */}
+                <div className="mt-auto pt-8 flex justify-center md:justify-end pointer-events-none opacity-0">
                 </div>
             </div>
         </motion.div>

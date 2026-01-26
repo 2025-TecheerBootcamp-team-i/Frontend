@@ -4,9 +4,11 @@ export type StationTrack = {
     music_id: number;
     music_name: string;
     artist: string; // Changed from artist_name to match backend
+    artist_name?: string | null; // Added to match music serializer if available
     album_image: string | null;
+    audio_url: string | null; // Added for playback
     likes: number; // Added likes
-    duration?: number; // Optional, as it wasn't in the provided JSON sample but might be useful if available
+    duration?: number; // Optional
 };
 
 export type StationCategory = {
@@ -55,46 +57,59 @@ const MOCK_STATIONS: StationSection[] = [
  */
 
 // Simple in-memory cache
+// Simple in-memory cache
 let cachedStations: StationSection[] | null = null;
+let stationFetchPromise: Promise<StationSection[]> | null = null;
 
-export async function fetchDjStations(): Promise<StationSection[]> {
+export function fetchDjStations(): Promise<StationSection[]> {
     // Return cached data if available
     if (cachedStations) {
-        return cachedStations;
+        return Promise.resolve(cachedStations);
     }
 
-    try {
-        const res = await axiosInstance.get("/tracks/station/curated");
-        let data: StationSection[] = [];
+    // Return existing promise if request is already in flight
+    if (stationFetchPromise) {
+        return stationFetchPromise;
+    }
 
-        if (Array.isArray(res.data)) {
-            // New structure: Array of objects with { theme, station_data }
-            const firstItem = res.data[0];
-            if (firstItem && typeof firstItem === 'object' && 'station_data' in firstItem) {
-                // Correct structure
-                data = res.data as StationSection[];
+    stationFetchPromise = (async () => {
+        try {
+            const res = await axiosInstance.get("/tracks/station/curated");
+            let data: StationSection[] = [];
+
+            if (Array.isArray(res.data)) {
+                // New structure: Array of objects with { theme, station_data }
+                const firstItem = res.data[0];
+                if (firstItem && typeof firstItem === 'object' && 'station_data' in firstItem) {
+                    // Correct structure
+                    data = res.data as StationSection[];
+                }
+                // Previous assumption of 2D array (keeping for safety if mixed)
+                else if (Array.isArray(firstItem)) {
+                    data = [{ theme: "느낌 별 스테이션", station_data: firstItem as StationCategory[] }];
+                }
+                else {
+                    // Flat array (Legacy)
+                    data = [{ theme: "느낌 별 스테이션", station_data: res.data as StationCategory[] }];
+                }
+            } else if (res.data && Array.isArray(res.data.results)) {
+                data = [{ theme: "느낌 별 스테이션", station_data: res.data.results as StationCategory[] }];
+            } else {
+                // Fallback to mock if format is unexpected
+                data = MOCK_STATIONS;
             }
-            // Previous assumption of 2D array (keeping for safety if mixed)
-            else if (Array.isArray(firstItem)) {
-                data = [{ theme: "느낌 별 스테이션", station_data: firstItem as StationCategory[] }];
-            }
-            else {
-                // Flat array (Legacy)
-                data = [{ theme: "느낌 별 스테이션", station_data: res.data as StationCategory[] }];
-            }
-        } else if (res.data && Array.isArray(res.data.results)) {
-            data = [{ theme: "느낌 별 스테이션", station_data: res.data.results as StationCategory[] }];
-        } else {
-            // Fallback to mock if format is unexpected
-            data = MOCK_STATIONS;
+
+            // Save to cache
+            cachedStations = data;
+            return data;
+
+        } catch (e) {
+            console.warn("Backend not deployed yet, using mock data for DJ Station");
+            return MOCK_STATIONS;
+        } finally {
+            stationFetchPromise = null;
         }
+    })();
 
-        // Save to cache
-        cachedStations = data;
-        return data;
-
-    } catch (e) {
-        console.warn("Backend not deployed yet, using mock data for DJ Station");
-        return MOCK_STATIONS;
-    }
+    return stationFetchPromise;
 }
