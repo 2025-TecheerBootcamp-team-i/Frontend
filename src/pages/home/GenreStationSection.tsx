@@ -51,9 +51,9 @@ export default function GenreStationSection() {
     if (loading) {
         // Skeleton
         return (
-            <section className="mb-8">
+            <section className="mb-6">
                 <div className="flex items-center justify-between mb-0">
-                    <h2 className="text-4xl font-bold text-white px-2">장르별 스테이션</h2>
+                    <h2 className="text-3xl font-bold text-white px-2">장르별 스테이션</h2>
                 </div>
                 <HorizontalScroller gradientFromClass="from-[#121212]">
                     <div className="flex gap-4 min-w-max px-2 pt-2 pb-8">
@@ -69,9 +69,9 @@ export default function GenreStationSection() {
     if (stations.length === 0) return null;
 
     return (
-        <section className="mb-8">
+        <section className="mb-6">
             <div className="flex items-center justify-between mb-0">
-                <h2 className="text-4xl font-bold text-white px-2">장르별 스테이션</h2>
+                <h2 className="text-3xl font-bold text-white px-2">장르별 스테이션</h2>
             </div>
 
             <HorizontalScroller gradientFromClass="from-[#121212]">
