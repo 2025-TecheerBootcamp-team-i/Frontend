@@ -521,7 +521,6 @@ function ModalPortal({ children }: { children: React.ReactNode }) {
                     <div className="text-4xl font-semibold text-[#F6F6F6] leading-none truncate">{playlist.title}</div>
 
                     <div className="mt-2 text-base text-[#F6F6F6]/60 truncate">
-                        {playlist.creator_nickname} · {playlist.visibility === "public" ? "공개" : "비공개"} ·{" "}
                         {tracks.length}곡 · {totalPlaytime}
                     </div>
                     </div>

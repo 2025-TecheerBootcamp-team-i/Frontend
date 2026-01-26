@@ -44,7 +44,6 @@ const SearchAll = lazy(() => import("./pages/search/SearchAll"));
 const SearchArtist = lazy(() => import("./pages/search/SearchArtist"));
 const SearchAlbum = lazy(() => import("./pages/search/SearchAlbum"));
 const SearchSong = lazy(() => import("./pages/search/SearchSong"));
-const SearchPlaylist = lazy(() => import("./pages/search/SearchPlaylist.tsx"));
 
 // Chart Pages
 const ChartTop100 = lazy(() => import("./pages/chart/ChartTop100"));
@@ -117,7 +116,6 @@ export default function App() {
                 <Route path="artist" element={<Suspense fallback={<PageLoader />}><SearchArtist /></Suspense>} />
                 <Route path="album" element={<Suspense fallback={<PageLoader />}><SearchAlbum /></Suspense>} />
                 <Route path="song" element={<Suspense fallback={<PageLoader />}><SearchSong /></Suspense>} />
-                <Route path="playlist" element={<Suspense fallback={<PageLoader />}><SearchPlaylist /></Suspense>} />
               </Route>
             </Route>
 
