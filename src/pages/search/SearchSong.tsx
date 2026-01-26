@@ -44,14 +44,6 @@ type ApiSearchResult = {
   album_image: string | null;
 };
 
-type ArtistAlbum = {
-  id: string;
-  title: string;
-  year: string;
-  album_image: string | null;
-  image_large_square: string | null;
-};
-
 type ApiSearchResponse = {
   count: number;
   next: string | null;
@@ -167,9 +159,6 @@ export default function SearchSong() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 앨범 정보 상태
-  const [albums, setAlbums] = useState<Record<number, ArtistAlbum>>({});
-
   // 앨범 상세 정보 캐시
   const albumDetailsCacheRef = useRef<
     Record<
@@ -187,50 +176,6 @@ export default function SearchSong() {
     setSp(next, { replace: true });
   };
 
-  // 아티스트별 앨범 정보 가져오기
-  const fetchArtistAlbums = useCallback(
-    async (artistIds: number[]) => {
-      if (!API_BASE) return;
-
-      const albumMap: Record<number, ArtistAlbum> = {};
-
-      try {
-        const promises = artistIds.map(async (artistId) => {
-          try {
-            const url = `${API_BASE}/artists/${artistId}/albums/`;
-            const res = await fetch(url, {
-              method: "GET",
-              headers: { "Content-Type": "application/json" },
-            });
-
-            if (res.ok) {
-              const data: ArtistAlbum[] = await res.json();
-              return { artistId, albums: data };
-            }
-            return null;
-          } catch (e) {
-            console.error(`[SearchSong] 아티스트 ${artistId}의 앨범 목록 가져오기 실패:`, e);
-            return null;
-          }
-        });
-
-        const results = await Promise.all(promises);
-
-        results.forEach((result) => {
-          if (result) {
-            result.albums.forEach((album) => {
-              albumMap[Number(album.id)] = album;
-            });
-          }
-        });
-
-        setAlbums(albumMap);
-      } catch (e) {
-        console.error("[SearchSong] 아티스트별 앨범 정보 가져오기 오류:", e);
-      }
-    },
-    [API_BASE]
-  );
 
   /* ===================== API 호출 ===================== */
 
@@ -280,29 +225,18 @@ export default function SearchSong() {
         }));
 
         setApiSongs(converted);
-
-        const uniqueArtistIds = Array.from(
-          new Set(data.results.map((r) => r.artist_id).filter((id): id is number => id !== null))
-        );
-
-        if (uniqueArtistIds.length > 0) {
-          await fetchArtistAlbums(uniqueArtistIds);
-        } else {
-          setAlbums({});
-        }
       } catch (e: unknown) {
         if ((e as DOMException)?.name === "AbortError") return;
         console.error("[SearchSong] 검색 API 오류:", e);
         setError(e instanceof Error ? e.message : "알 수 없는 오류");
         setApiSongs([]);
-        setAlbums({});
       } finally {
         setLoading(false);
       }
     })();
 
     return () => controller.abort();
-  }, [API_BASE, q, excludeAi, fetchArtistAlbums]);
+  }, [API_BASE, q, excludeAi]);
 
   /* ===================== 검색/필터 ===================== */
 

@@ -7,7 +7,6 @@ import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, A
 import { RiDashboardFill } from "react-icons/ri";
 import { GrContract } from "react-icons/gr";
 import { usePlayer } from "../../player/PlayerContext";
-import { getBestAlbumCover } from "../../api/album";
 import { likecount, likeTrack, deleteTrack } from "../../api/LikedSong";
 import { getMusicDetail, getTagGraph } from "../../api/music";
 import type { TagGraphItem } from "../../api/music";
@@ -906,7 +905,7 @@ export default function NowPlayingPage() {
     }, [leftOpen]);
 
     // ✅ 좋아요 상태
-    const [musicId, setMusicId] = useState<number | null>(null);
+    const [_musicId, setMusicId] = useState<number | null>(null);
     const [liked, setLiked] = useState(false);
     const [likeCount, setLikeCount] = useState(0);
     const [likeLoading, setLikeLoading] = useState(false);

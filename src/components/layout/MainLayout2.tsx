@@ -3,20 +3,11 @@ import { useEffect, useState, useMemo } from "react";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 import Player from "./Player";
-import { usePlaylists } from "../../contexts/PlaylistContext";
 import { usePlayer } from "../../player/PlayerContext";
 import { extractPastelColors } from "../../utils/color";
 
-export type Playlist = {
-    id: string;
-    title: string;
-    coverUrl?: string;
-    createdAt?: number;
-};
-
 function MainLayout2() {
     const PLAYER_H = 85;
-    const { myPlaylists, createPlaylist } = usePlaylists();
     const { current } = usePlayer();
     const [bgColors, setBgColors] = useState<string[]>([]);
 
@@ -36,17 +27,6 @@ function MainLayout2() {
             setBgColors([]);
         }
     }, [coverUrl]);
-
-    const playlists: Playlist[] = myPlaylists.map((p) => ({
-        id: p.id,
-        title: p.title,
-        coverUrl: p.coverUrl,
-        createdAt: p.createdAt,
-    }));
-
-    const handleCreatePlaylist = async () => {
-        await createPlaylist();
-    };
 
     return (
         <div className="relative h-screen overflow-hidden flex flex-col bg-[#080808]">
@@ -78,7 +58,7 @@ function MainLayout2() {
         <div className="relative z-10 h-full flex flex-col">
             <Header />
             <div className="flex flex-1 min-h-0 overflow-hidden">
-                <Sidebar playlists={playlists} onCreatePlaylist={handleCreatePlaylist} />
+                <Sidebar />
                 <main
                     className="flex-1 min-h-0 overflow-auto"
                     style={{ paddingBottom: PLAYER_H }}
