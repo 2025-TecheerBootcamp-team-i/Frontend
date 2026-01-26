@@ -21,7 +21,7 @@ function formatSeconds(sec: number | null | undefined): string {
 export default function StationPage() {
     const { category } = useParams<{ category: string }>();
     const navigate = useNavigate();
-    const { playTracks } = usePlayer();
+    const { playTracks, setTrackAndPlay } = usePlayer();
 
     const decodedCategory = category ? decodeURIComponent(category) : "";
 
@@ -89,11 +89,11 @@ export default function StationPage() {
             id: String(t.music_id),
             musicId: t.music_id,
             title: t.music_name,
-            artist: t.artist,
+            artist: t.artist_name || t.artist,
             album: station.category,
             coverUrl: t.album_image ?? undefined,
             duration: t.duration ? formatSeconds(t.duration) : "0:00",
-            audioUrl: `/api/tracks/${t.music_id}/stream`
+            audioUrl: t.audio_url || `/api/tracks/${t.music_id}/stream`
         }));
         playTracks(tracks);
     };
@@ -104,11 +104,11 @@ export default function StationPage() {
             id: String(track.music_id),
             musicId: track.music_id,
             title: track.music_name,
-            artist: track.artist,
+            artist: track.artist_name || track.artist,
             album: station?.category ?? "",
             coverUrl: track.album_image ?? undefined,
             duration: track.duration ? formatSeconds(track.duration) : "0:00",
-            audioUrl: `/api/tracks/${track.music_id}/stream`
+            audioUrl: track.audio_url || `/api/tracks/${track.music_id}/stream`
         };
         playTracks([playerTrack]);
     };
@@ -238,7 +238,7 @@ export default function StationPage() {
                                 </div>
                                 <div className="min-w-0">
                                     <div className="text-base text-white font-semibold truncate">{t.music_name}</div>
-                                    <div className="mt-1 text-sm text-white/40 truncate">{t.artist}</div>
+                                    <div className="mt-1 text-sm text-white/40 truncate">{t.artist_name || t.artist}</div>
                                 </div>
                                 {/* Album hidden on small, visible on large */}
                                 <div className="hidden min-[1200px]:block text-base text-white/50 truncate">
