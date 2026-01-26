@@ -97,6 +97,11 @@ export interface DeletePlaylistItemsResponse {
   deleted_count: number;
 }
 
+export interface DeletePlaylistItemResponse {
+  message: string;
+  item_id: number;
+}
+
 // ==========================================
 // API Functions (API 함수 구현)
 // ==========================================
@@ -196,6 +201,20 @@ export async function addPlaylistItems(
   return response.data;
 }
 
+// 서버가 music_id(단건)만 받는 경우 사용
+export async function addPlaylistItem(
+  playlistId: number | string,
+  musicId: number
+): Promise<PlaylistDetail> {
+  const payload = { music_id: musicId };
+  const response = await axiosInstance.post<PlaylistDetail>(
+    `/playlists/${playlistId}/items`,
+    payload
+  );
+  return response.data;
+}
+
+
 
 /**
  * 7. 플레이리스트 내 곡 삭제 (Delete Items)
@@ -208,6 +227,19 @@ export async function deletePlaylistItems(
   const response = await axiosInstance.delete<DeletePlaylistItemsResponse>(
     `/playlists/items/${playlistId}`,
     { data: { item_ids: itemIds } as DeletePlaylistItemsRequest }
+  );
+  return response.data;
+}
+
+/**
+ * 7-1. 플레이리스트 내 단일 곡 삭제 (Delete Single Item)
+ * DELETE /api/v1/playlists/items/{item_id}
+ */
+export async function deletePlaylistItem(
+  itemId: number | string
+): Promise<DeletePlaylistItemResponse> {
+  const response = await axiosInstance.delete<DeletePlaylistItemResponse>(
+    `/playlists/items/${itemId}`
   );
   return response.data;
 }

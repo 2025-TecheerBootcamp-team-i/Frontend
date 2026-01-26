@@ -12,7 +12,7 @@ import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
 import { requireLogin } from "../../api/auth";
 
-import { listMyPlaylists, addPlaylistItems, type PlaylistSummary } from "../../api/playlist";
+import { listMyPlaylists, addPlaylistItem, type PlaylistSummary } from "../../api/playlist";
 import { likeTrack } from "../../api/LikedSong";
 
 /* ===================== 타입 ===================== */
@@ -179,6 +179,9 @@ export default function SearchSong() {
       }
     >
   >({});
+  
+  // 추가: 검색 요청 최신성(runId) 관리
+  const searchRunIdRef = useRef(0);
 
   const toggleExcludeAi = () => {
     const next = new URLSearchParams(sp);
@@ -187,7 +190,7 @@ export default function SearchSong() {
     setSp(next, { replace: true });
   };
 
-  // 아티스트별 앨범 정보 가져오기
+    // 아티스트별 앨범 정보 가져오기
   const fetchArtistAlbums = useCallback(
     async (artistIds: number[]) => {
       if (!API_BASE) return;
@@ -231,7 +234,6 @@ export default function SearchSong() {
     },
     [API_BASE]
   );
-
   /* ===================== API 호출 ===================== */
 
   useEffect(() => {
@@ -241,6 +243,7 @@ export default function SearchSong() {
       return;
     }
 
+    const runId = ++searchRunIdRef.current;
     const controller = new AbortController();
 
     (async () => {
@@ -265,7 +268,7 @@ export default function SearchSong() {
         const data: ApiSearchResponse = await res.json();
 
         const converted: Song[] = data.results.map((r) => ({
-          id: String(r.itunes_id),
+          id: String(r.music_id),
           musicId: r.music_id,
           title: r.music_name,
           artist: r.artist_name,
@@ -278,17 +281,22 @@ export default function SearchSong() {
           artistId: r.artist_id,
         }));
 
+        if (runId !== searchRunIdRef.current) return; // 최신만 반영
         setApiSongs(converted);
 
         const uniqueArtistIds = Array.from(
           new Set(data.results.map((r) => r.artist_id).filter((id): id is number => id !== null))
         );
 
-        if (uniqueArtistIds.length > 0) {
-          await fetchArtistAlbums(uniqueArtistIds);
-        } else {
-          setAlbums({});
-        }
+
+      if (uniqueArtistIds.length > 0) {
+        await fetchArtistAlbums(uniqueArtistIds);
+        if (runId !== searchRunIdRef.current) return;                  
+      } else {
+        if (runId !== searchRunIdRef.current) return;
+        setAlbums({});
+      }
+
       } catch (e: unknown) {
         if ((e as DOMException)?.name === "AbortError") return;
         console.error("[SearchSong] 검색 API 오류:", e);
@@ -296,7 +304,7 @@ export default function SearchSong() {
         setApiSongs([]);
         setAlbums({});
       } finally {
-        setLoading(false);
+      if (runId === searchRunIdRef.current) setLoading(false);
       }
     })();
 
@@ -488,18 +496,53 @@ export default function SearchSong() {
     };
   }, [addOpen]);
 
-  const addSelectedToPlaylist = async (playlistId: string) => {
-    if (selectedCount === 0) return;
+const addSelectedToPlaylist = async (playlistId: string) => {
+  if (selectedCount === 0) return;
 
-    try {
-      const musicIds = (await Promise.all(checkedSongs.map(findMusicId))).filter(
-        (id): id is number => typeof id === "number"
-      );
-      const unique = Array.from(new Set(musicIds));
-      if (unique.length === 0) return;
+  try {
+    const musicIds = (await Promise.all(checkedSongs.map(findMusicId))).filter(
+      (id): id is number => typeof id === "number"
+    );
+    const unique = Array.from(new Set(musicIds));
+    if (unique.length === 0) return;
 
-      await addPlaylistItems(playlistId, unique);
+    const results = await Promise.allSettled(
+      unique.map(async (id) => {
+        try {
+          await addPlaylistItem(playlistId, id);
+          return { id, ok: true };
+        } catch (e) {
+          if (axios.isAxiosError(e)) {
+            const status = e.response?.status;
+            const msg = (e.response?.data as any)?.error || (e.response?.data as any)?.message || "";
 
+            const isAlready =
+              status === 409 ||
+              (status === 400 && typeof msg === "string" && msg.includes("이미 플레이리스트에 추가된 곡"));
+
+            if (isAlready) {
+              return { id, ok: true, already: true };
+            }
+          }
+          throw e;
+        }
+      })
+    );
+
+    const fulfilled = results.filter((r) => r.status === "fulfilled").map((r) => (r as PromiseFulfilledResult<any>).value);
+
+    const already = fulfilled.filter((v) => v?.already).length;
+    const ok = fulfilled.filter((v) => v?.ok && !v?.already).length;
+    const fail = results.length - (ok + already);
+
+    alert(
+      fail === 0
+        ? already > 0
+          ? `담기 완료: ${ok}곡 / 이미 담김: ${already}곡`
+          : `담기 완료: ${ok}곡`
+        : `담기 완료: ${ok}곡 / 실패: ${fail}곡${already > 0 ? ` / 이미 담김: ${already}곡` : ""}`
+    );
+    
       setAddOpen(false);
       setCheckedIds({});
     } catch (e) {
