@@ -356,7 +356,7 @@ export default function InteractiveCanvasPage() {
 
                             {/* Error Message */}
                             {searchError && (
-                                <div className="mt-4 p-3 rounded-xl bg-red-50 text-red-500 text-sm text-center font-medium animate-fadeIn">
+                                <div className="mt-4 p-3 rounded-xl bg-red-50 text-red-500 text-center text-sm font-medium animate-fadeIn">
                                     {searchError}
                                 </div>
                             )}

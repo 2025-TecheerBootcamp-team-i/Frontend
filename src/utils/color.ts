@@ -12,7 +12,13 @@ export async function extractPastelColors(url: string, count: number = 3): Promi
     const cacheBuster = url.includes('?') ? `&t=${Date.now()}` : `?t=${Date.now()}`;
     img.src = url + cacheBuster;
 
+    // 타임아웃 설정 (이미지 로드 2.5초 이상 걸리면 기본값 반환)
+    const timeoutId = setTimeout(() => {
+      resolve(getDefaultPastels(count));
+    }, 2500);
+
     img.onload = () => {
+      clearTimeout(timeoutId);
       try {
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d", { willReadFrequently: true });
@@ -70,6 +76,7 @@ export async function extractPastelColors(url: string, count: number = 3): Promi
     };
 
     img.onerror = () => {
+      clearTimeout(timeoutId);
       resolve(getDefaultPastels(count));
     };
   });
@@ -111,4 +118,34 @@ export function rgbStringToHsl(rgbStr: string): { h: number; s: number; l: numbe
   }
 
   return { h: h * 360, s: s * 100, l: l * 100 };
+}
+
+/**
+ * 주어진 기본 색상(RGB)을 바탕으로 유사한 색상 팔레트 생성
+ * @param baseColor rgb(r, g, b) 형태의 문자열
+ * @param count 생성할 색상 개수
+ */
+export function generateAnalogousPalette(baseColor: string, count: number = 3): string[] {
+  const hsl = rgbStringToHsl(baseColor);
+  if (!hsl) return Array(count).fill(baseColor);
+
+  const colors: string[] = [];
+
+  // 기본 색상 포함
+  colors.push(`hsla(${hsl.h}, ${hsl.s}%, ${hsl.l}%, 0.5)`);
+
+  // 색조(Hue)를 좌우로 조금씩 이동하여 유사 색상 생성
+  for (let i = 1; i < count; i++) {
+    // 15도 -> 8도로 줄여서 더 비슷한 색상 범위로 제한
+    const hueShift = (i % 2 === 0 ? 1 : -1) * Math.ceil(i / 2) * 8;
+    const newH = (hsl.h + hueShift + 360) % 360;
+
+    // 채도와 명도를 약간 높여서 더 화사하게 (채도 +10, 명도 +5 보정)
+    const newS = Math.max(30, Math.min(100, hsl.s + 10 + (Math.random() * 10 - 5)));
+    const newL = Math.max(20, Math.min(90, hsl.l + 5 + (Math.random() * 10 - 5)));
+
+    colors.push(`hsla(${newH}, ${newS}%, ${newL}%, 0.4)`);
+  }
+
+  return colors;
 }
