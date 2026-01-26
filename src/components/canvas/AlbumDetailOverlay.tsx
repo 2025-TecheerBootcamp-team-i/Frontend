@@ -45,7 +45,12 @@ export default function AlbumDetailOverlay({ album, onClose, onPlay, isPlaying =
                         animate={{ y: 0, opacity: 1 }}
                         transition={{ delay: 0.2 }}
                         className="text-black font-bold tracking-tighter leading-none mb-4 drop-shadow-sm"
-                        style={{ fontSize: 'clamp(3rem, 6vw, 8rem)' }}
+                        style={{
+                            fontSize: album.title.length > 40 ? 'clamp(1.5rem, 3vw, 3.5rem)'
+                                : album.title.length > 25 ? 'clamp(2rem, 4.5vw, 5rem)'
+                                    : album.title.length > 15 ? 'clamp(2.5rem, 5.5vw, 6.5rem)'
+                                        : 'clamp(3rem, 6vw, 8rem)'
+                        }}
                     >
                         {album.title}
                     </motion.h1>
