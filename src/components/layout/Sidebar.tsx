@@ -2,7 +2,6 @@
 import { MdOutlineNavigateNext, MdPlayArrow } from "react-icons/md";
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { listAllAiMusic } from "../../api/music";
 import { getPlaylistDetail } from "../../api/playlist";
 import { getProfile } from "../../utils/auth";
 import { usePlaylists } from "../../contexts/PlaylistContext";
@@ -27,33 +26,6 @@ function Sidebar() {
     return () => window.removeEventListener("profileUpdated", handleProfileUpdate);
   }, []);
 
-  // ✅ AI 음악 랜덤 배경 이미지
-  const [aiBg, setAiBg] = useState<string | null>(null);
-
-  useEffect(() => {
-    let alive = true;
-
-    const fetchAiBg = async () => {
-      try {
-        const list = await listAllAiMusic({ is_ai: true });
-        if (!alive) return;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const candidates = list.filter((m: any) => m.album_image || m.album_image_square);
-        if (candidates.length > 0) {
-          const randomIdx = Math.floor(Math.random() * candidates.length);
-          const picked = candidates[randomIdx];
-          setAiBg(picked.album_image || picked.album_image_square);
-        }
-      } catch (e) {
-        console.error("Failed to load AI background:", e);
-      }
-    };
-
-    fetchAiBg();
-    return () => {
-      alive = false;
-    };
-  }, []);
 
   const top3 = useMemo(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -285,118 +257,6 @@ function Sidebar() {
           </div>
         </div>
 
-        {/* =========================
-            AI 음악 만들기 (마이페이지 카드 규격에 맞춤)
-        ========================= */}
-        <button
-          onClick={() => navigate("/ai")}
-          className={`${cardClass} text-left group`}
-          style={{ minHeight: "180px" }}
-          aria-label="AI 음악 만들기"
-          type="button"
-        >
-          {/* ✅ 랜덤 AI 배경 이미지 */}
-          {aiBg && (
-            <>
-              <div
-                className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110 opacity-70"
-                style={{ backgroundImage: `url('${aiBg}')` }}
-              />
-              <div className="absolute inset-0 bg-black/35 group-hover:bg-black/50 transition-colors" />
-            </>
-          )}
-
-          {/* 콘텐츠 */}
-          <div className="relative z-10 h-full flex flex-col justify-between">
-            <div className="flex items-start justify-between">
-              <span className="text-2xl font-bold text-white tracking-tight leading-tight drop-shadow-md">
-                AI 음악
-                <br />
-                만들기
-              </span>
-
-              <div
-                className="
-                  w-12 h-12
-                  rounded-full
-                  bg-white/20 backdrop-blur-md
-                  flex items-center justify-center
-                  text-white
-                  group-hover:bg-white/30
-                  transition
-                "
-              >
-                <MdOutlineNavigateNext size={28} />
-              </div>
-            </div>
-          </div>
-        </button>
-
-        {/* =========================
-            태그 탐험하기 (마이페이지 카드 규격에 맞춤)
-        ========================= */}
-        <button
-          onClick={() => navigate("/canvas")}
-          className={`${cardClass} text-left group`}
-          style={{ minHeight: "180px" }}
-          aria-label="태그 탐험하기 (캔버스 이동)"
-          type="button"
-        >
-          {/* 배경 이미지 */}
-          <div
-            className="absolute inset-0 bg-cover bg-center transition-transform duration-300 ease-out group-hover:scale-[1.05] opacity-70"
-            style={{ backgroundImage: "url('/images/album_verse_preview.png')" }}
-          />
-
-          {/* ❄️ 스노우볼 */}
-          <div
-            className="absolute inset-0 pointer-events-none opacity-80"
-            style={{
-              backgroundImage: `
-                radial-gradient(2px 2px at 20px 30px, #fff, transparent),
-                radial-gradient(2px 2px at 40px 70px, #fff, transparent),
-                radial-gradient(2px 2px at 60px 40px, #fff, transparent),
-                radial-gradient(2px 2px at 80px 120px, #fff, transparent),
-                radial-gradient(2px 2px at 100px 50px, #fff, transparent),
-                radial-gradient(2px 2px at 150px 150px, #fff, transparent),
-                radial-gradient(3px 3px at 200px 100px, rgba(255,255,255,0.8), transparent),
-                radial-gradient(2px 2px at 250px 200px, #fff, transparent),
-                radial-gradient(2px 2px at 300px 80px, #fff, transparent)
-              `,
-              backgroundSize: "355px 355px",
-            }}
-          />
-
-          {/* 유리 광택 + 오버레이 */}
-          <div className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-black/25 via-transparent to-white/25 opacity-90" />
-          <div className="absolute top-4 right-4 w-20 h-12 bg-white/20 blur-[15px] rounded-full pointer-events-none rotate-[-45deg]" />
-          <div className="absolute inset-0 bg-black/25 group-hover:bg-black/10 transition duration-500" />
-
-          {/* 콘텐츠 */}
-          <div className="relative z-10 h-full flex flex-col justify-between">
-            <div className="flex items-start justify-between">
-              <span className="text-2xl font-bold text-white tracking-tight leading-tight drop-shadow-md">
-                태그
-                <br />
-                탐험하기
-              </span>
-
-              <div
-                className="
-                  w-12 h-12
-                  rounded-full
-                  bg-white/20 backdrop-blur-md
-                  flex items-center justify-center
-                  text-white
-                  group-hover:bg-white/30
-                  transition
-                "
-              >
-                <MdOutlineNavigateNext size={28} />
-              </div>
-            </div>
-          </div>
-        </button>
       </div>
     </aside>
   );
