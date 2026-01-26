@@ -1,9 +1,13 @@
 import axios from "axios";
-import { useMemo, useState, useEffect, useCallback } from "react";
+import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import type { DragEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { MdFavorite, MdAutoAwesome, MdQueueMusic, MdClose, MdDelete, MdDragIndicator, MdPlayArrow, MdPause, MdSkipNext, MdSkipPrevious, MdShuffle, MdRepeat } from "react-icons/md";
-import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, Treemap, ReferenceLine } from "recharts";
+import { MdFavorite, MdQueueMusic, MdClose, MdDelete, MdDragIndicator, MdPlayArrow } from "react-icons/md";
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, ReferenceLine } from "recharts";
+import * as D3 from "d3";
+import cloud from "d3-cloud";
+import "tippy.js/dist/tippy.css";
+import "tippy.js/animations/scale.css";
 import { RiDashboardFill, RiBarChartLine, RiMusic2Line, RiPriceTag3Line } from "react-icons/ri";
 import { GrContract } from "react-icons/gr";
 import { usePlayer } from "../../player/PlayerContext";
@@ -40,6 +44,152 @@ function ensureNowPlayingEqStyle() {
     document.head.appendChild(style);
 }
 
+// ✅ D3 Word Cloud Component (Custom Implementation for React 19 stability)
+interface Word extends cloud.Word {
+    text: string;
+    size: number;
+    x?: number;
+    y?: number;
+    rotate?: number;
+}
+
+function SimpleWordCloud({
+    words,
+    baseColor
+}: {
+    words: { text: string; value: number }[];
+    baseColor: { h: number; s: number; l: number } | null
+}) {
+
+
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [dimensions, setDimensions] = useState({ w: 0, h: 0 });
+
+    // Resize Observer
+    useEffect(() => {
+        if (!containerRef.current) return;
+        const ro = new ResizeObserver(entries => {
+            if (!entries.length) return;
+            const { width, height } = entries[0].contentRect;
+            setDimensions({ w: width, h: height });
+        });
+        ro.observe(containerRef.current);
+        return () => ro.disconnect();
+    }, []);
+
+    // Draw Chart
+    useEffect(() => {
+        const node = containerRef.current;
+        if (!node || words.length === 0) return;
+
+        const { width, height } = node.getBoundingClientRect();
+        if (width === 0 || height === 0) return;
+
+        // Clear
+        node.innerHTML = "";
+
+        const svg = D3.select(node).append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        const g = svg.append("g")
+            .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+
+        const layout = cloud<Word>()
+            .size([width, height])
+            .words(words.map((d) => ({ text: d.text, size: d.value })))
+            .padding(6) // 글자 간격 조정 (2 -> 6)
+            .rotate(() => (~~(Math.random() * 2) * 90))
+            .spiral('rectangular') // 더 꽉 차 보이게 배치
+            .font("Pretendard")
+            .fontSize((d: any) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const val = (d as any).size as number;
+                const vals = words.map(w => w.value);
+                const max = Math.max(...vals, 1);
+                const min = Math.min(...vals, 0);
+                const range = max - min;
+                const normalized = range === 0 ? 0.5 : (val - min) / range;
+
+                // 더 풍성해보이게 크기 키움 (14~50 -> 16~64)
+                return 16 + (normalized * 48);
+            })
+            .on("end", (drawnWords: any[]) => {
+                g.selectAll("text")
+                    .data(drawnWords)
+                    .enter().append("text")
+                    .style("font-size", (d) => (d.size || 16) + "px")
+                    .style("font-family", "Pretendard")
+                    .style("font-weight", (d) => (d.size && d.size > 40) ? "800" : ((d.size && d.size > 24) ? "700" : "500")) // 두께감 조정
+                    .style("fill", (d) => {
+                        const fontSize = d.size || 16;
+                        // 폰트 크기 범위(16~64)에 맞춰 정규화
+                        const normalized = (fontSize - 16) / 48;
+
+                        // 1. 앨범에서 추출된 색상이 있고, 채도가 일정 수준 이상인 경우 (유채색 앨범)
+                        if (baseColor && baseColor.s >= 20) {
+                            const { h, s } = baseColor;
+                            // Lightness를 70% ~ 98% 사이로 강제
+                            const targetL = 70 + (28 * normalized);
+                            // 원래 채도가 있으면 더 쨍하게(최소 50% 보장)
+                            const targetS = Math.max(s, 50);
+
+                            return `hsl(${h}, ${targetS}%, ${targetL}%)`;
+                        }
+
+                        // 2. 색상이 없거나, 채도가 낮은 경우 (검정/회색/어두운 앨범) -> 무채색(White/Gray)
+                        // 기존에는 채도가 낮아도 강제로 40%로 올려버려 핑크/갈색이 되는 문제가 있었음
+                        const targetL = 60 + (40 * normalized); // 60% ~ 100%
+
+                        return `hsl(0, 0%, ${targetL}%)`;
+                    })
+                    .attr("text-anchor", "middle")
+                    .attr("transform", (d) => "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")")
+                    .text((d) => d.text || "")
+                    .style("cursor", "default")
+                    .style("opacity", 0)
+                    .transition()
+                    .duration(600)
+                    .style("opacity", 1);
+            });
+
+        layout.start();
+
+    }, [words, baseColor, dimensions]);
+
+
+
+    return (
+        <div ref={containerRef} className="w-full h-full min-h-[0px] overflow-hidden" />
+    );
+}
+
+let __npHintStyleInjected = false;
+function ensureNowPlayingHintStyle() {
+    if (__npHintStyleInjected) return;
+    __npHintStyleInjected = true;
+
+    const style = document.createElement("style");
+    style.setAttribute("data-nowplaying-hint", "true");
+    style.innerHTML = `
+    @keyframes np-tab-hint {
+      0%, 100% { 
+        transform: scaleX(1); 
+        filter: brightness(1);
+      }
+      50% { 
+        transform: scaleX(1.2); 
+        filter: brightness(5);
+        }
+    }
+    .np-tab-hint {
+      animation: np-tab-hint 0.9s ease-in-out infinite;
+      transform-origin: center;
+      will-change: transform;
+    }
+  `;
+    document.head.appendChild(style);
+}
 
 type LyricLine = { t: number; text: string; timestamp?: string | null };
 
@@ -62,8 +212,11 @@ type AlbumDetailResponse = { tracks?: AlbumTrack[] };
 
 export default function NowPlayingPage() {
     ensureNowPlayingEqStyle();
+    ensureNowPlayingHintStyle();
 
     const navigate = useNavigate();
+    const [hintTabs, setHintTabs] = useState(true);
+
 
     // ✅ 먼저 PlayerContext에서 isPlaying을 꺼내야 함 (순서 중요)
     const {
@@ -71,14 +224,8 @@ export default function NowPlayingPage() {
         queue,
         history,
         isPlaying,
-        toggle,
         removeFromQueue,
         moveQueueItem,
-        shuffleQueue,
-        nextTrack,
-        previousTrack,
-        repeatMode,
-        toggleRepeat,
         setTrackAndPlay,
     } = usePlayer();
 
@@ -90,12 +237,111 @@ export default function NowPlayingPage() {
     // ✅ 재생 재시작 시 애니메이션 리셋용
     const [playSeq, setPlaySeq] = useState(0);
 
+    // ✅ (NEW) 확실하게 찾아진 MusicID 상태 (모든 분석 컴포넌트가 공유)
+    const [resolvedMusicId, setResolvedMusicId] = useState<number | null>(null);
+
     useEffect(() => {
         // 곡이 있고 + 재생 시작될 때만 playSeq 증가
         if (hasTrack && isPlaying) setPlaySeq((v) => v + 1);
     }, [hasTrack, isPlaying, current?.id]);
 
     const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
+
+    // ✅ (NEW) Music ID Resolution Effect
+    // current가 바뀌면 즉시 musicId를 찾아서 resolvedMusicId에 세팅
+    useEffect(() => {
+        if (!current || !API_BASE) {
+            setResolvedMusicId(null);
+            return;
+        }
+
+        // 1. 이미 musicId가 있는 경우
+        const storedMusicId = (current as { musicId?: number | null }).musicId;
+        if (storedMusicId && typeof storedMusicId === 'number') {
+            setResolvedMusicId(storedMusicId);
+            return;
+        }
+
+        // 2. 없으면 검색으로 찾기
+        const controller = new AbortController();
+
+        (async () => {
+            // current.id가 itunes_id일 수 있으므로, music_id를 찾아야 함
+            const itunesId = Number(current.id);
+            if (Number.isNaN(itunesId)) {
+                console.warn(`[NowPlayingPage] ID Resolution: Invalid current.id`, current.id);
+                return;
+            }
+
+            try {
+                // 1) 제목으로 검색
+                const searchUrl = `${API_BASE}/search/opensearch?q=${encodeURIComponent(current.title)}`;
+                const searchRes = await fetch(searchUrl, {
+                    method: "GET",
+                    signal: controller.signal,
+                    headers: { "Content-Type": "application/json" },
+                });
+
+                if (searchRes.ok) {
+                    const searchData = (await searchRes.json()) as SearchApiResponse;
+                    const matchedResult = searchData.results?.find((r) => r.itunes_id === itunesId);
+
+                    if (matchedResult?.music_id) {
+                        setResolvedMusicId(matchedResult.music_id);
+                        return;
+                    } else if (matchedResult?.album_id) {
+                        // 2) 앨범 API
+                        try {
+                            const albumRes = await fetch(`${API_BASE}/albums/${matchedResult.album_id}/`, {
+                                method: "GET",
+                                signal: controller.signal,
+                                headers: { "Content-Type": "application/json" },
+                            });
+
+                            if (albumRes.ok) {
+                                const albumData = (await albumRes.json()) as AlbumDetailResponse;
+                                const matchedTrack = albumData.tracks?.find(
+                                    (t) => t.music_name === current.title
+                                );
+                                if (matchedTrack?.music_id) {
+                                    setResolvedMusicId(matchedTrack.music_id);
+                                    return;
+                                }
+                            }
+                        } catch { /* ignore */ }
+                    }
+                }
+
+                // 3) 조합 검색
+                const combinedSearch = `${current.artist} ${current.title}`;
+                const combinedSearchUrl = `${API_BASE}/search/opensearch?q=${encodeURIComponent(combinedSearch)}`;
+                const combinedSearchRes = await fetch(combinedSearchUrl, {
+                    method: "GET",
+                    signal: controller.signal,
+                    headers: { "Content-Type": "application/json" },
+                });
+
+                if (combinedSearchRes.ok) {
+                    const combinedSearchData = (await combinedSearchRes.json()) as SearchApiResponse;
+                    const matched = combinedSearchData.results?.find(
+                        (r) => r.artist_name === current.artist && r.music_name === current.title
+                    );
+                    if (matched?.music_id) {
+                        setResolvedMusicId(matched.music_id);
+                        return;
+                    }
+                }
+
+                console.warn(`[NowPlayingPage] Could not resolve music_id for: ${current.title}`);
+
+            } catch (err) {
+                if (err instanceof DOMException && err.name === "AbortError") return;
+            }
+        })();
+
+        return () => controller.abort();
+
+    }, [current, API_BASE]);
 
     // 이미지 URL 처리 함수
     const processImageUrl = useCallback((url: string | null | undefined): string | null => {
@@ -107,7 +353,7 @@ export default function NowPlayingPage() {
             return url;
         }
         if (base && url.startsWith("/")) {
-            return `${base.replace("/api/v1", "")}${url}`;
+            return `${base.replace("/api/v1", "")}${url} `;
         }
         return url;
     }, []);
@@ -139,25 +385,24 @@ export default function NowPlayingPage() {
     const [recommendations, setRecommendations] = useState<RecommendedMusic[]>([]);
     const [recommendationsLoading, setRecommendationsLoading] = useState(false);
 
-    // ✅ 태그 그래프 데이터 (Treemap용)
+    // ✅ 태그 데이터 (WordCloud용)
     const [tagGraph, setTagGraph] = useState<TagGraphItem[]>([]);
     const [tagGraphLoading, setTagGraphLoading] = useState(false);
 
-    // ✅ 트리맵 동적 색상 상태 (HSL)
+    // ✅ 트리맵(워드클라우드) 동적 색상 상태 (HSL)
     const [treemapBaseColor, setTreemapBaseColor] = useState<{ h: number; s: number; l: number } | null>(null);
 
-    // ✅ Treemap용 데이터에 고유 ID 추가 (중복 key 문제 해결)
-    const tagGraphWithIds = useMemo(() => {
-        let idCounter = 0;
-        const addIds = (items: TagGraphItem[]): (TagGraphItem & { id: string })[] => {
-            return items.map((item) => ({
-                ...item,
-                id: `tag-${idCounter++}`,
-                children: item.children ? addIds(item.children) : undefined,
-            }));
-        };
-        return addIds(tagGraph);
+    // ✅ WordCloud용 데이터 변환 ({ text, value })
+    const words = useMemo(() => {
+        return tagGraph.map(item => ({
+            text: item.name,
+            value: item.size
+        }));
     }, [tagGraph]);
+
+
+    // ✅ Treemap용 데이터에 고유 ID 추가 (더 이상 사용 안 할 수도 있지만 혹시 모를 의존성 위해 남겨둠, 하지만 Treemap 컴포넌트 삭제 시 필요 없음)
+    // WordCloud에는 필요 없으므로 일단 둠 (tagGraph만 있으면 됨)
 
     // 커버 이미지 우선순위: image_large_square → image_square → album_image → coverUrl (fallback)
     const coverImage = useMemo(() => {
@@ -181,6 +426,7 @@ export default function NowPlayingPage() {
         // 4순위 (fallback): current.coverUrl
         return processImageUrl(current.coverUrl);
     }, [current, musicDetail, processImageUrl]);
+
 
     // ✅ (추가) 앨범 커버 색상 추출하여 트리맵에 적용
     useEffect(() => {
@@ -207,7 +453,7 @@ export default function NowPlayingPage() {
 
     // ✅ 가사 API 호출
     useEffect(() => {
-        if (!current || !API_BASE) {
+        if (!resolvedMusicId || !API_BASE) {
             setLyrics([]);
             setLyricsError(null);
             return;
@@ -220,119 +466,8 @@ export default function NowPlayingPage() {
                 setLyricsLoading(true);
                 setLyricsError(null);
 
-                let musicId: number | null = null;
-
-                // ✅ 먼저 current.musicId가 있으면 직접 사용
-                const storedMusicId = (current as { musicId?: number | null }).musicId;
-                if (storedMusicId && typeof storedMusicId === 'number') {
-                    musicId = storedMusicId;
-                    console.log(`[NowPlayingPage] 가사 music_id 직접 사용:`, musicId);
-                }
-
-                // musicId가 없으면 검색으로 찾기
-                if (!musicId) {
-                    // current.id가 itunes_id일 수 있으므로, music_id를 찾아야 함
-                    const itunesId = Number(current.id);
-                    if (Number.isNaN(itunesId)) {
-                        console.warn(
-                            `[NowPlayingPage] 가사 API 호출 실패: current.id가 숫자가 아니고 musicId도 없습니다.`,
-                            { id: current.id, title: current.title }
-                        );
-                        setLyrics([]);
-                        setLyricsError(null);
-                        return;
-                    }
-
-                    // 1) 제목으로 검색해서 itunes_id 매칭 시도
-                    try {
-                        const searchUrl = `${API_BASE}/search/opensearch?q=${encodeURIComponent(current.title)}`;
-                        const searchRes = await fetch(searchUrl, {
-                            method: "GET",
-                            signal: controller.signal,
-                            headers: { "Content-Type": "application/json" },
-                        });
-
-                        if (searchRes.ok) {
-                            const searchData = (await searchRes.json()) as SearchApiResponse;
-
-                            const matchedResult = searchData.results?.find((r) => r.itunes_id === itunesId);
-
-                            if (matchedResult?.music_id) {
-                                musicId = matchedResult.music_id ?? null;
-                            } else if (matchedResult?.album_id) {
-                                // 2) music_id가 없으면 앨범 API를 통해 찾기
-                                try {
-                                    const albumRes = await fetch(`${API_BASE}/albums/${matchedResult.album_id}/`, {
-                                        method: "GET",
-                                        signal: controller.signal,
-                                        headers: { "Content-Type": "application/json" },
-                                    });
-
-                                    if (albumRes.ok) {
-                                        const albumData = (await albumRes.json()) as AlbumDetailResponse;
-                                        const matchedTrack = albumData.tracks?.find(
-                                            (t) => t.music_name === current.title
-                                        );
-                                        if (matchedTrack?.music_id) {
-                                            musicId = matchedTrack.music_id ?? null;
-                                        }
-                                    }
-                                } catch (err) {
-                                    if (err instanceof DOMException && err.name === "AbortError") return;
-                                    console.warn(`[NowPlayingPage] 앨범 API 호출 실패:`, err);
-                                }
-                            }
-                        } else if (searchRes.status !== 404) {
-                            console.warn(`[NowPlayingPage] 검색 API 오류: ${searchRes.status}`);
-                        }
-                    } catch (err) {
-                        if (err instanceof DOMException && err.name === "AbortError") return;
-                        console.warn(`[NowPlayingPage] 검색 API 호출 실패:`, err);
-                    }
-
-                    // 3) 여전히 못 찾으면 "아티스트 + 제목" 조합 검색
-                    if (!musicId) {
-                        try {
-                            const combinedSearch = `${current.artist} ${current.title}`;
-                            const combinedSearchUrl = `${API_BASE}/search/opensearch?q=${encodeURIComponent(combinedSearch)}`;
-
-                            const combinedSearchRes = await fetch(combinedSearchUrl, {
-                                method: "GET",
-                                signal: controller.signal,
-                                headers: { "Content-Type": "application/json" },
-                            });
-
-                            if (combinedSearchRes.ok) {
-                                const combinedSearchData = (await combinedSearchRes.json()) as SearchApiResponse;
-
-                                const matched = combinedSearchData.results?.find(
-                                    (r) => r.artist_name === current.artist && r.music_name === current.title
-                                );
-
-                                if (matched?.music_id) {
-                                    musicId = matched.music_id ?? null;
-                                }
-                            }
-                        } catch (err) {
-                            if (err instanceof DOMException && err.name === "AbortError") return;
-                            console.warn(`[NowPlayingPage] 조합 검색 API 호출 실패:`, err);
-                        }
-                    }
-
-                    // 여전히 music_id를 찾지 못했으면 가사를 불러올 수 없음
-                    if (!musicId) {
-                        console.warn(`[NowPlayingPage] ⚠️ music_id를 찾을 수 없어 가사를 불러올 수 없습니다:`, {
-                            title: current.title,
-                            artist: current.artist,
-                        });
-                        setLyrics([]);
-                        setLyricsError(null);
-                        return;
-                    }
-                }
-
                 // 가사 API 호출: /api/v1/{music_id}/
-                const lyricsUrl = `${API_BASE}/${musicId}/`;
+                const lyricsUrl = `${API_BASE}/${resolvedMusicId}/`;
 
                 const res = await fetch(lyricsUrl, {
                     method: "GET",
@@ -342,7 +477,6 @@ export default function NowPlayingPage() {
 
                 if (!res.ok) {
                     if (res.status === 404) {
-                        // 404: 트랙이 없거나 가사가 없는 경우 -> 빈 가사 처리
                         setLyrics([]);
                         setLyricsError(null);
                         return;
@@ -351,13 +485,13 @@ export default function NowPlayingPage() {
                 }
 
                 const data = (await res.json()) as { lyrics?: unknown };
+                // ... (Parsing Logic remains same, omitted for brevity but logic is preserved if we just replace the call part)
+                // Actually, I need to keep parsing logic.
 
                 let parsedLyrics: LyricLine[] = [];
 
                 if (typeof data.lyrics === "string" && data.lyrics.trim()) {
-                    // 타임스탬프 형식: [00:00.56] 가사 텍스트
                     const lines = data.lyrics.split(/\r?\n/).filter((line) => line.trim() !== "");
-
                     parsedLyrics = lines.map((line) => {
                         const timestampMatch = line.match(/\[(\d{2}):(\d{2})\.(\d{2})\]/);
                         if (timestampMatch) {
@@ -365,38 +499,22 @@ export default function NowPlayingPage() {
                             const seconds = parseInt(timestampMatch[2], 10);
                             const centiseconds = parseInt(timestampMatch[3], 10);
                             const timestampSeconds = minutes * 60 + seconds + centiseconds / 100;
-
                             const text = line.replace(/\[\d{2}:\d{2}\.\d{2}\]\s*/, "").trim();
-
-                            return {
-                                t: timestampSeconds,
-                                text: text || line.trim(),
-                                timestamp: timestampMatch[0],
-                            };
+                            return { t: timestampSeconds, text: text || line.trim(), timestamp: timestampMatch[0] };
                         }
-
-                        // 타임스탬프가 없는 경우
                         return { t: 0, text: line.trim(), timestamp: null };
                     });
 
-                    parsedLyrics = parsedLyrics
-                        .filter((l) => l.text.trim() !== "")
-                        .sort((a, b) => a.t - b.t);
-
+                    parsedLyrics = parsedLyrics.filter((l) => l.text.trim() !== "").sort((a, b) => a.t - b.t);
                     setLyrics(parsedLyrics);
                 } else {
-                    // lyrics 필드가 없거나 다른 형식
                     setLyrics([]);
                     setLyricsError(null);
                 }
+
             } catch (err: unknown) {
                 if (err instanceof DOMException && err.name === "AbortError") return;
-
-                console.error(`[NowPlayingPage] ❌ 가사 로드 실패:`, {
-                    id: current?.id,
-                    title: current?.title,
-                    error: err,
-                });
+                console.error(`[NowPlayingPage] ❌ 가사 로드 실패:`, err);
                 setLyricsError(err instanceof Error ? err.message : "가사를 불러올 수 없습니다.");
                 setLyrics([]);
             } finally {
@@ -405,11 +523,11 @@ export default function NowPlayingPage() {
         })();
 
         return () => controller.abort();
-    }, [current, API_BASE]);
+    }, [resolvedMusicId, API_BASE]);
 
     // ✅ 음악 분석 데이터 가져오기 (valence, arousal)
     useEffect(() => {
-        if (!current || !API_BASE) {
+        if (!resolvedMusicId || !API_BASE) {
             setMusicAnalysis(null);
             return;
         }
@@ -418,129 +536,8 @@ export default function NowPlayingPage() {
 
         (async () => {
             try {
-                let musicId: number | null = null;
-
-                console.log(`[NowPlayingPage] 음악 분석 시작:`, {
-                    title: current.title,
-                    currentId: current.id,
-                    storedMusicId: (current as { musicId?: number | null }).musicId
-                });
-
-                // ✅ 먼저 current.musicId가 있으면 직접 사용 (추천 곡 등에서 이미 music_id가 설정됨)
-                const storedMusicId = (current as { musicId?: number | null }).musicId;
-                if (storedMusicId && typeof storedMusicId === 'number') {
-                    musicId = storedMusicId;
-                    console.log(`[NowPlayingPage] music_id 직접 사용:`, musicId);
-                }
-
-                // musicId가 없으면 검색으로 찾기 (기존 로직)
-                if (!musicId) {
-                    // current.id가 itunes_id일 수 있으므로, music_id를 찾아야 함
-                    const itunesId = Number(current.id);
-                    if (Number.isNaN(itunesId)) {
-                        console.warn(`[NowPlayingPage] current.id가 숫자가 아닙니다:`, current.id);
-                        setMusicAnalysis(null);
-                        return;
-                    }
-
-                    // 1) 제목으로 검색해서 itunes_id 매칭 시도
-                    try {
-                        const searchUrl = `${API_BASE}/search/opensearch?q=${encodeURIComponent(current.title)}`;
-                        console.log(`[NowPlayingPage] 검색 API 호출:`, searchUrl);
-
-                        const searchRes = await fetch(searchUrl, {
-                            method: "GET",
-                            signal: controller.signal,
-                            headers: { "Content-Type": "application/json" },
-                        });
-
-                        if (searchRes.ok) {
-                            const searchData = (await searchRes.json()) as SearchApiResponse;
-                            console.log(`[NowPlayingPage] 검색 결과:`, searchData.results?.length, '개');
-
-                            const matchedResult = searchData.results?.find((r) => r.itunes_id === itunesId);
-
-                            if (matchedResult?.music_id) {
-                                musicId = matchedResult.music_id ?? null;
-                                console.log(`[NowPlayingPage] music_id 찾음 (검색):`, musicId);
-                            } else if (matchedResult?.album_id) {
-                                console.log(`[NowPlayingPage] music_id 없음, 앨범 API 시도:`, matchedResult.album_id);
-
-                                // 2) music_id가 없으면 앨범 API를 통해 찾기
-                                try {
-                                    const albumRes = await fetch(`${API_BASE}/albums/${matchedResult.album_id}/`, {
-                                        method: "GET",
-                                        signal: controller.signal,
-                                        headers: { "Content-Type": "application/json" },
-                                    });
-
-                                    if (albumRes.ok) {
-                                        const albumData = (await albumRes.json()) as AlbumDetailResponse;
-                                        const matchedTrack = albumData.tracks?.find(
-                                            (t) => t.music_name === current.title
-                                        );
-                                        if (matchedTrack?.music_id) {
-                                            musicId = matchedTrack.music_id ?? null;
-                                            console.log(`[NowPlayingPage] music_id 찾음 (앨범):`, musicId);
-                                        }
-                                    }
-                                } catch (err) {
-                                    if (err instanceof DOMException && err.name === "AbortError") return;
-                                    console.warn(`[NowPlayingPage] 앨범 API 호출 실패:`, err);
-                                }
-                            } else {
-                                console.warn(`[NowPlayingPage] 검색 결과에서 매칭되는 곡을 찾지 못함`);
-                            }
-                        } else {
-                            console.warn(`[NowPlayingPage] 검색 API 오류: ${searchRes.status}`);
-                        }
-                    } catch (err) {
-                        if (err instanceof DOMException && err.name === "AbortError") return;
-                        console.warn(`[NowPlayingPage] 검색 API 호출 실패:`, err);
-                    }
-
-                    // 3) 여전히 못 찾으면 "아티스트 + 제목" 조합 검색
-                    if (!musicId) {
-                        try {
-                            const combinedSearch = `${current.artist} ${current.title}`;
-                            const combinedSearchUrl = `${API_BASE}/search/opensearch?q=${encodeURIComponent(combinedSearch)}`;
-                            console.log(`[NowPlayingPage] 조합 검색 시도:`, combinedSearch);
-
-                            const combinedSearchRes = await fetch(combinedSearchUrl, {
-                                method: "GET",
-                                signal: controller.signal,
-                                headers: { "Content-Type": "application/json" },
-                            });
-
-                            if (combinedSearchRes.ok) {
-                                const combinedSearchData = (await combinedSearchRes.json()) as SearchApiResponse;
-
-                                const matched = combinedSearchData.results?.find(
-                                    (r) => r.artist_name === current.artist && r.music_name === current.title
-                                );
-
-                                if (matched?.music_id) {
-                                    musicId = matched.music_id ?? null;
-                                    console.log(`[NowPlayingPage] music_id 찾음 (조합 검색):`, musicId);
-                                }
-                            }
-                        } catch (err) {
-                            if (err instanceof DOMException && err.name === "AbortError") return;
-                            console.warn(`[NowPlayingPage] 조합 검색 API 호출 실패:`, err);
-                        }
-                    }
-                }
-
-                if (!musicId) {
-                    console.warn(`[NowPlayingPage] ⚠️ music_id를 찾을 수 없어 음악 분석 데이터를 불러올 수 없습니다`);
-                    setMusicAnalysis(null);
-                    return;
-                }
-
                 // 음악 상세 정보 API 호출: /api/v1/{music_id}/
-                const detailUrl = `${API_BASE}/${musicId}/`;
-                console.log(`[NowPlayingPage] 음악 상세 API 호출:`, detailUrl);
-
+                const detailUrl = `${API_BASE}/${resolvedMusicId}/`;
                 const res = await fetch(detailUrl, {
                     method: "GET",
                     signal: controller.signal,
@@ -548,31 +545,20 @@ export default function NowPlayingPage() {
                 });
 
                 if (!res.ok) {
-                    console.warn(`[NowPlayingPage] 음악 상세 API 오류: ${res.status}`);
                     setMusicAnalysis(null);
                     return;
                 }
 
                 const data = await res.json();
-                console.log(`[NowPlayingPage] 음악 상세 데이터:`, data);
 
-                // valence와 arousal 값 추출 (문자열로 제공되므로 숫자로 변환)
                 const valenceRaw = typeof data.valence === "string" ? parseFloat(data.valence) : (typeof data.valence === "number" ? data.valence : 0);
                 const arousalRaw = typeof data.arousal === "string" ? parseFloat(data.arousal) : (typeof data.arousal === "number" ? data.arousal : 0);
 
-                // 12를 곱하고 소수점 버림
                 const valence = Math.floor(valenceRaw * 12);
                 const arousal = Math.floor(arousalRaw * 12);
 
-                console.log(`[NowPlayingPage] ✅ 음악 분석 데이터 로드 성공:`, {
-                    valenceRaw,
-                    arousalRaw,
-                    valence,
-                    arousal
-                });
                 setMusicAnalysis({ valence, arousal });
 
-                // 커버 이미지 정보 저장 (우선순위: image_large_square → image_square → album_image)
                 setMusicDetail({
                     image_large_square: data.image_large_square || null,
                     image_square: data.image_square || null,
@@ -586,11 +572,11 @@ export default function NowPlayingPage() {
         })();
 
         return () => controller.abort();
-    }, [current, API_BASE]);
+    }, [resolvedMusicId, API_BASE]);
 
     // ✅ 재생 로그 데이터 가져오기 (시간대별 재생횟수)
     useEffect(() => {
-        if (!current || !API_BASE) {
+        if (!resolvedMusicId || !API_BASE) {
             setPlayLogs([]);
             return;
         }
@@ -601,109 +587,10 @@ export default function NowPlayingPage() {
             try {
                 setPlayLogsLoading(true);
 
-                let musicId: number | null = null;
-
-                // ✅ 먼저 current.musicId가 있으면 직접 사용
-                const storedMusicId = (current as { musicId?: number | null }).musicId;
-                if (storedMusicId && typeof storedMusicId === 'number') {
-                    musicId = storedMusicId;
-                    console.log(`[NowPlayingPage] 재생 로그 music_id 직접 사용:`, musicId);
-                }
-
-                // musicId가 없으면 검색으로 찾기
-                if (!musicId) {
-                    // current.id가 itunes_id일 수 있으므로, music_id를 찾아야 함
-                    const itunesId = Number(current.id);
-                    if (Number.isNaN(itunesId)) {
-                        console.warn(`[NowPlayingPage] 재생 로그 API 호출 실패: current.id가 숫자가 아닙니다.`, current.id);
-                        setPlayLogs([]);
-                        return;
-                    }
-
-                    // 1) 제목으로 검색해서 itunes_id 매칭 시도
-                    try {
-                        const searchUrl = `${API_BASE}/search/opensearch?q=${encodeURIComponent(current.title)}`;
-                        const searchRes = await fetch(searchUrl, {
-                            method: "GET",
-                            signal: controller.signal,
-                            headers: { "Content-Type": "application/json" },
-                        });
-
-                        if (searchRes.ok) {
-                            const searchData = (await searchRes.json()) as SearchApiResponse;
-                            const matchedResult = searchData.results?.find((r) => r.itunes_id === itunesId);
-
-                            if (matchedResult?.music_id) {
-                                musicId = matchedResult.music_id ?? null;
-                            } else if (matchedResult?.album_id) {
-                                // 2) music_id가 없으면 앨범 API를 통해 찾기
-                                try {
-                                    const albumRes = await fetch(`${API_BASE}/albums/${matchedResult.album_id}/`, {
-                                        method: "GET",
-                                        signal: controller.signal,
-                                        headers: { "Content-Type": "application/json" },
-                                    });
-
-                                    if (albumRes.ok) {
-                                        const albumData = (await albumRes.json()) as AlbumDetailResponse;
-                                        const matchedTrack = albumData.tracks?.find(
-                                            (t) => t.music_name === current.title
-                                        );
-                                        if (matchedTrack?.music_id) {
-                                            musicId = matchedTrack.music_id ?? null;
-                                        }
-                                    }
-                                } catch (err) {
-                                    if (err instanceof DOMException && err.name === "AbortError") return;
-                                    console.warn(`[NowPlayingPage] 앨범 API 호출 실패:`, err);
-                                }
-                            }
-                        }
-                    } catch (err) {
-                        if (err instanceof DOMException && err.name === "AbortError") return;
-                        console.warn(`[NowPlayingPage] 검색 API 호출 실패:`, err);
-                    }
-
-                    // 3) 여전히 못 찾으면 "아티스트 + 제목" 조합 검색
-                    if (!musicId) {
-                        try {
-                            const combinedSearch = `${current.artist} ${current.title}`;
-                            const combinedSearchUrl = `${API_BASE}/search/opensearch?q=${encodeURIComponent(combinedSearch)}`;
-
-                            const combinedSearchRes = await fetch(combinedSearchUrl, {
-                                method: "GET",
-                                signal: controller.signal,
-                                headers: { "Content-Type": "application/json" },
-                            });
-
-                            if (combinedSearchRes.ok) {
-                                const combinedSearchData = (await combinedSearchRes.json()) as SearchApiResponse;
-                                const matched = combinedSearchData.results?.find(
-                                    (r) => r.artist_name === current.artist && r.music_name === current.title
-                                );
-                                if (matched?.music_id) {
-                                    musicId = matched.music_id ?? null;
-                                }
-                            }
-                        } catch (err) {
-                            if (err instanceof DOMException && err.name === "AbortError") return;
-                            console.warn(`[NowPlayingPage] 조합 검색 API 호출 실패:`, err);
-                        }
-                    }
-                }
-
-                if (!musicId) {
-                    console.warn(`[NowPlayingPage] ⚠️ music_id를 찾을 수 없어 재생 로그를 불러올 수 없습니다`);
-                    setPlayLogs([]);
-                    return;
-                }
-
-                // 재생 로그 API 호출: /api/v1/playlogs/{music_id}/
-                // 당일 기준 날짜 파라미터 추가
+                // 재생 로그 API 호출
                 const today = new Date();
                 const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-                const playLogsUrl = `${API_BASE}/playlogs/${musicId}/?date=${dateStr}`;
-                console.log(`[NowPlayingPage] 재생 로그 API 호출:`, playLogsUrl, `(당일: ${dateStr})`);
+                const playLogsUrl = `${API_BASE}/playlogs/${resolvedMusicId}/?date=${dateStr}`;
 
                 const res = await fetch(playLogsUrl, {
                     method: "GET",
@@ -712,22 +599,12 @@ export default function NowPlayingPage() {
                 });
 
                 if (!res.ok) {
-                    if (res.status === 404) {
-                        // 404: 재생 로그가 없는 경우 -> 빈 배열
-                        setPlayLogs([]);
-                        return;
-                    }
-                    console.warn(`[NowPlayingPage] 재생 로그 API 오류: ${res.status}`);
                     setPlayLogs([]);
                     return;
                 }
 
                 const data = await res.json();
-                console.log(`[NowPlayingPage] 재생 로그 데이터:`, data);
-
-                // API 응답 형식에 따라 데이터 변환
-                // 예상 형식: { playlogs: [{ hour: "05:30", count: 5 }, ...] } 또는 배열
-                // API 응답 아이템 타입 정의
+                // ... (Parsing Logic preserved)
                 interface PlayLogItem {
                     played_at?: string;
                     user_id?: number;
@@ -755,7 +632,6 @@ export default function NowPlayingPage() {
                 targetDate.setHours(0, 0, 0, 0);
                 const nextDay = new Date(targetDate);
                 nextDay.setDate(nextDay.getDate() + 1);
-                console.log(`[NowPlayingPage] 재생 로그 필터 기준 - 시작: ${targetDate.toISOString()}, 종료: ${nextDay.toISOString()}`);
 
                 // 2시간 간격 슬롯 초기화 (00:00 ~ 22:00)
                 const timeSlots: { [key: string]: number } = {};
@@ -764,7 +640,6 @@ export default function NowPlayingPage() {
                     timeSlots[slot] = 0;
                 }
 
-                let filteredCount = 0;
                 const KST_OFFSET = 9 * 60 * 60 * 1000; // UTC → KST (+9시간)
 
                 rawLogs.forEach((item) => {
@@ -776,7 +651,6 @@ export default function NowPlayingPage() {
 
                         // 당일에 해당하는 데이터만 필터링
                         if (kstDate >= targetDate && kstDate < nextDay) {
-                            filteredCount++;
                             const hour = kstDate.getHours();
                             const roundedHour = Math.floor(hour / 2) * 2;
                             const slot = `${String(roundedHour).padStart(2, '0')}:00`;
@@ -813,9 +687,8 @@ export default function NowPlayingPage() {
                         return hourA - hourB;
                     });
 
-                console.log(`[NowPlayingPage] ✅ 재생 로그 데이터 로드 성공: 전체 ${rawLogs.length}개 중 당일 ${filteredCount}개 필터링`);
-                console.log(`[NowPlayingPage] 재생 로그 데이터 상세:`, logs);
                 setPlayLogs(logs);
+
             } catch (err: unknown) {
                 if (err instanceof DOMException && err.name === "AbortError") return;
                 console.error(`[NowPlayingPage] ❌ 재생 로그 로드 실패:`, err);
@@ -826,11 +699,11 @@ export default function NowPlayingPage() {
         })();
 
         return () => controller.abort();
-    }, [current, API_BASE]);
+    }, [resolvedMusicId, API_BASE]);
 
     // ✅ 음악 추천 데이터 가져오기
     useEffect(() => {
-        if (!currentMusicId) {
+        if (!resolvedMusicId) {
             setRecommendations([]);
             return;
         }
@@ -841,10 +714,9 @@ export default function NowPlayingPage() {
             try {
                 setRecommendationsLoading(true);
                 // limit=4로 요청 (2x2 그리드)
-                const data = await getRecommendations(currentMusicId, 4);
+                const data = await getRecommendations(resolvedMusicId, 4);
                 if (cancelled) return;
 
-                console.log("[NowPlayingPage] 추천 음악 로드 성공:", data.length);
                 setRecommendations(data);
             } catch (err) {
                 console.error("[NowPlayingPage] 추천 음악 로드 실패:", err);
@@ -857,11 +729,11 @@ export default function NowPlayingPage() {
         return () => {
             cancelled = true;
         };
-    }, [currentMusicId]);
+    }, [resolvedMusicId]);
 
     // ✅ 태그 그래프 데이터 가져오기 (Treemap용)
     useEffect(() => {
-        if (!currentMusicId) {
+        if (!resolvedMusicId) {
             setTagGraph([]);
             return;
         }
@@ -871,10 +743,9 @@ export default function NowPlayingPage() {
         (async () => {
             try {
                 setTagGraphLoading(true);
-                const data = await getTagGraph(currentMusicId);
+                const data = await getTagGraph(resolvedMusicId);
                 if (cancelled) return;
 
-                console.log("[NowPlayingPage] 태그 그래프 로드 성공:", data.length);
                 setTagGraph(data);
             } catch (err) {
                 console.error("[NowPlayingPage] 태그 그래프 로드 실패:", err);
@@ -887,12 +758,23 @@ export default function NowPlayingPage() {
         return () => {
             cancelled = true;
         };
-    }, [currentMusicId]);
+    }, [resolvedMusicId]);
 
     // ✅ 좌 패널 상태
     const [leftOpen, setLeftOpen] = useState(false); // 분석 대시보드
     const [rightOpen, setRightOpen] = useState(false); // 재생목록
     const [chartsReady, setChartsReady] = useState(false); // 차트 렌더링 준비 상태
+
+    useEffect(() => {
+        // 페이지 들어오면 4초 정도만 힌트 주고 자동 종료
+        const t = window.setTimeout(() => setHintTabs(false), 1800);
+        return () => window.clearTimeout(t);
+    }, []);
+
+    // 사용자가 한 번이라도 패널 열면 힌트 즉시 종료
+    useEffect(() => {
+        if (leftOpen || rightOpen) setHintTabs(false);
+    }, [leftOpen, rightOpen]);
 
     // ✅ 패널이 열릴 때 차트 렌더링 지연 (ResponsiveContainer 크기 문제 해결)
     useEffect(() => {
@@ -1060,10 +942,6 @@ export default function NowPlayingPage() {
     const handleDragEnd = () => {
         setDragIndex(null);
         setOverIndex(null);
-    };
-
-    const handleStartStation = () => {
-        if (!current) return;
     };
 
     return (
@@ -1383,70 +1261,16 @@ export default function NowPlayingPage() {
                                     <div className="text-sm font-medium">차트를 준비 중이에요...</div>
                                 </div>
                             ) : (
-                                <div className="flex-1 w-full min-h-0 relative">
-                                    <ResponsiveContainer width="100%" height="100%" debounce={50}>
-                                        <Treemap
-                                            key={`treemap-${currentMusicId}-${tagGraphWithIds.length}`}
-                                            data={tagGraphWithIds}
-                                            dataKey="size"
-                                            stroke="#ffffff"
-                                            fill="transparent"
-                                            nameKey="name"
-                                            isAnimationActive={true}
-                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                            content={({ x, y, width, height, name, index, color }: any) => {
-                                                if (!width || !height || width < 10 || height < 10) return <g />;
-
-                                                let finalColor = 'hsla(186, 46%, 79%, 0.35)';
-
-                                                if (treemapBaseColor) {
-                                                    const baseHsl = treemapBaseColor;
-                                                    const area = width * height;
-                                                    const opacity = Math.min(0.85, 0.2 + (area / 20000));
-                                                    const lightness = baseHsl.l + ((1 - opacity) * 10);
-                                                    finalColor = `hsla(${baseHsl.h}, ${baseHsl.s}%, ${lightness}%, ${opacity})`;
-                                                } else if (color) {
-                                                    finalColor = color;
-                                                }
-
-                                                return (
-                                                    <g key={`tag-${index}-${name}`}>
-                                                        <rect
-                                                            x={x}
-                                                            y={y}
-                                                            width={width}
-                                                            height={height}
-                                                            rx={4}
-                                                            ry={4}
-                                                            style={{
-                                                                fill: finalColor,
-                                                                stroke: '#ffffff',
-                                                                strokeWidth: 2,
-                                                                strokeOpacity: 0.5,
-                                                            }}
-                                                        />
-                                                        {width > 35 && height > 18 && (
-                                                            <text
-                                                                x={x + width / 2}
-                                                                y={y + height / 2}
-                                                                textAnchor="middle"
-                                                                dominantBaseline="middle"
-                                                                fill="rgba(255,255,255,0.95)"
-                                                                fontSize={Math.min(20, width / 5)}
-                                                                fontWeight="600"
-                                                                style={{
-                                                                    textShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                                                                    pointerEvents: 'none'
-                                                                }}
-                                                            >
-                                                                {name}
-                                                            </text>
-                                                        )}
-                                                    </g>
-                                                );
-                                            }}
+                                <div className="flex-1 w-full min-h-0 relative flex items-center justify-center">
+                                    <div style={{ width: '100%', height: '100%' }}>
+                                        {/* 커스텀 D3 컴포넌트 사용 */}
+                                        <SimpleWordCloud
+                                            words={words}
+                                            baseColor={treemapBaseColor}
+                                            // Key를 주어 리랜더링 강제 (데이터 변경 시)
+                                            key={`wordcloud-${currentMusicId}-${words.length}-${treemapBaseColor?.h}`}
                                         />
-                                    </ResponsiveContainer>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -1607,11 +1431,17 @@ export default function NowPlayingPage() {
             <div className="h-full relative">
                 {/* 좌측 사이드 버튼 (Dashboard) */}
                 {!leftOpen && (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 z-20">
+                    <div className="absolute left-0 top-1/2 z-20" style={{ transform: "translateY(-50%)" }}>
                         <button
                             type="button"
                             onClick={toggleLeft}
-                            className="w-10 h-24 rounded-r-2xl bg-white/[0.03] backdrop-blur-md border border-white/5 border-l-0 flex items-center justify-center transition-all hover:bg-white/[0.08] shadow-lg text-white/30 hover:text-white"
+                            className={[
+                                "w-20 h-44 rounded-r-2xl bg-white/[0.03] backdrop-blur-md border border-white/5 border-l-0",
+                                "flex items-center justify-center transition-all hover:bg-white/[0.08] shadow-lg",
+                                leftOpen ? "text-white" : "text-white/30 hover:text-white",
+                                // ✅ 힌트: 닫혀있을 때만 커졌다 작아짐
+                                hintTabs && !leftOpen ? "np-tab-hint" : "",
+                            ].join(" ")}
                             aria-label="분석 대시보드 토글"
                         >
                             <RiDashboardFill size={20} />
@@ -1621,11 +1451,17 @@ export default function NowPlayingPage() {
 
                 {/* 우측 사이드 버튼 (Queue) */}
                 {!rightOpen && (
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2 z-20">
+                    <div className="absolute right-0 top-1/2 z-20" style={{ transform: "translateY(-50%)" }}>
                         <button
                             type="button"
                             onClick={toggleRight}
-                            className="w-10 h-24 rounded-l-2xl bg-white/[0.03] backdrop-blur-md border border-white/5 border-r-0 flex items-center justify-center transition-all hover:bg-white/[0.08] shadow-lg text-white/30 hover:text-white"
+                            className={[
+                                "w-20 h-44 rounded-l-2xl bg-white/[0.03] backdrop-blur-md border border-white/5 border-r-0",
+                                "flex items-center justify-center transition-all hover:bg-white/[0.08] shadow-lg",
+                                rightOpen ? "text-white" : "text-white/30 hover:text-white",
+                                // ✅ 힌트: 닫혀있을 때만 커졌다 작아짐
+                                hintTabs && !rightOpen ? "np-tab-hint" : "",
+                            ].join(" ")}
                             aria-label="재생목록 토글"
                         >
                             <MdQueueMusic size={22} />
@@ -1650,15 +1486,6 @@ export default function NowPlayingPage() {
 
                     <button
                         type="button"
-                        onClick={handleStartStation}
-                        className="text-white/60 hover:text-white transition"
-                        title="스테이션 시작"
-                    >
-                        <MdAutoAwesome size={24} />
-                    </button>
-
-                    <button
-                        type="button"
                         onClick={() => navigate(-1)}
                         className="text-white/60 hover:text-white transition"
                         title="축소하기"
@@ -1677,7 +1504,7 @@ export default function NowPlayingPage() {
                                 {hasTrack && (
                                     <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" style={{ width: 820, height: 240, opacity: 0.75, zIndex: 0 }}>
                                         <div className="w-full h-full flex items-end justify-center gap-[10px]">
-                                            {Array.from({ length: 26 }).map((_, i) => {
+                                            {Array.from({ length: 35 }).map((_, i) => {
                                                 const eqActive = hasTrack && isPlaying;
                                                 const dur = 1.6 + (i % 7) * 0.18;
                                                 const delay = (i % 11) * 0.07;
@@ -1742,21 +1569,6 @@ export default function NowPlayingPage() {
                                 ))}
                             </div>
                         )}
-                    </div>
-
-                    {/* 하단 컨트롤 바 - 투명하게 배치 */}
-                    <div className="p-10 bg-gradient-to-t from-black/40 to-transparent">
-                        <div className="max-w-4xl mx-auto flex flex-col items-center gap-8">
-                            <div className="flex items-center gap-10">
-                                <button onClick={shuffleQueue} className="text-white/40 hover:text-white transition"><MdShuffle size={24} /></button>
-                                <button onClick={previousTrack} className="text-white/60 hover:text-white transition"><MdSkipPrevious size={36} /></button>
-                                <button onClick={toggle} className="h-16 w-16 rounded-full bg-[#E4524D] text-white flex items-center justify-center hover:scale-105 transition shadow-xl">
-                                    {isPlaying ? <MdPause size={36} /> : <MdPlayArrow size={36} className="ml-1" />}
-                                </button>
-                                <button onClick={nextTrack} className="text-white/60 hover:text-white transition"><MdSkipNext size={36} /></button>
-                                <button onClick={toggleRepeat} className={repeatMode === "one" ? "text-[#AFDEE2]" : "text-white/40 hover:text-white transition"}><MdRepeat size={24} /></button>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>

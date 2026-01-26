@@ -36,7 +36,6 @@ const ArtistTracksPage = lazy(() => import("./pages/artist/ArtistTracksPage"));
 const ArtistAlbumsPage = lazy(() => import("./pages/artist/ArtistAlbumsPage"));
 const AlbumPage = lazy(() => import("./pages/album/AlbumPage"));
 const StationPage = lazy(() => import("./pages/station/StationPage"));
-const StationTracksPage = lazy(() => import("./pages/station/StationTracksPage"));
 
 // Search Pages
 const SearchPage = lazy(() => import("./pages/search/SearchPage"));
@@ -129,7 +128,6 @@ export default function App() {
               <Route path="/playlist/:playlistId/edit" element={<Suspense fallback={<PageLoader />}><PlaylistEdit /></Suspense>} />
               {/* DJ Station Pages */}
               <Route path="/station/:category" element={<Suspense fallback={<PageLoader />}><StationPage /></Suspense>} />
-              <Route path="/station/:category/tracks" element={<Suspense fallback={<PageLoader />}><StationTracksPage /></Suspense>} />
             </Route>
 
             {/* ✅ 사이드바 없는 구간 (곡 상세보기 용도) */}

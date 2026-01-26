@@ -12,7 +12,13 @@ export async function extractPastelColors(url: string, count: number = 3): Promi
     const cacheBuster = url.includes('?') ? `&t=${Date.now()}` : `?t=${Date.now()}`;
     img.src = url + cacheBuster;
 
+    // 타임아웃 설정 (이미지 로드 2.5초 이상 걸리면 기본값 반환)
+    const timeoutId = setTimeout(() => {
+      resolve(getDefaultPastels(count));
+    }, 2500);
+
     img.onload = () => {
+      clearTimeout(timeoutId);
       try {
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d", { willReadFrequently: true });
@@ -41,16 +47,43 @@ export async function extractPastelColors(url: string, count: number = 3): Promi
           colorCounts[key] = (colorCounts[key] || 0) + 1;
         }
 
-        // 4. 빈도순 정렬 및 상위 색상 추출
+        // 4. 빈도순 정렬 및 상위 색상 추출 (비비드/밝은 색상 가중치 적용)
         const sortedColors = Object.entries(colorCounts)
-          .sort((a, b) => b[1] - a[1])
+          .sort((a, b) => {
+            const [r1, g1, b1] = a[0].split(",").map(Number);
+            const [r2, g2, b2] = b[0].split(",").map(Number);
+
+            const getScore = (r: number, g: number, b: number, count: number) => {
+              const max = Math.max(r, g, b);
+              const min = Math.min(r, g, b);
+              const l = (max + min) / 2 / 255; // 0~1
+              const d = max - min;
+              const s = max === 0 ? 0 : d / max; // 0~1 (HSV style mostly)
+
+              // 가중치 계산
+              let score = count;
+
+              // 1. 무채색(회색조) 페널티: 채도가 낮을수록 점수 대폭 감소
+              if (s < 0.2) score *= 0.3;
+              else if (s < 0.4) score *= 0.8;
+              else score *= 1.5; // 채도 높으면 가점
+
+              // 2. 너무 어둡거나 너무 밝은 색 페널티
+              if (l < 0.15) score *= 0.3; // 너무 어두움
+              else if (l > 0.9) score *= 0.5; // 너무 밝음 (흰색)
+              else if (l > 0.4) score *= 1.2; // 중간 밝기 이상 선호
+
+              return score;
+            };
+
+            const scoreA = getScore(r1, g1, b1, a[1]);
+            const scoreB = getScore(r2, g2, b2, b[1]);
+
+            return scoreB - scoreA;
+          })
           .slice(0, count)
           .map(([rgbStr]) => {
             const [r, g, b] = rgbStr.split(",").map(Number);
-
-            // 단색이 강해지는 것을 방지하는 보정 로직 (제거: 원색 그대로 사용)
-            // 사용자의 요청대로 색 변화를 확실하게 하기 위해 보정 없이 원본 RGB 그대로 반환
-
             return `rgb(${r}, ${g}, ${b})`;
           });
 
@@ -70,6 +103,7 @@ export async function extractPastelColors(url: string, count: number = 3): Promi
     };
 
     img.onerror = () => {
+      clearTimeout(timeoutId);
       resolve(getDefaultPastels(count));
     };
   });
@@ -111,4 +145,34 @@ export function rgbStringToHsl(rgbStr: string): { h: number; s: number; l: numbe
   }
 
   return { h: h * 360, s: s * 100, l: l * 100 };
+}
+
+/**
+ * 주어진 기본 색상(RGB)을 바탕으로 유사한 색상 팔레트 생성
+ * @param baseColor rgb(r, g, b) 형태의 문자열
+ * @param count 생성할 색상 개수
+ */
+export function generateAnalogousPalette(baseColor: string, count: number = 3): string[] {
+  const hsl = rgbStringToHsl(baseColor);
+  if (!hsl) return Array(count).fill(baseColor);
+
+  const colors: string[] = [];
+
+  // 기본 색상 포함
+  colors.push(`hsla(${hsl.h}, ${hsl.s}%, ${hsl.l}%, 0.5)`);
+
+  // 색조(Hue)를 좌우로 조금씩 이동하여 유사 색상 생성
+  for (let i = 1; i < count; i++) {
+    // 15도 -> 8도로 줄여서 더 비슷한 색상 범위로 제한
+    const hueShift = (i % 2 === 0 ? 1 : -1) * Math.ceil(i / 2) * 8;
+    const newH = (hsl.h + hueShift + 360) % 360;
+
+    // 채도와 명도를 약간 높여서 더 화사하게 (채도 +10, 명도 +5 보정)
+    const newS = Math.max(30, Math.min(100, hsl.s + 10 + (Math.random() * 10 - 5)));
+    const newL = Math.max(20, Math.min(90, hsl.l + 5 + (Math.random() * 10 - 5)));
+
+    colors.push(`hsla(${newH}, ${newS}%, ${newL}%, 0.4)`);
+  }
+
+  return colors;
 }

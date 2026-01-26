@@ -196,10 +196,14 @@ export async function addPlaylistItems(
   playlistId: number | string,
   musicIds: number[]
 ): Promise<PlaylistDetail> {
-  // 백엔드 응답이 업데이트된 상세 정보라면 PlaylistDetail, 단순 메시지라면 별도 타입 사용
-  const payload: AddPlaylistItemsRequest = { music_ids: musicIds };
-  const response = await axiosInstance.post<PlaylistDetail>(`/playlists/${playlistId}/items`, payload);
-  return response.data;
+  // 백엔드가 단일 music_id만 지원하므로 병렬 처리
+  const promises = musicIds.map((musicId) =>
+    axiosInstance.post<PlaylistDetail>(`/playlists/${playlistId}/items`, { music_id: musicId })
+  );
+
+  const responses = await Promise.all(promises);
+  // 마지막 응답 반환 (최신 상태)
+  return responses[responses.length - 1].data;
 }
 
 // 서버가 music_id(단건)만 받는 경우 사용

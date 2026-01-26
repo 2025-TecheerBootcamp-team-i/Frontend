@@ -56,9 +56,9 @@ export default function DjStationSection() {
 
     if (loading) {
         return (
-            <section className="mb-8">
+            <section className="mb-6">
                 <div className="flex items-center justify-between mb-0">
-                    <h2 className="text-4xl font-bold text-white px-2">느낌별 스테이션</h2>
+                    <h2 className="text-3xl font-bold text-white px-2 mt-4">느낌별 스테이션</h2>
                 </div>
                 <HorizontalScroller gradientFromClass="from-[#121212]">
                     <div className="flex gap-4 min-w-max px-2 pt-2 pb-8">
@@ -84,9 +84,9 @@ export default function DjStationSection() {
     if (stations.length === 0) return null;
 
     return (
-        <section className="mb-8">
+        <section className="mb-6">
             <div className="flex items-center justify-between mb-0">
-                <h2 className="text-4xl font-bold text-white px-2">느낌별 스테이션</h2>
+                <h2 className="text-3xl font-bold text-white mt-2 px-4">느낌별 스테이션</h2>
             </div>
 
             <HorizontalScroller gradientFromClass="from-[#121212]">

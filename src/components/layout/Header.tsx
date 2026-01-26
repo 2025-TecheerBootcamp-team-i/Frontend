@@ -4,7 +4,6 @@ import { logoutClient } from "../../api/auth";
 
 import { TiHome } from "react-icons/ti";
 import { IoSearch } from "react-icons/io5";
-import { FaMusic } from "react-icons/fa6";
 
 function Header() {
   const navigate = useNavigate();
@@ -42,17 +41,6 @@ function Header() {
         flex items-center px-6 gap-4
       "
     >
-      <div
-        className="
-          w-[50px] h-[50px] flex items-center justify-center
-          bg-white/[0.05]
-          shadow-[0_6px_18px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)]
-          text-[#AFDEE2] rounded-full
-        "
-      >
-        <FaMusic size={18} />
-      </div>
-
       <button
         type="button"
         onClick={goHome}

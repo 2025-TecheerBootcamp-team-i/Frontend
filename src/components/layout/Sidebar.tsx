@@ -2,7 +2,6 @@
 import { MdOutlineNavigateNext, MdPlayArrow } from "react-icons/md";
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { listAllAiMusic } from "../../api/music";
 import { getPlaylistDetail } from "../../api/playlist";
 import { getProfile } from "../../utils/auth";
 import { usePlaylists } from "../../contexts/PlaylistContext";
@@ -27,33 +26,6 @@ function Sidebar() {
     return () => window.removeEventListener("profileUpdated", handleProfileUpdate);
   }, []);
 
-  // ✅ AI 음악 랜덤 배경 이미지
-  const [aiBg, setAiBg] = useState<string | null>(null);
-
-  useEffect(() => {
-    let alive = true;
-
-    const fetchAiBg = async () => {
-      try {
-        const list = await listAllAiMusic({ is_ai: true });
-        if (!alive) return;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const candidates = list.filter((m: any) => m.album_image || m.album_image_square);
-        if (candidates.length > 0) {
-          const randomIdx = Math.floor(Math.random() * candidates.length);
-          const picked = candidates[randomIdx];
-          setAiBg(picked.album_image || picked.album_image_square);
-        }
-      } catch (e) {
-        console.error("Failed to load AI background:", e);
-      }
-    };
-
-    fetchAiBg();
-    return () => {
-      alive = false;
-    };
-  }, []);
 
   const top3 = useMemo(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -75,7 +47,7 @@ function Sidebar() {
       };
     });
 
-    return mapped.slice(0, 3);
+    return mapped.slice(0, 4);
   }, [myPlaylists]);
 
   const [coversById, setCoversById] = useState<
@@ -228,175 +200,77 @@ function Sidebar() {
               </button>
             </div>
 
-            <div className="mt-2 flex flex-col">
-              {top3.length === 0 ? (
-                <div className="px-2 py-3 text-xs text-white/30">
-                  아직 플레이리스트가 없어요.
-                </div>
-              ) : (
-                top3.map((pl) => {
+            <div className="mt-3">
+            {top3.length === 0 ? (
+              <div className="px-2 py-3 text-xs text-white/30">
+                아직 플레이리스트가 없어요.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {top3.slice(0, 4).map((pl) => {
                   const detailCover = coversById[pl.id];
-                  const coverUrls = detailCover?.coverUrls?.length ? detailCover.coverUrls : [];
+                  const coverUrls = detailCover?.coverUrls?.length
+                    ? detailCover.coverUrls
+                    : [];
                   const coverUrl = detailCover?.coverUrl ?? pl.coverUrl;
 
                   return (
                     <button
                       key={pl.id}
-                      className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-white/5 transition group"
-                      onClick={() => navigate(`/playlist/${pl.id}`)}
                       type="button"
+                      onClick={() => navigate(`/playlist/${pl.id}`)}
+                      className="group text-left"
                     >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="w-10 h-10 rounded overflow-hidden bg-white/10 shrink-0">
-                          {coverUrls.length ? (
-                            <div className="w-full h-full grid grid-cols-2 grid-rows-2">
-                              {Array.from({ length: 4 }).map((_, idx) => {
-                                const src = coverUrls[idx];
-                                return src ? (
-                                  <img key={idx} src={src} alt="" className="w-full h-full object-cover" />
-                                ) : (
-                                  <div key={idx} className="w-full h-full bg-white/5" />
-                                );
-                              })}
-                            </div>
-                          ) : coverUrl ? (
-                            <img src={coverUrl} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-white/50 group-hover:text-white">
-                              <MdPlayArrow size={14} />
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="text-left flex-1 min-w-0">
-                          <div className="text-sm text-white/90 font-medium leading-none truncate">
-                            {pl.title}
+                      {/* 커버 */}
+                      <div className="aspect-square w-full rounded-xl overflow-hidden bg-white/10 shadow-md group-hover:scale-[1.02] transition">
+                        {coverUrls.length ? (
+                          <div className="w-full h-full grid grid-cols-2 grid-rows-2">
+                            {Array.from({ length: 4 }).map((_, idx) => {
+                              const src = coverUrls[idx];
+                              return src ? (
+                                <img
+                                  key={idx}
+                                  src={src}
+                                  alt=""
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div key={idx} className="w-full h-full bg-white/5" />
+                              );
+                            })}
                           </div>
-                          <div className="text-[10px] text-white/40 mt-1 truncate">{pl.count}</div>
-                        </div>
+                        ) : coverUrl ? (
+                          <img
+                            src={coverUrl}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-white/40">
+                            <MdPlayArrow size={24} />
+                          </div>
+                        )}
                       </div>
 
-                      <MdOutlineNavigateNext className="text-white/20 group-hover:text-white/60 shrink-0" />
+                      {/* 텍스트 */}
+                      <div className="mt-2 px-1">
+                        <div className="text-sm text-white/90 font-medium truncate">
+                          {pl.title}
+                        </div>
+                        <div className="text-[11px] text-white/40 truncate">
+                          {pl.count}
+                        </div>
+                      </div>
                     </button>
                   );
-                })
-              )}
-            </div>
+                })}
+              </div>
+            )}
+          </div>
+
           </div>
         </div>
 
-        {/* =========================
-            AI 음악 만들기 (마이페이지 카드 규격에 맞춤)
-        ========================= */}
-        <button
-          onClick={() => navigate("/ai")}
-          className={`${cardClass} text-left group`}
-          style={{ minHeight: "180px" }}
-          aria-label="AI 음악 만들기"
-          type="button"
-        >
-          {/* ✅ 랜덤 AI 배경 이미지 */}
-          {aiBg && (
-            <>
-              <div
-                className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110 opacity-70"
-                style={{ backgroundImage: `url('${aiBg}')` }}
-              />
-              <div className="absolute inset-0 bg-black/35 group-hover:bg-black/50 transition-colors" />
-            </>
-          )}
-
-          {/* 콘텐츠 */}
-          <div className="relative z-10 h-full flex flex-col justify-between">
-            <div className="flex items-start justify-between">
-              <span className="text-2xl font-bold text-white tracking-tight leading-tight drop-shadow-md">
-                AI 음악
-                <br />
-                만들기
-              </span>
-
-              <div
-                className="
-                  w-12 h-12
-                  rounded-full
-                  bg-white/20 backdrop-blur-md
-                  flex items-center justify-center
-                  text-white
-                  group-hover:bg-white/30
-                  transition
-                "
-              >
-                <MdOutlineNavigateNext size={28} />
-              </div>
-            </div>
-          </div>
-        </button>
-
-        {/* =========================
-            태그 탐험하기 (마이페이지 카드 규격에 맞춤)
-        ========================= */}
-        <button
-          onClick={() => navigate("/canvas")}
-          className={`${cardClass} text-left group`}
-          style={{ minHeight: "180px" }}
-          aria-label="태그 탐험하기 (캔버스 이동)"
-          type="button"
-        >
-          {/* 배경 이미지 */}
-          <div
-            className="absolute inset-0 bg-cover bg-center transition-transform duration-300 ease-out group-hover:scale-[1.05] opacity-70"
-            style={{ backgroundImage: "url('/images/album_verse_preview.png')" }}
-          />
-
-          {/* ❄️ 스노우볼 */}
-          <div
-            className="absolute inset-0 pointer-events-none opacity-80"
-            style={{
-              backgroundImage: `
-                radial-gradient(2px 2px at 20px 30px, #fff, transparent),
-                radial-gradient(2px 2px at 40px 70px, #fff, transparent),
-                radial-gradient(2px 2px at 60px 40px, #fff, transparent),
-                radial-gradient(2px 2px at 80px 120px, #fff, transparent),
-                radial-gradient(2px 2px at 100px 50px, #fff, transparent),
-                radial-gradient(2px 2px at 150px 150px, #fff, transparent),
-                radial-gradient(3px 3px at 200px 100px, rgba(255,255,255,0.8), transparent),
-                radial-gradient(2px 2px at 250px 200px, #fff, transparent),
-                radial-gradient(2px 2px at 300px 80px, #fff, transparent)
-              `,
-              backgroundSize: "355px 355px",
-            }}
-          />
-
-          {/* 유리 광택 + 오버레이 */}
-          <div className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-black/25 via-transparent to-white/25 opacity-90" />
-          <div className="absolute top-4 right-4 w-20 h-12 bg-white/20 blur-[15px] rounded-full pointer-events-none rotate-[-45deg]" />
-          <div className="absolute inset-0 bg-black/25 group-hover:bg-black/10 transition duration-500" />
-
-          {/* 콘텐츠 */}
-          <div className="relative z-10 h-full flex flex-col justify-between">
-            <div className="flex items-start justify-between">
-              <span className="text-2xl font-bold text-white tracking-tight leading-tight drop-shadow-md">
-                태그
-                <br />
-                탐험하기
-              </span>
-
-              <div
-                className="
-                  w-12 h-12
-                  rounded-full
-                  bg-white/20 backdrop-blur-md
-                  flex items-center justify-center
-                  text-white
-                  group-hover:bg-white/30
-                  transition
-                "
-              >
-                <MdOutlineNavigateNext size={28} />
-              </div>
-            </div>
-          </div>
-        </button>
       </div>
     </aside>
   );

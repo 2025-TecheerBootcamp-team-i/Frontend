@@ -621,6 +621,6 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     ]
   );
 
-  return <PlayerContext.Provider 
+  return <PlayerContext.Provider
     value={value}>{children}</PlayerContext.Provider>;
 }

@@ -117,7 +117,7 @@ function BaseModal({
         <button type="button" className="absolute inset-0 bg-black/50" onClick={onClose} aria-label="닫기" />
         <div className="absolute inset-0 grid place-items-center p-6">
           <div
-            className={`w-full ${maxWidthClass} rounded-3xl bg-[#3d3d3d]/80 border border-white/10 shadow-2xl overflow-hidden`}
+            className={`w-full ${maxWidthClass} rounded-3xl bg-[#3d3d3d] border border-white/10 shadow-2xl overflow-hidden`}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
@@ -169,7 +169,7 @@ export default function SearchSong() {
       }
     >
   >({});
-  
+
   // 추가: 검색 요청 최신성(runId) 관리
   const searchRunIdRef = useRef(0);
 
@@ -237,7 +237,7 @@ export default function SearchSong() {
         setError(e instanceof Error ? e.message : "알 수 없는 오류");
         setApiSongs([]);
       } finally {
-      if (runId === searchRunIdRef.current) setLoading(false);
+        if (runId === searchRunIdRef.current) setLoading(false);
       }
     })();
 
@@ -425,54 +425,54 @@ export default function SearchSong() {
     };
   }, [addOpen]);
 
-const addSelectedToPlaylist = async (playlistId: string) => {
-  if (selectedCount === 0) return;
+  const addSelectedToPlaylist = async (playlistId: string) => {
+    if (selectedCount === 0) return;
 
-  try {
-    const musicIds = (await Promise.all(checkedSongs.map(findMusicId))).filter(
-      (id): id is number => typeof id === "number"
-    );
-    const unique = Array.from(new Set(musicIds));
-    if (unique.length === 0) return;
+    try {
+      const musicIds = (await Promise.all(checkedSongs.map(findMusicId))).filter(
+        (id): id is number => typeof id === "number"
+      );
+      const unique = Array.from(new Set(musicIds));
+      if (unique.length === 0) return;
 
-    const results = await Promise.allSettled(
-      unique.map(async (id) => {
-        try {
-          await addPlaylistItem(playlistId, id);
-          return { id, ok: true };
-        } catch (e) {
-          if (axios.isAxiosError(e)) {
-            const status = e.response?.status;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const msg = (e.response?.data as any)?.error || (e.response?.data as any)?.message || "";
+      const results = await Promise.allSettled(
+        unique.map(async (id) => {
+          try {
+            await addPlaylistItem(playlistId, id);
+            return { id, ok: true };
+          } catch (e) {
+            if (axios.isAxiosError(e)) {
+              const status = e.response?.status;
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const msg = (e.response?.data as any)?.error || (e.response?.data as any)?.message || "";
 
-            const isAlready =
-              status === 409 ||
-              (status === 400 && typeof msg === "string" && msg.includes("이미 플레이리스트에 추가된 곡"));
+              const isAlready =
+                status === 409 ||
+                (status === 400 && typeof msg === "string" && msg.includes("이미 플레이리스트에 추가된 곡"));
 
-            if (isAlready) {
-              return { id, ok: true, already: true };
+              if (isAlready) {
+                return { id, ok: true, already: true };
+              }
             }
+            throw e;
           }
-          throw e;
-        }
-      })
-    );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const fulfilled = results.filter((r) => r.status === "fulfilled").map((r) => (r as PromiseFulfilledResult<any>).value);
+        })
+      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const fulfilled = results.filter((r) => r.status === "fulfilled").map((r) => (r as PromiseFulfilledResult<any>).value);
 
-    const already = fulfilled.filter((v) => v?.already).length;
-    const ok = fulfilled.filter((v) => v?.ok && !v?.already).length;
-    const fail = results.length - (ok + already);
+      const already = fulfilled.filter((v) => v?.already).length;
+      const ok = fulfilled.filter((v) => v?.ok && !v?.already).length;
+      const fail = results.length - (ok + already);
 
-    alert(
-      fail === 0
-        ? already > 0
-          ? `담기 완료: ${ok}곡 / 이미 담김: ${already}곡`
-          : `담기 완료: ${ok}곡`
-        : `담기 완료: ${ok}곡 / 실패: ${fail}곡${already > 0 ? ` / 이미 담김: ${already}곡` : ""}`
-    );
-    
+      alert(
+        fail === 0
+          ? already > 0
+            ? `담기 완료: ${ok}곡 / 이미 담김: ${already}곡`
+            : `담기 완료: ${ok}곡`
+          : `담기 완료: ${ok}곡 / 실패: ${fail}곡${already > 0 ? ` / 이미 담김: ${already}곡` : ""}`
+      );
+
       setAddOpen(false);
       setCheckedIds({});
     } catch (e) {

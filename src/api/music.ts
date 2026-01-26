@@ -224,41 +224,65 @@ export async function getTagGraph(musicId: number): Promise<TagGraphItem[]> {
     let rawData: any[] = [];
     const data = res.data;
 
-    if (Array.isArray(data) && data.length > 0 && data[0].children) {
-      // [{name: "Tags", children: [...]}] 형태
-      rawData = data[0].children;
-    } else if (Array.isArray(data)) {
-      // 배열 형태: [{name, percentage}, ...]
-      rawData = data;
-    } else if (data && Array.isArray(data.children)) {
-      // 트리 형태: {name: "Tags", children: [{name, size}, ...]}
-      rawData = data.children;
-    } else if (data && Array.isArray(data.tags)) {
-      rawData = data.tags;
-    } else if (data && Array.isArray(data.data)) {
-      rawData = data.data;
+    // 1. 배열인 경우 (바로 리스트)
+    if (Array.isArray(data)) {
+      if (data.length > 0 && data[0].children) {
+        // [{name: "Tags", children: [...]}] 형태 (기존 Treemap 구조)
+        rawData = data[0].children;
+      } else {
+        // 일반 배열 형태
+        rawData = data;
+      }
+    }
+    // 2. 객체인 경우 (속성 탐색)
+    else if (typeof data === 'object' && data !== null) {
+      if (Array.isArray(data.children)) {
+        rawData = data.children;
+      } else if (Array.isArray(data.tags)) {
+        rawData = data.tags;
+      } else if (Array.isArray(data.data)) {
+        rawData = data.data;
+      } else if (Array.isArray(data.items)) {
+        rawData = data.items;
+      } else if (Array.isArray(data.results)) {
+        rawData = data.results;
+      } else if (Array.isArray(data.tag_graph)) {
+        rawData = data.tag_graph;
+      } else if (Array.isArray(data.keywords)) {
+        rawData = data.keywords;
+      }
     }
 
     console.log("[API] getTagGraph 파싱된 데이터:", rawData);
 
-    if (rawData.length === 0) {
-      console.warn("[API] Unexpected tag-graph response format:", data);
+    if (!rawData || rawData.length === 0) {
+      console.warn("[API] Unexpected tag-graph response format or empty data:", data);
       return [];
     }
 
     // API 응답을 TagGraphItem 형식으로 변환
-    // percentage를 size로 사용 (Treemap 크기 결정)
-    const percentages = rawData.map((item: any) => item.percentage ?? item.size ?? item.value ?? 10);
-    const minPct = Math.min(...percentages);
-    const maxPct = Math.max(...percentages);
+    // percentage를 size로 사용 (Treemap/WordCloud 크기 결정)
+    // 다양한 필드명을 지원 (value, count, score, weight 등)
+    const percentages = rawData.map((item: any) => {
+      const val = item.percentage ?? item.size ?? item.value ?? item.count ?? item.score ?? item.weight ?? 10;
+      return Number(val);
+    });
+
+    // 유효한 숫자만 필터링
+    const validPercentages = percentages.filter((p: number) => !Number.isNaN(p));
+    const minPct = validPercentages.length > 0 ? Math.min(...validPercentages) : 0;
+    const maxPct = validPercentages.length > 0 ? Math.max(...validPercentages) : 100;
 
     return rawData.map((item: any, index: number) => {
       // 값을 숫자로 확실하게 변환
-      let pct = Number(item.percentage ?? item.size ?? item.value ?? 10);
+      let pct = Number(item.percentage ?? item.size ?? item.value ?? item.count ?? item.score ?? item.weight ?? 10);
       if (Number.isNaN(pct)) pct = 10;
 
+      // 이름 필드 탐색
+      const name = item.name || item.tag_key || item.tag || item.label || item.keyword || item.text || `Tag ${index + 1}`;
+
       return {
-        name: item.name || item.tag_key || item.tag || item.label || `Tag ${index + 1}`,
+        name: String(name),
         size: pct,
         color: getColorByPercentage(pct, minPct, maxPct),
       };
