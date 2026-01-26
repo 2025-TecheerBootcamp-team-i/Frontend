@@ -12,6 +12,7 @@ import { MdOutlineNavigateNext } from "react-icons/md";
 import { FaPlay } from "react-icons/fa6";
 
 import DjStationSection from "./DjStationSection";
+import GenreStationSection from "./GenreStationSection";
 
 
 
@@ -456,6 +457,9 @@ function HomePage() {
 
         {/* DJ Station */}
         <DjStationSection />
+
+        {/* Genre Station */}
+        <GenreStationSection />
 
 
       </div>
