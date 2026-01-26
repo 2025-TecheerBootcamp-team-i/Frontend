@@ -21,7 +21,7 @@ function formatSeconds(sec: number | null | undefined): string {
 export default function StationPage() {
     const { category } = useParams<{ category: string }>();
     const navigate = useNavigate();
-    const { playTracks, setTrackAndPlay } = usePlayer();
+    const { playTracks } = usePlayer();
 
     const decodedCategory = category ? decodeURIComponent(category) : "";
 
