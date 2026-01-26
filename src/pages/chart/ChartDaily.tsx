@@ -13,7 +13,7 @@ import type { PlayerTrack } from "../../player/PlayerContext";
 import { requireLogin } from "../../api/auth";
 
 // ✅ 실제 API (SearchSong과 동일)
-import { listMyPlaylists, addPlaylistItems, type PlaylistSummary } from "../../api/playlist";
+import { listMyPlaylists, addPlaylistItem, type PlaylistSummary } from "../../api/playlist";
 import { likeTrack } from "../../api/LikedSong";
 
 /* =========================
@@ -388,7 +388,10 @@ export default function ChartDaily() {
         const unique = Array.from(new Set(musicIds));
         if (unique.length === 0) return;
 
-        await addPlaylistItems(playlistId, unique);
+        await Promise.all(
+          unique.map((id) => addPlaylistItem(playlistId, id))
+        );
+        alert(`담기 완료: ${unique.length}곡`);
 
         setAddOpen(false);
         setCheckedIds({});

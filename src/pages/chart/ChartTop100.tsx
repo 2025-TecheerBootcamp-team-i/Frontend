@@ -12,7 +12,7 @@ import type { PlayerTrack } from "../../player/PlayerContext";
 import { requireLogin } from "../../api/auth";
 
 // ✅ 실제 API (SearchSong과 동일한 방식)
-import { listMyPlaylists, addPlaylistItems, type PlaylistSummary } from "../../api/playlist";
+import { listMyPlaylists, addPlaylistItem, type PlaylistSummary } from "../../api/playlist";
 // (선택) 좋아요도 진짜 API로 할 거면 SearchSong처럼 likeTrack 사용
 import { likeTrack } from "../../api/LikedSong";
 
@@ -389,7 +389,10 @@ export default function ChartTop100() {
                 const unique = Array.from(new Set(musicIds));
                 if (unique.length === 0) return;
 
-                await addPlaylistItems(playlistId, unique);
+                await Promise.all(
+                    unique.map((id) => addPlaylistItem(playlistId, id))
+                );
+                alert(`담기 완료: ${unique.length}곡`);
 
                 setAddOpen(false);
                 setCheckedIds({});
