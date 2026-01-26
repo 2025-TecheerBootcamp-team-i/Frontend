@@ -47,7 +47,7 @@ function Sidebar() {
       };
     });
 
-    return mapped.slice(0, 3);
+    return mapped.slice(0, 4);
   }, [myPlaylists]);
 
   const [coversById, setCoversById] = useState<
@@ -200,60 +200,74 @@ function Sidebar() {
               </button>
             </div>
 
-            <div className="mt-2 flex flex-col">
-              {top3.length === 0 ? (
-                <div className="px-2 py-3 text-xs text-white/30">
-                  아직 플레이리스트가 없어요.
-                </div>
-              ) : (
-                top3.map((pl) => {
+            <div className="mt-3">
+            {top3.length === 0 ? (
+              <div className="px-2 py-3 text-xs text-white/30">
+                아직 플레이리스트가 없어요.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {top3.slice(0, 4).map((pl) => {
                   const detailCover = coversById[pl.id];
-                  const coverUrls = detailCover?.coverUrls?.length ? detailCover.coverUrls : [];
+                  const coverUrls = detailCover?.coverUrls?.length
+                    ? detailCover.coverUrls
+                    : [];
                   const coverUrl = detailCover?.coverUrl ?? pl.coverUrl;
 
                   return (
                     <button
                       key={pl.id}
-                      className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-white/5 transition group"
-                      onClick={() => navigate(`/playlist/${pl.id}`)}
                       type="button"
+                      onClick={() => navigate(`/playlist/${pl.id}`)}
+                      className="group text-left"
                     >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="w-10 h-10 rounded overflow-hidden bg-white/10 shrink-0">
-                          {coverUrls.length ? (
-                            <div className="w-full h-full grid grid-cols-2 grid-rows-2">
-                              {Array.from({ length: 4 }).map((_, idx) => {
-                                const src = coverUrls[idx];
-                                return src ? (
-                                  <img key={idx} src={src} alt="" className="w-full h-full object-cover" />
-                                ) : (
-                                  <div key={idx} className="w-full h-full bg-white/5" />
-                                );
-                              })}
-                            </div>
-                          ) : coverUrl ? (
-                            <img src={coverUrl} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-white/50 group-hover:text-white">
-                              <MdPlayArrow size={14} />
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="text-left flex-1 min-w-0">
-                          <div className="text-sm text-white/90 font-medium leading-none truncate">
-                            {pl.title}
+                      {/* 커버 */}
+                      <div className="aspect-square w-full rounded-xl overflow-hidden bg-white/10 shadow-md group-hover:scale-[1.02] transition">
+                        {coverUrls.length ? (
+                          <div className="w-full h-full grid grid-cols-2 grid-rows-2">
+                            {Array.from({ length: 4 }).map((_, idx) => {
+                              const src = coverUrls[idx];
+                              return src ? (
+                                <img
+                                  key={idx}
+                                  src={src}
+                                  alt=""
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div key={idx} className="w-full h-full bg-white/5" />
+                              );
+                            })}
                           </div>
-                          <div className="text-[10px] text-white/40 mt-1 truncate">{pl.count}</div>
-                        </div>
+                        ) : coverUrl ? (
+                          <img
+                            src={coverUrl}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-white/40">
+                            <MdPlayArrow size={24} />
+                          </div>
+                        )}
                       </div>
 
-                      <MdOutlineNavigateNext className="text-white/20 group-hover:text-white/60 shrink-0" />
+                      {/* 텍스트 */}
+                      <div className="mt-2 px-1">
+                        <div className="text-sm text-white/90 font-medium truncate">
+                          {pl.title}
+                        </div>
+                        <div className="text-[11px] text-white/40 truncate">
+                          {pl.count}
+                        </div>
+                      </div>
                     </button>
                   );
-                })
-              )}
-            </div>
+                })}
+              </div>
+            )}
+          </div>
+
           </div>
         </div>
 

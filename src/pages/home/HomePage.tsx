@@ -193,19 +193,13 @@ function HomePage() {
   return (
     // ✅ “반응형 끄기”: 전체를 고정폭으로 두고, 화면이 작으면 그냥 가로 스크롤
     <div className="w-full overflow-x-auto">
-      <div className="min-w-[1280px] p-8 pt-4">
-
-        {/* Popular Artists Section (Kept as is) */}
-        <section className="mb-12">
-          <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-            인기 아티스트
-            <span className="text-xs font-normal text-white/40 px-2 py-1 bg-white/5 rounded-full">Top 20</span>
-          </h2>
-          <div className="relative overflow-x-auto pb-2 mb-2">
+      <div className="min-w-[1280px]">
+        <section className="mb-6">
+          <div className="relative overflow-x-auto">
             <div
               ref={scrollRef}
               // ✅ 줄어들면 줄바꿈/압축 대신 그냥 가로가 길어지게
-              className="flex gap-8 min-w-max w-max min-h-[280px]"
+              className="flex gap-8 min-w-max w-max min-h-[280px] px-4 py-6"
             >
               {/* 로딩/에러 상태를 실제 콘텐츠 영역 안에서 처리 */}
               {popularLoading && (
@@ -278,10 +272,10 @@ function HomePage() {
 
 
         {/* ✨ Redesigned Grid Section (As per user request) ✨ */}
-        <section className="mb-16 grid grid-cols-12 gap-6 h-[560px]"> {/* Fixed total height to match columns */}
+        <section className="mb-6 grid grid-cols-12 gap-6 h-[560px]"> {/* Fixed total height to match columns */}
 
           {/* Left Column (Banner + For You) - Span 5 (Narrower) */}
-          <div className="col-span-12 lg:col-span-5 flex flex-col gap-6 h-full">
+          <div className="col-span-5 flex flex-col gap-6 h-full">
             {/* 1. Music Verse Banner (Top ~50%) */}
             <div className="flex-1">
               <MusicVerseBanner />
@@ -290,7 +284,7 @@ function HomePage() {
             {/* 2. AI 음악 만들기 (Bottom ~50%) */}
             <div
               onClick={() => navigate("/ai")}
-              className="group relative flex-1 rounded-[32px] overflow-hidden cursor-pointer shadow-2xl transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(0,0,0,0.4)]"
+              className="group ml-1.5 relative flex-1 rounded-[32px] overflow-hidden cursor-pointer shadow-2xl transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(0,0,0,0.4)]"
             >
               {/* Background Image */}
               <div className="absolute inset-0 bg-black">
@@ -343,7 +337,7 @@ function HomePage() {
           </div>
 
           {/* Right Column (Chart) - Span 7 (Wider) */}
-          <div className="col-span-12 lg:col-span-7 h-full">
+          <div className="col-span-7 h-full">
             <CompactChart
               items={currentChart?.items || []}
               loading={chartLoading}
