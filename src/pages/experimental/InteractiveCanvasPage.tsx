@@ -260,6 +260,12 @@ export default function InteractiveCanvasPage() {
     };
 
     const handlePlay = async (album: CanvasAlbum) => {
+        // Toggle: if same album is playing, stop it
+        if (playingMusic?.album.id === album.id) {
+            setPlayingMusic(null);
+            return;
+        }
+
         try {
             const url = await playTrack(album.id);
             if (url) {
@@ -291,6 +297,7 @@ export default function InteractiveCanvasPage() {
                             setPlayingMusic(null);
                         }}
                         onPlay={() => handlePlay(selectedAlbum)}
+                        isPlaying={playingMusic?.album.id === selectedAlbum.id}
                     />
                 )}
             </AnimatePresence>
@@ -315,9 +322,8 @@ export default function InteractiveCanvasPage() {
                     >
                         {/* Glassmorphism Search Box - Light Theme */}
                         <div className="bg-white/70 backdrop-blur-2xl border border-white/20 rounded-[32px] p-8 shadow-[0_30px_60px_rgba(0,0,0,0.12)]">
-                            {/* Title */}
                             <h2 className="text-black/90 text-3xl font-black mb-2 text-center tracking-tight">
-                                Album Verse
+                                Music Verse
                             </h2>
                             <p className="text-black/50 text-sm text-center mb-8 font-medium">
                                 감성적인 태그로 나만의 음악 우주를 탐험하세요
@@ -381,24 +387,50 @@ export default function InteractiveCanvasPage() {
 
             {/* Header (shown when overlay is hidden) */}
             {!showOverlay && (
-                <div className="fixed top-8 left-8 z-40 pointer-events-none">
-                    <h1 className="text-5xl font-bold text-black tracking-tighter shadow-sm">
-                        Album Verse
-                    </h1>
-                    <p className="text-sm text-black/60 mt-1 font-medium">
-                        #{currentTagsRef.current.replace(/,/g, ' #')}
-                    </p>
-                </div>
+                <>
+                    <div className="fixed top-8 left-8 z-40 pointer-events-none">
+                        <h1 className="text-5xl font-bold text-black tracking-tighter shadow-sm">
+                            Music Verse
+                        </h1>
+                        <p className="text-sm text-black/60 mt-1 font-medium">
+                            #{currentTagsRef.current.replace(/,/g, ' #')}
+                        </p>
+                    </div>
+
+                    {/* Persistent Search Bar (Top Center) */}
+                    <div className="fixed top-8 left-1/2 -translate-x-1/2 z-50 transition-all duration-500 ease-out hover:scale-105">
+                        <form
+                            onSubmit={(e) => {
+                                handleSearch(e);
+                                (document.activeElement as HTMLElement)?.blur();
+                            }}
+                            className="relative group w-[40px] focus-within:w-[320px] transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] overflow-hidden rounded-full bg-white/70 backdrop-blur-xl border border-white/20 shadow-[0_8px_30px_rgba(0,0,0,0.12)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.2)]"
+                        >
+                            <div className="absolute left-0 top-0 bottom-0 w-[40px] flex items-center justify-center pointer-events-none z-10">
+                                <svg className="w-4 h-4 text-black/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="태그 검색..."
+                                className="w-full bg-transparent border-none pl-12 pr-4 py-2.5 text-black placeholder-black/40 focus:outline-none text-sm font-medium h-[40px] opacity-0 focus-within:opacity-100 group-hover:opacity-100 transition-opacity duration-300"
+                            />
+                        </form>
+                    </div>
+                </>
             )}
 
-            {/* Navigation Bar (Simple Button) */}
-            <div className="fixed top-8 left-1/2 -translate-x-1/2 z-40">
+            {/* Navigation Bar (Glassmorphism Button) */}
+            <div className="fixed top-8 right-8 z-50">
                 <button
                     onClick={() => navigate('/home')}
-                    className="px-6 py-2 bg-white text-black rounded-full font-medium hover:bg-gray-100 transition-colors text-sm flex items-center gap-2 shadow-xl border border-black/5"
+                    className="px-6 py-3 bg-white/70 backdrop-blur-xl border border-white/20 text-black/90 rounded-full font-bold hover:bg-white/90 transition-all text-sm flex items-center gap-2 shadow-[0_8px_30px_rgba(0,0,0,0.12)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.2)] hover:scale-105 active:scale-95"
                 >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-                    HomePage
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                    Home
                 </button>
             </div>
         </div>
