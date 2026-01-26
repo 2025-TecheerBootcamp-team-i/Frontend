@@ -13,11 +13,11 @@ export default function MusicVerseBanner() {
             {/* Background Image - Cosmic/Abstract */}
             <div className="absolute inset-0 bg-black">
                 <img
-                    src="/images/album_verse_preview.png"
+                    src="/images/album_verse_preview.webp"
                     alt="Music Universe"
                     className="w-full h-full object-cover opacity-80 group-hover:opacity-60 transition-opacity duration-700"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10" />
             </div>
 
             {/* Arrow Button - Top Right */}
