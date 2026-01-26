@@ -3,26 +3,13 @@ import { useEffect, useMemo, useState } from "react";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 import Player from "./Player";
-import { usePlaylists } from "../../contexts/PlaylistContext";
 import { usePlayer } from "../../player/PlayerContext";
 import { extractPastelColors } from "../../utils/color";
 
-export type Playlist = {
-    id: string;
-    title: string;
-    coverUrl?: string;
-    createdAt?: number;
-};
-
 function MainLayout2() {
     const PLAYER_H = 85;
-
-    // ✅ playlists / createPlaylist는 여기서 "필요할 때만" 쓰는 게 맞음
-    // (지금 파일에선 playlists, handleCreatePlaylist를 안 쓰므로 제거)
-    const { myPlaylists } = usePlaylists();
-
     const { current } = usePlayer();
-    const [bgColors, setBgColors] = useState<string[]>([]);
+    const [effectiveBgColors, setEffectiveBgColors] = useState<string[]>([]);
 
     const coverUrl = useMemo(() => {
         const raw = current?.coverUrl;
@@ -37,26 +24,12 @@ function MainLayout2() {
 
     useEffect(() => { 
         if (coverUrl) 
-            { extractPastelColors(coverUrl, 3).then(colors => setBgColors(colors)); } 
+            { extractPastelColors(coverUrl, 3).then(colors => setEffectiveBgColors(colors)); } 
         else { 
             // eslint-disable-next-line react-hooks/set-state-in-effect 
-            setBgColors([]); 
+            setEffectiveBgColors([]); 
         } 
     }, [coverUrl]);
-
-    // ✅ Outlet context로 필요하면 넘기기(지금은 안 쓰면 삭제 가능)
-    const playlists: Playlist[] = useMemo(
-        () =>
-        myPlaylists.map((p) => ({
-            id: p.id,
-            title: p.title,
-            coverUrl: p.coverUrl,
-            createdAt: p.createdAt,
-        })),
-        [myPlaylists]
-    );
-
-    const effectiveBgColors = coverUrl ? bgColors : [];
 
     return (
         <div className="relative h-screen overflow-hidden flex flex-col bg-[#080808]">
@@ -90,10 +63,13 @@ function MainLayout2() {
         <div className="relative z-10 h-full flex flex-col">
             <Header />
             <div className="flex flex-1 min-h-0 overflow-hidden">
-            <Sidebar />
-            <main className="flex-1 min-h-0 overflow-auto" style={{ paddingBottom: PLAYER_H }}>
-                <Outlet context={{ playlists }} />
-            </main>
+                <Sidebar />
+                <main
+                    className="flex-1 min-h-0 overflow-auto"
+                    style={{ paddingBottom: PLAYER_H }}
+                >
+                    <Outlet />
+                </main>
             </div>
         </div>
 

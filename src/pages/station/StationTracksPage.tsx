@@ -145,7 +145,14 @@ export default function StationTracksPage() {
                 const stations = await fetchDjStations();
                 if (!alive) return;
 
-                const found = stations.find((s) => s.category === decodedCategory);
+                // Search through all sections to find the matching category
+                // Flatten all station_data from all sections
+                const allCategories = stations.flatMap(section => section.station_data);
+
+                // Try exact match first, then case-insensitive
+                const found = allCategories.find((s) => s.category === decodedCategory) ||
+                    allCategories.find((s) => s.category.toLowerCase() === decodedCategory.toLowerCase());
+
                 if (found) {
                     setStation(found);
                     setError(null);

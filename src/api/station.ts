@@ -15,15 +15,38 @@ export type StationCategory = {
     tracks: StationTrack[];
 };
 
-const MOCK_STATIONS: StationCategory[] = [
-    { category: "신나는 노래", keyword: "신나는", tracks: [] },
-    { category: "우울할 때", keyword: "우울", tracks: [] },
-    { category: "달달한 노래", keyword: "달달", tracks: [] },
-    { category: "운전할 때", keyword: "운전", tracks: [] },
-    { category: "운동할 때", keyword: "운동", tracks: [] },
-    { category: "집중 할때", keyword: "집중", tracks: [] },
-    { category: "이별 노래", keyword: "이별", tracks: [] },
-    { category: "잠 안 올때", keyword: "잠", tracks: [] },
+export type StationSection = {
+    theme: string;
+    station_data: StationCategory[];
+};
+
+const MOCK_STATIONS: StationSection[] = [
+    {
+        theme: "느낌 별 스테이션",
+        station_data: [
+            { category: "신나는 노래", keyword: "신나는", tracks: [] },
+            { category: "우울할 때", keyword: "우울", tracks: [] },
+            { category: "달달한 노래", keyword: "달달", tracks: [] },
+            { category: "운전할 때", keyword: "운전", tracks: [] },
+            { category: "운동할 때", keyword: "운동", tracks: [] },
+            { category: "집중 할때", keyword: "집중", tracks: [] },
+            { category: "이별 노래", keyword: "이별", tracks: [] },
+            { category: "잠 안 올때", keyword: "잠", tracks: [] },
+        ]
+    },
+    {
+        theme: "장르 별 스테이션",
+        station_data: [
+            { category: "요즘 k-pop", keyword: "k-pop", tracks: [] },
+            { category: "요즘 pop", keyword: "pop", tracks: [] },
+            { category: "슬픈 발라드", keyword: "발라드", tracks: [] },
+            { category: "편안한 알앤비", keyword: "r&b", tracks: [] },
+            { category: "요즘 국힙", keyword: "국힙", tracks: [] },
+            { category: "요즘 외힙", keyword: "외힙", tracks: [] },
+            { category: "잔잔한 클래식", keyword: "클래식", tracks: [] },
+            { category: "EDM", keyword: "edm", tracks: [] },
+        ]
+    }
 ];
 
 /**
@@ -32,9 +55,9 @@ const MOCK_STATIONS: StationCategory[] = [
  */
 
 // Simple in-memory cache
-let cachedStations: StationCategory[] | null = null;
+let cachedStations: StationSection[] | null = null;
 
-export async function fetchDjStations(): Promise<StationCategory[]> {
+export async function fetchDjStations(): Promise<StationSection[]> {
     // Return cached data if available
     if (cachedStations) {
         return cachedStations;
@@ -42,12 +65,25 @@ export async function fetchDjStations(): Promise<StationCategory[]> {
 
     try {
         const res = await axiosInstance.get("/tracks/station/curated");
-        let data: StationCategory[] = [];
+        let data: StationSection[] = [];
 
         if (Array.isArray(res.data)) {
-            data = res.data as StationCategory[];
+            // New structure: Array of objects with { theme, station_data }
+            const firstItem = res.data[0];
+            if (firstItem && typeof firstItem === 'object' && 'station_data' in firstItem) {
+                // Correct structure
+                data = res.data as StationSection[];
+            }
+            // Previous assumption of 2D array (keeping for safety if mixed)
+            else if (Array.isArray(firstItem)) {
+                data = [{ theme: "느낌 별 스테이션", station_data: firstItem as StationCategory[] }];
+            }
+            else {
+                // Flat array (Legacy)
+                data = [{ theme: "느낌 별 스테이션", station_data: res.data as StationCategory[] }];
+            }
         } else if (res.data && Array.isArray(res.data.results)) {
-            data = res.data.results as StationCategory[];
+            data = [{ theme: "느낌 별 스테이션", station_data: res.data.results as StationCategory[] }];
         } else {
             // Fallback to mock if format is unexpected
             data = MOCK_STATIONS;
@@ -59,13 +95,6 @@ export async function fetchDjStations(): Promise<StationCategory[]> {
 
     } catch (e) {
         console.warn("Backend not deployed yet, using mock data for DJ Station");
-        // Don't cache errors (or maybe cache mock data on error?)
-        // For now, let's just return mock but not cache it permanently so retries can happen? 
-        // Actually, if backend is down, we probably want to keep trying or just show mock.
-        // Let's caching mock data behavior for consistency if we want "instant" load next time too?
-        // But user might want real data. Let's NOT cache the error fallback for now, 
-        // so it retries on next page visit if it failed. 
-        // However, if the issue is "slow load" and it's timing out, we definitely want some fallback usage.
         return MOCK_STATIONS;
     }
 }
