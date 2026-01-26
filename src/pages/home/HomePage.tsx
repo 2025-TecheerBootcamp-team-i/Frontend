@@ -4,7 +4,7 @@ import { MdOutlineNavigateNext } from "react-icons/md";
 
 import { fetchPopularArtists, type PopularArtist } from "../../api/artist";
 import { fetchChart, type ChartData, type ChartType } from "../../api/chart";
-import { listAllAiMusic } from "../../api/music";
+// import { listAllAiMusic } from "../../api/music";
 
 import DjStationSection from "./DjStationSection";
 import GenreStationSection from "./GenreStationSection";
@@ -39,8 +39,7 @@ function HomePage() {
   });
   const [chartLoading, setChartLoading] = useState(false);
 
-  // AI 음악 배경 이미지
-  const [aiBg, setAiBg] = useState<string | null>(null);
+
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeft, setShowLeft] = useState(false);
@@ -81,31 +80,7 @@ function HomePage() {
     };
   }, []);
 
-  // AI 음악 배경 이미지 로드
-  useEffect(() => {
-    let alive = true;
 
-    const fetchAiBg = async () => {
-      try {
-        const list = await listAllAiMusic({ is_ai: true });
-        if (!alive) return;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const candidates = list.filter((m: any) => m.album_image || m.album_image_square);
-        if (candidates.length > 0) {
-          const randomIdx = Math.floor(Math.random() * candidates.length);
-          const picked = candidates[randomIdx];
-          setAiBg(picked.album_image || picked.album_image_square);
-        }
-      } catch (e) {
-        console.error("Failed to load AI background:", e);
-      }
-    };
-
-    fetchAiBg();
-    return () => {
-      alive = false;
-    };
-  }, []);
 
   useEffect(() => {
     requestAnimationFrame(updateArtistScrollHint);
@@ -284,20 +259,16 @@ function HomePage() {
             {/* 2. AI 음악 만들기 (Bottom ~50%) */}
             <div
               onClick={() => navigate("/ai")}
-              className="group relative flex-1 rounded-[32px] overflow-hidden cursor-pointer shadow-2xl transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(0,0,0,0.4)]"
+              className="group ml-1.5 relative flex-1 rounded-[32px] overflow-hidden cursor-pointer shadow-2xl transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(0,0,0,0.4)]"
             >
               {/* Background Image */}
               <div className="absolute inset-0 bg-black">
-                {aiBg ? (
-                  <img
-                    src={aiBg}
-                    alt="AI Music"
-                    className="w-full h-full object-cover opacity-80 group-hover:opacity-60 transition-opacity duration-700"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-orange-600 via-red-500 to-pink-500 opacity-80" />
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30" />
+                <img
+                  src="/images/ai_banner.webp"
+                  alt="AI Music"
+                  className="w-full h-full object-cover object-top opacity-80 group-hover:opacity-60 transition-opacity duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10" />
               </div>
 
               {/* Arrow Button - Top Right */}
@@ -325,14 +296,14 @@ function HomePage() {
                   </span>
                   <h2 className="text-5xl font-black text-white tracking-tighter leading-tight mb-4">
                     AI 음악<br />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-400">만들기</span>
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">만들기</span>
                   </h2>
                 </div>
               </div>
 
               {/* Decorative Floating Elements */}
-              <div className="absolute top-10 right-10 w-32 h-32 bg-orange-500/30 rounded-full blur-[50px] animate-pulse" />
-              <div className="absolute bottom-[-20px] left-[20%] w-40 h-40 bg-red-500/20 rounded-full blur-[60px]" />
+              <div className="absolute top-10 right-10 w-32 h-32 bg-blue-500/30 rounded-full blur-[50px] animate-pulse" />
+              <div className="absolute bottom-[-20px] left-[20%] w-40 h-40 bg-cyan-500/20 rounded-full blur-[60px]" />
             </div>
           </div>
 

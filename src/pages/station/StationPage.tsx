@@ -15,7 +15,7 @@ import { CATEGORY_STYLES } from "../home/DjStationSection";
 import { GENRE_IMAGES } from "../home/GenreStationSection";
 
 // ✅ 실데이터 API (ChartTop100 / SearchSong 방식)
-import { listMyPlaylists, addPlaylistItems, type PlaylistSummary } from "../../api/playlist";
+import { listMyPlaylists, addPlaylistItem, type PlaylistSummary } from "../../api/playlist";
 import { likeTrack } from "../../api/LikedSong";
 
 /* ===================== 액션 ===================== */
@@ -467,7 +467,10 @@ export default function StationPage() {
             const unique = Array.from(new Set(musicIds));
             if (unique.length === 0) return;
 
-            await addPlaylistItems(playlistId, unique);
+            await Promise.all(
+                unique.map((id) => addPlaylistItem(playlistId, id))
+            );
+            alert(`담기 완료: ${unique.length}곡`);
 
             setAddOpen(false);
             setCheckedIds({});
