@@ -106,6 +106,7 @@ export default function StationPage() {
         return (
             <div className="w-full min-h-screen bg-[#1D1D1D] text-white p-6">
                 <button
+                    type="button"
                     onClick={(e) => {
                         e.stopPropagation();
                         navigate("/home");
@@ -140,11 +141,12 @@ export default function StationPage() {
 
                     {/* Back Button */}
                     <button
+                        type="button"
                         onClick={(e) => {
                             e.stopPropagation();
                             navigate("/home");
                         }}
-                        className="absolute left-4 top-5 z-[100] p-2 text-[#F6F6F6] rounded-full hover:bg-white/10 transition cursor-pointer"
+                        className="absolute left-4 top-5 z-[200] p-2 text-[#F6F6F6] rounded-full hover:bg-white/10 transition cursor-pointer"
                     >
                         <IoChevronBack size={24} />
                     </button>

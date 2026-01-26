@@ -85,9 +85,6 @@ export default function DjStationSection() {
         <section className="mb-8">
             <div className="flex items-center justify-between mb-0">
                 <h2 className="text-4xl font-bold text-white px-2">DJ 스테이션</h2>
-                <span className="text-gray-400 text-sm cursor-pointer hover:text-white transition px-2">
-                    더보기
-                </span>
             </div>
 
             <HorizontalScroller gradientFromClass="from-[#121212]">

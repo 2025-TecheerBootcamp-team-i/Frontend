@@ -11,9 +11,10 @@ export interface PlaylistItem {
     music_id: number;
     title: string;
     artist: { name: string };
-    album: { title: string; cover_image: string };
-    duration?: number; // 필요 시 추가
-    [key: string]: any; 
+    album?: { title: string; cover_image: string };
+    album_image?: string;
+    duration?: number;
+    [key: string]: any;
   };
   order: number;
   created_at: string;
@@ -95,6 +96,11 @@ export interface DeletePlaylistResponse {
 export interface DeletePlaylistItemsResponse {
   message: string;
   deleted_count: number;
+}
+
+export interface DeletePlaylistItemResponse {
+  message: string;
+  item_id: number;
 }
 
 // ==========================================
@@ -189,12 +195,26 @@ export async function updatePlaylist(
 export async function addPlaylistItems(
   playlistId: number | string,
   musicIds: number[]
-): Promise<PlaylistDetail> { 
+): Promise<PlaylistDetail> {
   // 백엔드 응답이 업데이트된 상세 정보라면 PlaylistDetail, 단순 메시지라면 별도 타입 사용
   const payload: AddPlaylistItemsRequest = { music_ids: musicIds };
   const response = await axiosInstance.post<PlaylistDetail>(`/playlists/${playlistId}/items`, payload);
   return response.data;
 }
+
+// 서버가 music_id(단건)만 받는 경우 사용
+export async function addPlaylistItem(
+  playlistId: number | string,
+  musicId: number
+): Promise<PlaylistDetail> {
+  const payload = { music_id: musicId };
+  const response = await axiosInstance.post<PlaylistDetail>(
+    `/playlists/${playlistId}/items`,
+    payload
+  );
+  return response.data;
+}
+
 
 
 /**
@@ -208,6 +228,19 @@ export async function deletePlaylistItems(
   const response = await axiosInstance.delete<DeletePlaylistItemsResponse>(
     `/playlists/items/${playlistId}`,
     { data: { item_ids: itemIds } as DeletePlaylistItemsRequest }
+  );
+  return response.data;
+}
+
+/**
+ * 7-1. 플레이리스트 내 단일 곡 삭제 (Delete Single Item)
+ * DELETE /api/v1/playlists/items/{item_id}
+ */
+export async function deletePlaylistItem(
+  itemId: number | string
+): Promise<DeletePlaylistItemResponse> {
+  const response = await axiosInstance.delete<DeletePlaylistItemResponse>(
+    `/playlists/items/${itemId}`
   );
   return response.data;
 }
