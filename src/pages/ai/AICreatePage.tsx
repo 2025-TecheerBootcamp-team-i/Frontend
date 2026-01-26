@@ -16,11 +16,10 @@ import { Typewriter } from "../../components/Typewriter/Typewriter";
 import { CursorStyle } from "../../components/Typewriter/types";
 
 import {
-  getPlaylistById,
-  getUserPlaylists,
-  subscribePlaylists,
-  updatePlaylist,
-} from "../../mocks/playlistMock";
+  listMyPlaylists,
+  addPlaylistItems,
+  type PlaylistSummary,
+} from "../../api/playlist";
 
 import {
   MdSearch,
@@ -148,7 +147,8 @@ export default function AiCreatePage() {
       promptCardRef.current?.scrollIntoView({
         behavior: "smooth",
         block: "center",
-      }); });
+      });
+    });
 
     // URL 깔끔하게 정리 (선택이지만 강추)
     sp.delete("prompt");
@@ -159,40 +159,40 @@ export default function AiCreatePage() {
     const scroller = backScrollRef.current;
     const content = backContentRef.current;
     if (!scroller || !content) return;
-  
+
     const stickToBottom = () => {
       scroller.scrollTop = scroller.scrollHeight;
     };
-  
+
     // 시작 시 한번
     stickToBottom();
-  
+
     const ro = new ResizeObserver(() => {
       requestAnimationFrame(stickToBottom);
     });
-  
+
     ro.observe(content);
     return () => ro.disconnect();
   }, [typewriterTrigger, displayText]);
-  
+
   useEffect(() => {
     const scroller = frontScrollRef.current;
     const content = frontContentRef.current;
     if (!scroller || !content) return;
-  
+
     const stickToBottom = () => {
       scroller.scrollTop = scroller.scrollHeight;
     };
-  
+
     stickToBottom();
-  
+
     const ro = new ResizeObserver(() => {
       requestAnimationFrame(stickToBottom);
     });
-  
+
     ro.observe(content);
     return () => ro.disconnect();
-  }, [prompt]);  
+  }, [prompt]);
 
 
   // 사용자가 입력을 변경할 때 (변환 결과가 없을 때만 사용자 입력 표시)
@@ -248,95 +248,95 @@ export default function AiCreatePage() {
   };
 
   useEffect(() => {
-      const load = async () => {
-        try {
-          setListLoading(true);
-    
-          const allData = await listAllAiMusic({ is_ai: true });
-          if (!allData || !Array.isArray(allData)) {
-            setRows([]);
-            setAllRows([]);
-            return;
-          }
-    
-          const validData = allData.filter((m) => m.duration != null && m.duration > 0);
-    
-          const uniqData = Array.from(
-            new Map(validData.map((m) => [m.music_id, m])).values()
-          );
-    
-          const sorted = [...uniqData].sort((a, b) => {
-            const at = a.created_at ? new Date(a.created_at).getTime() : 0;
-            const bt = b.created_at ? new Date(b.created_at).getTime() : 0;
-            return bt - at;
-          });
-    
-          // ✅ 전체(검색용)
-          const allRaw = sorted;
-    
-          // ✅ 기본(화면 표시용): 최근 200개만
-          const baseRaw = sorted.slice(0, 50);
-    
-          // ✅ 커버 + AiTrack 매핑 함수
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const mapOne = async (m: any): Promise<AiTrack> => {
-            let coverUrl: string | undefined;
-    
-            try {
-              const musicDetail = await getMusicDetail(m.music_id);
-    
-              if (musicDetail) {
-                if (musicDetail.image_square) coverUrl = musicDetail.image_square;
-                else if (musicDetail.image_large_square) coverUrl = musicDetail.image_large_square;
-                else if (musicDetail.album_image) coverUrl = musicDetail.album_image;
-                else if (musicDetail.album_id) {
-                  const albumCover = await getBestAlbumCover(musicDetail.album_id, null);
-                  coverUrl = albumCover || undefined;
-                }
-              }
-            } catch {
-              // ignore
-            }
-    
-            return {
-              musicId: m.music_id,
-              status: (m.audio_url ? "Upload" : "Draft") as AiTrack["status"],
-              title: m.music_name || "제목 없음",
-              desc: m.lyrics || m.genre || "",
-              duration: formatDuration(m.duration ?? 0),
-              createdAt: m.created_at ? formatKoreanDate(m.created_at) : "",
-              isAi: m.is_ai ?? true,
-              artist: m.artist_name || "AI Artist",
-              plays: 0,
-              lyrics: m.lyrics || "",
-              coverUrl,
-              audioUrl: m.audio_url || undefined,
-              prompt: "",
-              ownerId: undefined,
-              ownerName: undefined,
-            };
-          };
-    
-          // ✅ base(200개) 먼저 만들어서 빠르게 화면 표시
-          const baseMapped = await Promise.all(baseRaw.map(mapOne));
-          setRows(baseMapped);
-    
-          // ✅ 전체는 뒤에서 계속 로드(검색 정확도 위해)
-          const allMapped = await Promise.all(allRaw.map(mapOne));
-          setAllRows(allMapped);
-    
-        } catch {
+    const load = async () => {
+      try {
+        setListLoading(true);
+
+        const allData = await listAllAiMusic({ is_ai: true });
+        if (!allData || !Array.isArray(allData)) {
           setRows([]);
           setAllRows([]);
-        } finally {
-          setListLoading(false);
+          return;
         }
-      };
-    
-      load();
-    }, []);
-  
-  
+
+        const validData = allData.filter((m) => m.duration != null && m.duration > 0);
+
+        const uniqData = Array.from(
+          new Map(validData.map((m) => [m.music_id, m])).values()
+        );
+
+        const sorted = [...uniqData].sort((a, b) => {
+          const at = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const bt = b.created_at ? new Date(b.created_at).getTime() : 0;
+          return bt - at;
+        });
+
+        // ✅ 전체(검색용)
+        const allRaw = sorted;
+
+        // ✅ 기본(화면 표시용): 최근 200개만
+        const baseRaw = sorted.slice(0, 50);
+
+        // ✅ 커버 + AiTrack 매핑 함수
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const mapOne = async (m: any): Promise<AiTrack> => {
+          let coverUrl: string | undefined;
+
+          try {
+            const musicDetail = await getMusicDetail(m.music_id);
+
+            if (musicDetail) {
+              if (musicDetail.image_square) coverUrl = musicDetail.image_square;
+              else if (musicDetail.image_large_square) coverUrl = musicDetail.image_large_square;
+              else if (musicDetail.album_image) coverUrl = musicDetail.album_image;
+              else if (musicDetail.album_id) {
+                const albumCover = await getBestAlbumCover(musicDetail.album_id, null);
+                coverUrl = albumCover || undefined;
+              }
+            }
+          } catch {
+            // ignore
+          }
+
+          return {
+            musicId: m.music_id,
+            status: (m.audio_url ? "Upload" : "Draft") as AiTrack["status"],
+            title: m.music_name || "제목 없음",
+            desc: m.lyrics || m.genre || "",
+            duration: formatDuration(m.duration ?? 0),
+            createdAt: m.created_at ? formatKoreanDate(m.created_at) : "",
+            isAi: m.is_ai ?? true,
+            artist: m.artist_name || "AI Artist",
+            plays: 0,
+            lyrics: m.lyrics || "",
+            coverUrl,
+            audioUrl: m.audio_url || undefined,
+            prompt: "",
+            ownerId: undefined,
+            ownerName: undefined,
+          };
+        };
+
+        // ✅ base(200개) 먼저 만들어서 빠르게 화면 표시
+        const baseMapped = await Promise.all(baseRaw.map(mapOne));
+        setRows(baseMapped);
+
+        // ✅ 전체는 뒤에서 계속 로드(검색 정확도 위해)
+        const allMapped = await Promise.all(allRaw.map(mapOne));
+        setAllRows(allMapped);
+
+      } catch {
+        setRows([]);
+        setAllRows([]);
+      } finally {
+        setListLoading(false);
+      }
+    };
+
+    load();
+  }, []);
+
+
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -569,6 +569,8 @@ export default function AiCreatePage() {
     duration: r.duration,
     audioUrl: r.audioUrl,
     musicId: r.musicId,
+    coverUrl: r.coverUrl, // ✅ 커버 이미지 추가
+    albumId: undefined, // AI 곡은 앨범 ID가 없을 수 있음 (필요 시 r.albumId 추가)
   });
 
   const selectedTracks = useMemo(() => selectedRows.map(toTrack), [selectedRows]);
@@ -578,42 +580,41 @@ export default function AiCreatePage() {
    * ✅ 담기 모달
    ========================= */
   const [addOpen, setAddOpen] = useState(false);
-  const [addTargets, setAddTargets] = useState(() => getUserPlaylists());
+  const [addTargets, setAddTargets] = useState<PlaylistSummary[]>([]);
 
   useEffect(() => {
-    const syncTargets = () => setAddTargets(getUserPlaylists());
-    syncTargets();
-    return subscribePlaylists(syncTargets);
-  }, []);
+    // 플레이리스트 목록 로드 (Real API)
+    const loadPlaylists = async () => {
+      try {
+        const myPlaylists = await listMyPlaylists();
+        setAddTargets(myPlaylists);
+      } catch (err) {
+        console.error("Failed to load user playlists:", err);
+      }
+    };
 
-  const addSelectedToPlaylist = (playlistId: string) => {
+    if (addOpen) {
+      loadPlaylists();
+    }
+  }, [addOpen]);
+
+  const addSelectedToPlaylist = async (playlistId: number) => {
     if (selectedCount === 0) return;
 
-    const curr = getPlaylistById(playlistId);
-    if (!curr) return;
+    try {
+      // 선택된 musicId들 추출
+      const musicIds = selectedRows.map(r => r.musicId);
 
-    const incoming = selectedTracks.map((t) => ({
-      id: t.id,
-      title: t.title,
-      artist: t.artist,
-      album: "",
-      duration: t.duration ?? "0:00",
-      likeCount: 0,
-      kind: "track" as const,
-    }));
+      // API 호출
+      await addPlaylistItems(playlistId, musicIds);
 
-    const exists = new Set(curr.tracks.map((x) => x.id));
-    const merged = [...curr.tracks];
-
-    for (const tr of incoming) {
-      if (exists.has(tr.id)) continue;
-      merged.push(tr);
-      exists.add(tr.id);
+      alert("플레이리스트에 곡을 추가했습니다.");
+      setAddOpen(false);
+      setSelected(new Set());
+    } catch (err) {
+      console.error("Failed to add tracks to playlist:", err);
+      alert("플레이리스트 추가에 실패했습니다.");
     }
-
-    updatePlaylist(playlistId, { tracks: merged });
-    setAddOpen(false);
-    setSelected(new Set());
   };
 
   /** =========================
@@ -730,13 +731,12 @@ export default function AiCreatePage() {
           <input ref={fileRef} type="file" accept="image/*" onChange={onCoverChange} className="hidden" />
 
           {/* 프롬프트 카드 - 플립 애니메이션 (투명 유리 스타일 적용) */}
-          <div 
+          <div
             ref={promptCardRef}
             className="mt-10 mx-6 [perspective:1000px] h-[350px]">
             <div
-              className={`relative w-full h-full transition-transform duration-600 ease-in-out [transform-style:preserve-3d] ${
-                isFlipped ? "[transform:rotateY(180deg)]" : ""
-              }`}
+              className={`relative w-full h-full transition-transform duration-600 ease-in-out [transform-style:preserve-3d] ${isFlipped ? "[transform:rotateY(180deg)]" : ""
+                }`}
               style={{ transition: "transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)" }}
             >
               {/* 앞면: 사용자 입력 */}
@@ -760,7 +760,7 @@ export default function AiCreatePage() {
                   </div>
 
                   {/* Typewriter 애니메이션 표시 영역 */}
-                  <div 
+                  <div
                     ref={frontScrollRef}
                     className="relative w-full flex flex-col items-center justify-center min-h-[220px] max-h-[220px] overflow-y-auto no-scrollbar">
                     {prompt ? (
@@ -840,7 +840,7 @@ export default function AiCreatePage() {
                     ].join(" ")}
                   >
                     {displayText ? (
-                      <div 
+                      <div
                         ref={backContentRef}
                         className="whitespace-pre-wrap break-words leading-relaxed text-white/90 font-bold">
                         <Typewriter
@@ -916,8 +916,8 @@ export default function AiCreatePage() {
         </section>
 
         {/* ===================== 우측: 리스트/테이블 ===================== */}
-                {/* ===================== 우측: 리스트/테이블 ===================== */}
-                <aside className="col-span-1 rounded-[40px] border border-white/10 bg-white/[0.05] backdrop-blur-2xl p-0 overflow-hidden whitespace-nowrap mb-6 mr-6">
+        {/* ===================== 우측: 리스트/테이블 ===================== */}
+        <aside className="col-span-1 rounded-[40px] border border-white/10 bg-white/[0.05] backdrop-blur-2xl p-0 overflow-hidden whitespace-nowrap mb-6 mr-6">
           {/* 상단 헤더 (ChartTop100 스타일) */}
           <div className="px-8 py-6 border-b border-white/10">
             {/* 검색바 */}
@@ -941,7 +941,7 @@ export default function AiCreatePage() {
                   disabled={selectedCount === 0}
                 />
                 <PillButton
-                  icon={<IoShuffle size={22}/>}
+                  icon={<IoShuffle size={22} />}
                   label="셔플"
                   onClick={() => handleAction("shuffle")}
                   disabled={selectedCount === 0}
@@ -1139,14 +1139,14 @@ export default function AiCreatePage() {
                   ) : (
                     addTargets.map((p) => (
                       <button
-                        key={p.id}
+                        key={p.playlist_id}
                         type="button"
-                        onClick={() => addSelectedToPlaylist(p.id)}
+                        onClick={() => addSelectedToPlaylist(p.playlist_id)}
                         className="w-full text-left px-6 py-4 hover:bg-white/5 transition border-b border-[#464646]"
                       >
                         <div className="text-sm font-semibold text-[#F6F6F6] truncate">{p.title}</div>
                         <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">
-                          {p.owner} · {p.isPublic ? "공개" : "비공개"}
+                          {p.creator_nickname} · {p.visibility === "public" ? "공개" : "비공개"}
                         </div>
                       </button>
                     ))
