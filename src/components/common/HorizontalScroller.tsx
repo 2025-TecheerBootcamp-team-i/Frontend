@@ -17,7 +17,9 @@ export function HorizontalScroller({
     const [showLeft, setShowLeft] = useState(false);
     const [showRight, setShowRight] = useState(false);
 
-    const update = () => {
+    const ticking = useRef(false);
+
+    const checkScroll = () => {
         const el = ref.current;
         if (!el) return;
 
@@ -37,8 +39,18 @@ export function HorizontalScroller({
         setShowRight(left < max - 4);
     };
 
+    const update = () => {
+        if (!ticking.current) {
+            window.requestAnimationFrame(() => {
+                checkScroll();
+                ticking.current = false;
+            });
+            ticking.current = true;
+        }
+    };
+
     useEffect(() => {
-        update();
+        checkScroll(); // Initial check immediately
         window.addEventListener("resize", update);
         return () => window.removeEventListener("resize", update);
     }, []);

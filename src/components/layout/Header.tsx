@@ -4,6 +4,7 @@ import { logoutClient } from "../../api/auth";
 
 import { TiHome } from "react-icons/ti";
 import { IoSearch } from "react-icons/io5";
+import { MdLogout } from "react-icons/md";
 
 function Header() {
   const navigate = useNavigate();
@@ -140,11 +141,25 @@ function Header() {
           type="button"
           onClick={onLogout}
           className="
-            flex items-center justify-center transition
-            text-white/20 hover:text-white/50 text-[13px] font-medium tracking-tight
+            group flex items-center shrink-0 mr-4
+            bg-white/5 hover:bg-white/10
+            rounded-lg transition-all duration-300 ease-in-out
+            w-10 h-10 hover:w-28 overflow-hidden
+            shadow-md
           "
         >
-          로그아웃
+          <div className="flex items-center justify-center w-10 h-10 shrink-0">
+            <MdLogout size={20} className="text-[#AFDEE2]" />
+          </div>
+          <span
+            className="
+              whitespace-nowrap text-sm font-bold text-[#AFDEE2]
+              opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-75
+              pr-2
+            "
+          >
+            Logout
+          </span>
         </button>
       ) : (
         <button

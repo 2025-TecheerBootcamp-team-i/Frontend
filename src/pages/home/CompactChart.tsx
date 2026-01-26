@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { FaPlay } from "react-icons/fa6";
 import { usePlayer } from "../../player/PlayerContext";
 import type { ChartRow as ApiChartRow } from "../../api/chart";
@@ -23,7 +24,7 @@ export default function CompactChart({ items, loading, onMoreClick, activeTab, o
     const { setTrackAndPlay } = usePlayer();
 
     // 중복 제거 후 상위 5개만 표시
-    const displayItems = (() => {
+    const displayItems = useMemo(() => {
         const seen = new Set<string>();
         const unique = items.filter((item) => {
             if (seen.has(item.musicId)) return false;
@@ -31,7 +32,7 @@ export default function CompactChart({ items, loading, onMoreClick, activeTab, o
             return true;
         });
         return unique.slice(0, 5);
-    })();
+    }, [items]);
 
     const tabs = [
         { id: "TOP100", label: "TOP 100" },
@@ -151,8 +152,8 @@ export default function CompactChart({ items, loading, onMoreClick, activeTab, o
                 )}
                 <div
                     className="py-2 flex items-center justify-center "
-                    >
-                    <button 
+                >
+                    <button
                         type="button"
                         onClick={onMoreClick}
                         className="text-sm text-[#f6f6f6]/50 transition hover:text-[#f6f6f6]/80">더보기
