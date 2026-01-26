@@ -11,10 +11,10 @@ export interface PlaylistItem {
     music_id: number;
     title: string;
     artist: { name: string };
-    album: { title: string; cover_image: string };
-    duration?: number; // 필요 시 추가
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    [key: string]: any; 
+    album?: { title: string; cover_image: string };
+    album_image?: string;
+    duration?: number;
+    [key: string]: any;
   };
   order: number;
   created_at: string;
@@ -195,7 +195,7 @@ export async function updatePlaylist(
 export async function addPlaylistItems(
   playlistId: number | string,
   musicIds: number[]
-): Promise<PlaylistDetail> { 
+): Promise<PlaylistDetail> {
   // 백엔드 응답이 업데이트된 상세 정보라면 PlaylistDetail, 단순 메시지라면 별도 타입 사용
   const payload: AddPlaylistItemsRequest = { music_ids: musicIds };
   const response = await axiosInstance.post<PlaylistDetail>(`/playlists/${playlistId}/items`, payload);
