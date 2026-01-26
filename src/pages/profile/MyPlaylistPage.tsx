@@ -7,12 +7,13 @@ import {
   listLikedPlaylists,
   isSystemPlaylist,
   type PlaylistSummary,
+  getPlaylistDetail
 } from "../../api/playlist";
 import { fetchLikedTracks, type LikedTrack } from "../../api/LikedSong";
 import { getCurrentUserId } from "../../utils/auth";
 import axiosInstance from "../../api/axiosInstance";
 
-const LIKED_SYSTEM_ID = "liked"; // 나중에 "liked -system으로 수정해야 함. 그렇지 않으면 개인 목록 맨 앞에 좋아요 누른 곡 리스트 생성됨
+const LIKED_SYSTEM_ID = "liked";
 
 /* ===================== 타입 ===================== */
 type PlaylistItem = {
@@ -63,6 +64,16 @@ function toLikedAlbumItem(a: LikedAlbumApi): PlaylistItem {
     coverUrl,
   };
 }
+
+function buildCoverFromPlaylistDetailItems(items: any[], limit = 4) {
+  const urls = (items ?? [])
+    .map((it) => it?.music?.album_image)
+    .filter((v): v is string => typeof v === "string" && v.length > 0);
+
+  const unique = Array.from(new Set(urls)).slice(0, limit);
+  return { coverUrls: unique, coverUrl: unique[0] ?? null };
+}
+
 
 /* ===================== UI 컴포넌트 ===================== */
 function Tab({ to, label }: { to: string; label: string }) {
@@ -319,6 +330,9 @@ export default function MyPlaylistPage() {
   const [myPlaylists, setMyPlaylists] = useState<PlaylistSummary[]>([]);
   const [likedPlaylists, setLikedPlaylists] = useState<PlaylistSummary[]>([]);
   const [likedAlbums, setLikedAlbums] = useState<LikedAlbumApi[]>([]);
+  const [personalCovers, setPersonalCovers] = useState<
+    Record<string, { coverUrls: string[]; coverUrl: string | null }>
+  >({});
 
   useEffect(() => {
     let cancelled = false;
@@ -342,6 +356,18 @@ export default function MyPlaylistPage() {
           ? likedPl.filter((p) => p.visibility !== "system" && !isSystemPlaylist(p.title))
           : [];
 
+        console.groupCollapsed("[MyPlaylistPage] myPlaylists fetched");
+        console.log("mineFiltered count:", mineFiltered.length);
+        console.table(
+          mineFiltered.map((p) => ({
+            id: p.playlist_id,
+            title: p.title,
+            visibility: p.visibility,
+            item_count: p.item_count,
+          }))
+        );
+        console.groupEnd();
+
         setMyPlaylists(mineFiltered);
         setLikedPlaylists(likedPlFiltered);
         setLikedAlbums(Array.isArray(likedAlRes.data) ? likedAlRes.data : []);
@@ -355,10 +381,51 @@ export default function MyPlaylistPage() {
       }
     })();
 
+
+
+
     return () => {
       cancelled = true;
     };
   }, []);
+
+  // ✅ 개인 플레이리스트 커버 생성: 상단 6개만 detail 조회해서 모자이크 커버 만들기
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const targets = (myPlaylists ?? []).slice(0, 6);
+
+        const results = await Promise.allSettled(
+          targets.map(async (p) => {
+            const detail = await getPlaylistDetail(p.playlist_id);
+            const cover = buildCoverFromPlaylistDetailItems(detail.items, 4);
+            return [String(p.playlist_id), cover] as const;
+          })
+        );
+
+        if (cancelled) return;
+
+        setPersonalCovers((prev) => {
+          const next = { ...prev };
+          for (const r of results) {
+            if (r.status === "fulfilled") {
+              const [id, cover] = r.value;
+              next[id] = cover;
+            }
+          }
+          return next;
+        });
+      } catch (e) {
+        console.error("[MyPlaylistPage] personal covers fetch 실패:", e);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [myPlaylists]);
 
   // 2) 좋아요 누른 곡 리스트 (API)
   const [likedTracks, setLikedTracks] = useState<LikedTrack[]>([]);
@@ -383,19 +450,25 @@ export default function MyPlaylistPage() {
   /* =====================
    파생 데이터는 useMemo로 계산
   ===================== */
-
-  // 개인 목록(시스템 liked 제외)
+  // 개인 목록(시스템 liked 제외) + ✅ cover 주입
   const personalAll: PlaylistItem[] = useMemo(() => {
-    return myPlaylists.map((p) => ({
-      id: String(p.playlist_id),
-      title: p.title,
-      owner: p.creator_nickname ?? "—",
-      scope: "personal" as const,
-      kind: "playlist",
-      liked: p.is_liked,
-      isPublic: p.visibility === "public",
-    }));
-  }, [myPlaylists]);
+    return myPlaylists.map((p) => {
+      const id = String(p.playlist_id);
+      const cover = personalCovers[id];
+
+      return {
+        id,
+        title: p.title,
+        owner: p.creator_nickname ?? "—",
+        scope: "personal" as const,
+        kind: "playlist",
+        liked: p.is_liked,
+        isPublic: p.visibility === "public",
+        coverUrls: cover?.coverUrls,
+        coverUrl: cover?.coverUrl ?? null,
+      };
+    });
+  }, [myPlaylists, personalCovers]);
 
   // 좋아요 섹션(시스템 카드 + 좋아요 앨범 + 좋아요 플레이리스트)
   const likedAll: PlaylistItem[] = useMemo(() => {

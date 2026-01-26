@@ -4,7 +4,7 @@ import {
     getPlaylistDetail,
     likePlaylist,
     unlikePlaylist,
-    deletePlaylistItems,
+    deletePlaylistItem,
     type PlaylistDetail,
     type PlaylistItem,
 } from "../../api/playlist";
@@ -190,23 +190,44 @@ export default function PlaylistDetailPage() {
             setPlayConfirmOpen(false);
     };
 
+    const getAlbumInfo = (item: PlaylistItem) => {
+    const m: any = item?.music;
+
+    return {
+        title: m?.album?.title ?? m?.album_title ?? m?.album_name ?? "",
+        cover_image: m?.album?.cover_image ?? m?.album_image ?? m?.cover_image ?? null,
+    };
+    };
+
+    const getArtistName = (item: PlaylistItem) => {
+    const m: any = item?.music;
+    return m?.artist?.name ?? m?.artist_name ?? "";
+    };
 
     const tracks = playlist?.items ?? [];
     const coverUrls = tracks
-        .map((t) => t.music.album.cover_image)
-        .filter((v): v is string => typeof v === "string" && v.length > 0)
-        .slice(0, 4);
+    .map((t) => getAlbumInfo(t).cover_image)
+    .filter((v): v is string => typeof v === "string" && v.length > 0)
+    .slice(0, 4);
 
 
-    const toPlayerTrack = (t: PlaylistItem): PlayerTrack => ({
+    const toPlayerTrack = (t: PlaylistItem): PlayerTrack => {
+    const m: any = t?.music ?? {};
+    const album = getAlbumInfo(t);
+    const artist = getArtistName(t);
+
+    return {
         id: String(t.item_id),
-        musicId: t.music.music_id,
-        title: t.music.title,
-        artist: t.music.artist.name,
-        coverUrl: t.music.album.cover_image,
+        musicId: m?.music_id ?? t.item_id, // 혹시 music_id가 없을 때 대비
+        title: m?.title ?? m?.music_name ?? "(제목 없음)",
+        artist: artist || "(아티스트 없음)",
+        coverUrl: album.cover_image ?? undefined,
         audioUrl: "/audio/sample.mp3",
-        duration: t.music.duration ? `${Math.floor(t.music.duration / 60)}:${String(t.music.duration % 60).padStart(2, "0")}` : "0:00",
-    });
+        duration: m?.duration
+        ? `${Math.floor(m.duration / 60)}:${String(m.duration % 60).padStart(2, "0")}`
+        : "0:00",
+    };
+    };
 
     // 체크된 곡만
     const checkedTracks = tracks
@@ -228,13 +249,17 @@ export default function PlaylistDetailPage() {
                 .filter((t) => !!checkedIds[t.item_id])
                 .map((t) => t.item_id);
 
-            await deletePlaylistItems(playlist.playlist_id, itemIds);
-            setCheckedIds({});
-            
-            // 플레이리스트 새로고침
-            await fetchPlaylistDetail();
+        const results = await Promise.allSettled(itemIds.map((id) => deletePlaylistItem(id)));
+
+        const failed = results.filter((r) => r.status === "rejected");
+        if (failed.length > 0) {
+            console.error("[PlaylistPage] 일부 곡 삭제 실패:", failed);
+        }
+
+        setCheckedIds({});
+        await fetchPlaylistDetail();
         } catch (error) {
-            console.error("곡 삭제 실패:", error);
+        console.error("곡 삭제 실패:", error);
         }
     };
 
@@ -570,26 +595,30 @@ export default function PlaylistDetailPage() {
                             onClick={(e) => e.stopPropagation()}
                         />
                     </div>
-
-                    <div className="w-12 h-12 rounded-xl bg-[#6b6b6b]/50 border border-[#464646] overflow-hidden">
-                        {t.music.album.cover_image && (
-                            <img 
-                                src={t.music.album.cover_image} 
-                                alt={t.music.album.title}
+                  {(() => {
+                        const album = getAlbumInfo(t);
+                        return (
+                            <div className="w-12 h-12 rounded-xl bg-[#6b6b6b]/50 border border-[#464646] overflow-hidden">
+                            {album.cover_image && (
+                                <img
+                                src={album.cover_image}
+                                alt={album.title}
                                 className="w-full h-full object-cover"
                                 loading="lazy"
                                 onError={(e) => {
                                     (e.currentTarget as HTMLImageElement).style.display = "none";
                                 }}
-                            />
-                        )}
-                    </div>
+                                />
+                            )}
+                            </div>
+                        );
+                        })()}
 
 
                     <div className="min-w-0">
                         <div className="text-sm font-semibold text-[#F6F6F6] truncate">{t.music.title}</div>
                         <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">
-                            {t.music.artist.name} · {t.music.album.title}
+                            {getArtistName(t)} · {getAlbumInfo(t).title}
                         </div>
                     </div>
 
