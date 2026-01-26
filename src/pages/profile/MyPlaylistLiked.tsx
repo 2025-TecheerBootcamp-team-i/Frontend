@@ -152,16 +152,11 @@ useEffect(() => {
     refreshLikedTracks();
     refreshLikedAlbums();
     refreshLikedPlaylists();
+  };
 
-    const onFocus = () => {
-      refreshLikedTracks();
-      refreshLikedAlbums();
-      refreshLikedPlaylists();
-    };
-
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
-  }, [refreshLikedTracks, refreshLikedAlbums, refreshLikedPlaylists]);
+  window.addEventListener("focus", onFocus);
+  return () => window.removeEventListener("focus", onFocus);
+}, [refreshLikedTracks, refreshLikedAlbums, refreshLikedPlaylists]);
 
   /** =========================
    *  5) 화면 카드 모델(items)로 합치기
