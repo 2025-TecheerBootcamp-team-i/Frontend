@@ -7,7 +7,7 @@ interface MusicPlayerBarProps {
     onClose: () => void;
 }
 
-export default function MusicPlayerBar({ album, audioUrl, onClose }: MusicPlayerBarProps) {
+export default function MusicPlayerBar({ album, audioUrl }: MusicPlayerBarProps) {
     const audioRef = useRef<HTMLAudioElement>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
@@ -22,16 +22,7 @@ export default function MusicPlayerBar({ album, audioUrl, onClose }: MusicPlayer
         }
     }, [audioUrl]);
 
-    const togglePlay = () => {
-        if (audioRef.current) {
-            if (isPlaying) {
-                audioRef.current.pause();
-            } else {
-                audioRef.current.play();
-            }
-            setIsPlaying(!isPlaying);
-        }
-    };
+
 
     const handleTimeUpdate = () => {
         if (audioRef.current) {
@@ -95,25 +86,6 @@ export default function MusicPlayerBar({ album, audioUrl, onClose }: MusicPlayer
                             className="w-16 h-1 bg-black/10 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-black"
                         />
                     </div>
-
-                    <button
-                        onClick={togglePlay}
-                        className="w-10 h-10 bg-black rounded-full text-white flex items-center justify-center hover:scale-105 transition-transform active:scale-95 shadow-md"
-                    >
-                        {isPlaying ? (
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /></svg>
-                        ) : (
-                            <svg className="w-4 h-4 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-                        )}
-                    </button>
-
-                    {/* Close */}
-                    <button
-                        onClick={onClose}
-                        className="w-8 h-8 flex items-center justify-center text-black/40 hover:text-black rounded-full hover:bg-black/5 transition-colors"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                    </button>
                 </div>
 
                 {/* Progress Bar (Positioned) */}

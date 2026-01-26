@@ -45,7 +45,9 @@ function HomePage() {
   const [showLeft, setShowLeft] = useState(false);
   const [showRight, setShowRight] = useState(false);
 
-  const updateArtistScrollHint = () => {
+  const ticking = useRef(false);
+
+  const checkScroll = () => {
     const el = scrollRef.current;
     if (!el) return;
     const { scrollLeft, scrollWidth, clientWidth } = el;
@@ -80,17 +82,25 @@ function HomePage() {
     };
   }, []);
 
-
+  const updateArtistScrollHint = () => {
+    if (!ticking.current) {
+      window.requestAnimationFrame(() => {
+        checkScroll();
+        ticking.current = false;
+      });
+      ticking.current = true;
+    }
+  };
 
   useEffect(() => {
-    requestAnimationFrame(updateArtistScrollHint);
+    checkScroll();
   }, [popularArtists]);
 
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
 
-    updateArtistScrollHint();
+    checkScroll();
     el.addEventListener("scroll", updateArtistScrollHint);
     window.addEventListener("resize", updateArtistScrollHint);
 
@@ -195,10 +205,9 @@ function HomePage() {
                         w-[180px] h-[180px] rounded-full bg-white/[0.05]
                         transition-all duration-700 ease-out
                         group-hover:-translate-y-2 group-hover:scale-110
-                        group-hover:shadow-[0_25px_50px_rgba(0,0,0,0.35),0_0_30px_rgba(175,222,226,0.15)]
+                        group-hover:shadow-[0_10px_30px_rgba(0,0,0,0.3)]
                         overflow-hidden relative
-                        backdrop-blur-2xl
-                        shadow-[inset_0_2px_15px_rgba(255,255,255,0.2),0_15px_30px_rgba(0,0,0,0.4)]
+                        shadow-[inset_0_2px_15px_rgba(255,255,255,0.1),0_10px_20px_rgba(0,0,0,0.3)]
                       "
                     >
                       {a.image_small_circle ? (
