@@ -3,6 +3,7 @@ import { MdOutlineNavigateNext, MdPlayArrow } from "react-icons/md";
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { listAllAiMusic } from "../../api/music";
+import { getPlaylistDetail } from "../../api/playlist";
 import { getProfile } from "../../utils/auth";
 import { usePlaylists } from "../../contexts/PlaylistContext";
 
@@ -54,18 +55,75 @@ function Sidebar() {
     };
   }, []);
 
-  // ✅ Sidebar용 플레이리스트 매핑 + 상위 3개만
   const top3 = useMemo(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mapped = (myPlaylists ?? []).map((p: any) => ({
-      id: String(p.id ?? p.playlist_id),
-      title: String(p.title ?? "Untitled"),
-      count: `${Number(p.item_count ?? p.count ?? 0)}곡`,
-      coverUrl: p.coverUrl ?? p.cover_url ?? p.cover_image ?? p.cover ?? null,
-    }));
+
+    const mapped = (myPlaylists ?? []).map((p: any) => {
+      const raw =
+        p.coverUrl ??
+        p.cover_url ??
+        p.cover_image ??
+        p.cover ??
+        null;
+      const coverUrl =
+        typeof raw === "string" && raw.trim().length > 0 ? raw : null;
+
+      return {
+        id: String(p.id ?? p.playlist_id),
+        title: String(p.title ?? "Untitled"),
+        count: `${Number(p.item_count ?? p.count ?? 0)}곡`,
+        coverUrl,
+      };
+    });
 
     return mapped.slice(0, 3);
   }, [myPlaylists]);
+
+  const [coversById, setCoversById] = useState<
+    Record<string, { coverUrl: string | null; coverUrls: string[] }>
+  >({});
+
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      const ids = top3.map((p) => p.id);
+
+      const results = await Promise.allSettled(
+        ids.map(async (id) => {
+          const detail = await getPlaylistDetail(id);
+
+          const covers = (detail.items ?? [])
+            .map((it) => it?.music?.album_image ?? it?.music?.album?.cover_image)
+            .filter((v): v is string => typeof v === "string" && v.trim().length > 0);
+
+          const unique = Array.from(new Set(covers)).slice(0, 4);
+
+          return {
+            id,
+            coverUrls: unique.length >= 2 ? unique : [],
+            coverUrl: unique.length === 1 ? unique[0] : null,
+          };
+        })
+      );
+
+      if (!alive) return;
+
+      setCoversById((prev) => {
+        const next = { ...prev };
+        for (const r of results) {
+          if (r.status === "fulfilled") {
+            next[r.value.id] = { coverUrl: r.value.coverUrl, coverUrls: r.value.coverUrls };
+          }
+        }
+        return next;
+      });
+    })().catch((e) => console.error("[Sidebar] getPlaylistDetail failed:", e));
+
+    return () => {
+      alive = false;
+    };
+  }, [top3]);
+
 
   // ✅ 공통 카드(마이페이지 규격) 클래스
   const cardClass = `
@@ -176,32 +234,52 @@ function Sidebar() {
                   아직 플레이리스트가 없어요.
                 </div>
               ) : (
-                top3.map((pl) => (
-                  <button
-                    key={pl.id}
-                    className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-white/5 transition group"
-                    onClick={() => navigate(`/playlist/${pl.id}`)}
-                    type="button"
-                  >
-                    {/* ✅ 긴 제목 깨짐 방지 */}
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="w-8 h-8 rounded bg-white/10 flex items-center justify-center text-white/50 group-hover:text-white group-hover:bg-white/20 shrink-0">
-                        <MdPlayArrow size={14} />
+                top3.map((pl) => {
+                  const detailCover = coversById[pl.id];
+                  const coverUrls = detailCover?.coverUrls?.length ? detailCover.coverUrls : [];
+                  const coverUrl = detailCover?.coverUrl ?? pl.coverUrl;
+
+                  return (
+                    <button
+                      key={pl.id}
+                      className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-white/5 transition group"
+                      onClick={() => navigate(`/playlist/${pl.id}`)}
+                      type="button"
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="w-8 h-8 rounded overflow-hidden bg-white/10 shrink-0">
+                          {coverUrls.length ? (
+                            <div className="w-full h-full grid grid-cols-2 grid-rows-2">
+                              {Array.from({ length: 4 }).map((_, idx) => {
+                                const src = coverUrls[idx];
+                                return src ? (
+                                  <img key={idx} src={src} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  <div key={idx} className="w-full h-full bg-white/5" />
+                                );
+                              })}
+                            </div>
+                          ) : coverUrl ? (
+                            <img src={coverUrl} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-white/50 group-hover:text-white">
+                              <MdPlayArrow size={14} />
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="text-left flex-1 min-w-0">
+                          <div className="text-sm text-white/90 font-medium leading-none truncate">
+                            {pl.title}
+                          </div>
+                          <div className="text-[10px] text-white/40 mt-1 truncate">{pl.count}</div>
+                        </div>
                       </div>
 
-                      <div className="text-left flex-1 min-w-0">
-                        <div className="text-sm text-white/90 font-medium leading-none truncate">
-                          {pl.title}
-                        </div>
-                        <div className="text-[10px] text-white/40 mt-1 truncate">
-                          {pl.count}
-                        </div>
-                      </div>
-                    </div>
-
-                    <MdOutlineNavigateNext className="text-white/20 group-hover:text-white/60 shrink-0" />
-                  </button>
-                ))
+                      <MdOutlineNavigateNext className="text-white/20 group-hover:text-white/60 shrink-0" />
+                    </button>
+                  );
+                })
               )}
             </div>
           </div>

@@ -65,6 +65,7 @@ function toLikedAlbumItem(a: LikedAlbumApi): PlaylistItem {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function buildCoverFromPlaylistDetailItems(items: any[], limit = 4) {
   const urls = (items ?? [])
     .map((it) => it?.music?.album_image)
