@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
 import type { CanvasAlbum } from "../../api/music";
 
 interface MusicPlayerBarProps {
