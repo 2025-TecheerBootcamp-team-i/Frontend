@@ -45,6 +45,14 @@ function ensureNowPlayingEqStyle() {
 }
 
 // ✅ D3 Word Cloud Component (Custom Implementation for React 19 stability)
+interface Word extends cloud.Word {
+    text: string;
+    size: number;
+    x?: number;
+    y?: number;
+    rotate?: number;
+}
+
 function SimpleWordCloud({
     words,
     baseColor
@@ -87,11 +95,9 @@ function SimpleWordCloud({
         const g = svg.append("g")
             .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
 
-        const layout = cloud()
+        const layout = cloud<Word>()
             .size([width, height])
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .words(words.map((d) => ({ text: d.text, size: d.value } as any)))
+            .words(words.map((d) => ({ text: d.text, size: d.value })))
             .padding(6) // 글자 간격 조정 (2 -> 6)
             .rotate(() => (~~(Math.random() * 2) * 90))
             .spiral('rectangular') // 더 꽉 차 보이게 배치
@@ -112,14 +118,11 @@ function SimpleWordCloud({
                 g.selectAll("text")
                     .data(drawnWords)
                     .enter().append("text")
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    .style("font-size", (d: any) => d.size + "px")
+                    .style("font-size", (d) => (d.size || 16) + "px")
                     .style("font-family", "Pretendard")
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    .style("font-weight", (d: any) => d.size > 40 ? "800" : (d.size > 24 ? "700" : "500")) // 두께감 조정
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    .style("fill", (d: any) => {
-                        const fontSize = d.size;
+                    .style("font-weight", (d) => (d.size && d.size > 40) ? "800" : ((d.size && d.size > 24) ? "700" : "500")) // 두께감 조정
+                    .style("fill", (d) => {
+                        const fontSize = d.size || 16;
                         // 폰트 크기 범위(16~64)에 맞춰 정규화
                         const normalized = (fontSize - 16) / 48;
 
@@ -141,10 +144,8 @@ function SimpleWordCloud({
                         return `hsl(0, 0%, ${targetL}%)`;
                     })
                     .attr("text-anchor", "middle")
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    .attr("transform", (d: any) => "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")")
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    .text((d: any) => d.text)
+                    .attr("transform", (d) => "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")")
+                    .text((d) => d.text || "")
                     .style("cursor", "default")
                     .style("opacity", 0)
                     .transition()
