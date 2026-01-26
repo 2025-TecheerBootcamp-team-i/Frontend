@@ -57,105 +57,106 @@ function formatPlaylistOwner(p: LikedPlaylistSummary): string {
 }
 
 export default function MyPlaylistsLiked() {
-  const navigate = useNavigate();
+const navigate = useNavigate();
 
-  /** =========================
-   *  1) 좋아요 곡(= 시스템 카드용)
-   * ========================= */
-  const [likedTracks, setLikedTracks] = useState<LikedTrack[]>([]);
-  const [tracksLoading, setTracksLoading] = useState(false);
-  const [tracksError, setTracksError] = useState<string | null>(null);
+/** =========================
+ *  1) 좋아요 곡(= 시스템 카드용)
+ * ========================= */
+const [likedTracks, setLikedTracks] = useState<LikedTrack[]>([]);
+const [tracksLoading, setTracksLoading] = useState(false);
+const [tracksError, setTracksError] = useState<string | null>(null);
 
-  const refreshLikedTracks = useCallback(async () => {
-    setTracksLoading(true);
+const refreshLikedTracks = useCallback(async () => {
+  setTracksLoading(true);
 
-    const userId = getCurrentUserId();
-    if (!userId) {
-      setTracksLoading(false);
-      setTracksError("user_id를 찾을 수 없어요. 로그인 후 user_id 저장을 확인해주세요.");
-      setLikedTracks([]);
-      return;
-    }
+  const userId = getCurrentUserId();
+  if (!userId) {
+    setTracksLoading(false);
+    setTracksError("user_id를 찾을 수 없어요. 로그인 후 user_id 저장을 확인해주세요.");
+    setLikedTracks([]);
+    return;
+  }
 
-    try {
-      setTracksError(null);
-      const list = await fetchLikedTracks(userId);
-      setLikedTracks(Array.isArray(list) ? list : []);
-    } catch (e) {
-      console.error("[MyPlaylistsLiked] 좋아요 곡 목록 불러오기 실패:", e);
-      setTracksError("좋아요 곡 목록을 불러오지 못했어요.");
-      setLikedTracks([]);
-    } finally {
-      setTracksLoading(false);
-    }
-  }, []);
+  try {
+    setTracksError(null);
+    const list = await fetchLikedTracks(userId);
+    setLikedTracks(Array.isArray(list) ? list : []);
+  } catch (e) {
+    console.error("[MyPlaylistsLiked] 좋아요 곡 목록 불러오기 실패:", e);
+    setTracksError("좋아요 곡 목록을 불러오지 못했어요.");
+    setLikedTracks([]);
+  } finally {
+    setTracksLoading(false);
+  }
+}, []);
 
-  const likedCoverUrls = useMemo(
-    () => buildCoverUrlsFromLikedTracks(likedTracks, 4),
-    [likedTracks]
-  );
+// 4분할 커버에 쓸 URL 4개 만들기
+const likedCoverUrls = useMemo(
+  () => buildCoverUrlsFromLikedTracks(likedTracks, 4),
+  [likedTracks]
+);
 
-  /** =========================
-   *  2) 좋아요 앨범(= API)
-   * ========================= */
-  const [likedAlbums, setLikedAlbums] = useState<LikedAlbumSummary[]>([]);
-  const [albumsLoading, setAlbumsLoading] = useState(false);
-  const [albumsError, setAlbumsError] = useState<string | null>(null);
+/** =========================
+ *  2) 좋아요 앨범(= API)
+ * ========================= */
+const [likedAlbums, setLikedAlbums] = useState<LikedAlbumSummary[]>([]);
+const [albumsLoading, setAlbumsLoading] = useState(false);
+const [albumsError, setAlbumsError] = useState<string | null>(null);
 
-  const refreshLikedAlbums = useCallback(async () => {
-    setAlbumsLoading(true);
-    try {
-      setAlbumsError(null);
-      const albums = await listLikedAlbums();
-      setLikedAlbums(Array.isArray(albums) ? albums : []);
-    } catch (error) {
-      console.error("[MyPlaylistsLiked] 좋아요한 앨범 로딩 실패:", error);
-      setAlbumsError("좋아요한 앨범을 불러오지 못했어요.");
-      setLikedAlbums([]);
-    } finally {
-      setAlbumsLoading(false);
-    }
-  }, []);
+const refreshLikedAlbums = useCallback(async () => {
+  setAlbumsLoading(true);
+  try {
+    setAlbumsError(null);
+    const albums = await listLikedAlbums();
+    setLikedAlbums(Array.isArray(albums) ? albums : []);
+  } catch (error) {
+    console.error("[MyPlaylistsLiked] 좋아요한 앨범 로딩 실패:", error);
+    setAlbumsError("좋아요한 앨범을 불러오지 못했어요.");
+    setLikedAlbums([]);
+  } finally {
+    setAlbumsLoading(false);
+  }
+}, []);
 
-  /** =========================
-   *  3) 좋아요 플레이리스트(= API)
-   * ========================= */
-  const [likedPlaylistsApi, setLikedPlaylistsApi] = useState<LikedPlaylistSummary[]>([]);
-  const [likedPlaylistsLoading, setLikedPlaylistsLoading] = useState(false);
-  const [likedPlaylistsError, setLikedPlaylistsError] = useState<string | null>(null);
+/** =========================
+ *  3) 좋아요 플레이리스트(= API)
+ * ========================= */
+const [likedPlaylistsApi, setLikedPlaylistsApi] = useState<LikedPlaylistSummary[]>([]);
+const [likedPlaylistsLoading, setLikedPlaylistsLoading] = useState(false);
+const [likedPlaylistsError, setLikedPlaylistsError] = useState<string | null>(null);
 
-  const refreshLikedPlaylists = useCallback(async () => {
-    setLikedPlaylistsLoading(true);
-    try {
-      setLikedPlaylistsError(null);
-      const list = await listLikedPlaylists();
-      setLikedPlaylistsApi(Array.isArray(list) ? list : []);
-    } catch (e) {
-      console.error("[MyPlaylistsLiked] 좋아요 플레이리스트 로딩 실패:", e);
-      setLikedPlaylistsError("좋아요한 플레이리스트를 불러오지 못했어요.");
-      setLikedPlaylistsApi([]);
-    } finally {
-      setLikedPlaylistsLoading(false);
-    }
-  }, []);
+const refreshLikedPlaylists = useCallback(async () => {
+  setLikedPlaylistsLoading(true);
+  try {
+    setLikedPlaylistsError(null);
+    const list = await listLikedPlaylists();
+    setLikedPlaylistsApi(Array.isArray(list) ? list : []);
+  } catch (e) {
+    console.error("[MyPlaylistsLiked] 좋아요 플레이리스트 로딩 실패:", e);
+    setLikedPlaylistsError("좋아요한 플레이리스트를 불러오지 못했어요.");
+    setLikedPlaylistsApi([]);
+  } finally {
+    setLikedPlaylistsLoading(false);
+  }
+}, []);
 
-  /** =========================
-   *  4) 포커스/진입 시 최신화
-   * ========================= */
-  useEffect(() => {
+/** =========================
+ *  4) 포커스/진입 시 최신화
+ * ========================= */
+useEffect(() => {
+  refreshLikedTracks();
+  refreshLikedAlbums();
+  refreshLikedPlaylists();
+
+  const onFocus = () => {
     refreshLikedTracks();
     refreshLikedAlbums();
     refreshLikedPlaylists();
+  };
 
-    const onFocus = () => {
-      refreshLikedTracks();
-      refreshLikedAlbums();
-      refreshLikedPlaylists();
-    };
-
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
-  }, [refreshLikedTracks, refreshLikedAlbums, refreshLikedPlaylists]);
+  window.addEventListener("focus", onFocus);
+  return () => window.removeEventListener("focus", onFocus);
+}, [refreshLikedTracks, refreshLikedAlbums, refreshLikedPlaylists]);
 
   /** =========================
    *  5) 화면 카드 모델(items)로 합치기

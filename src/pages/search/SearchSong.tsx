@@ -27,6 +27,7 @@ type Song = {
   isAi?: boolean;
   albumId?: number | null;
   artistId?: number | null;
+  albumImage?: string | null;
 };
 
 type ApiSearchResult = {
@@ -41,14 +42,6 @@ type ApiSearchResult = {
   is_ai: boolean;
   audio_url: string | null;
   album_image: string | null;
-};
-
-type ArtistAlbum = {
-  id: string;
-  title: string;
-  year: string;
-  album_image: string | null;
-  image_large_square: string | null;
 };
 
 type ApiSearchResponse = {
@@ -167,9 +160,6 @@ export default function SearchSong() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 앨범 정보 상태
-  const [albums, setAlbums] = useState<Record<number, ArtistAlbum>>({});
-
   // 앨범 상세 정보 캐시
   const albumDetailsCacheRef = useRef<
     Record<
@@ -190,50 +180,7 @@ export default function SearchSong() {
     setSp(next, { replace: true });
   };
 
-    // 아티스트별 앨범 정보 가져오기
-  const fetchArtistAlbums = useCallback(
-    async (artistIds: number[]) => {
-      if (!API_BASE) return;
 
-      const albumMap: Record<number, ArtistAlbum> = {};
-
-      try {
-        const promises = artistIds.map(async (artistId) => {
-          try {
-            const url = `${API_BASE}/artists/${artistId}/albums/`;
-            const res = await fetch(url, {
-              method: "GET",
-              headers: { "Content-Type": "application/json" },
-            });
-
-            if (res.ok) {
-              const data: ArtistAlbum[] = await res.json();
-              return { artistId, albums: data };
-            }
-            return null;
-          } catch (e) {
-            console.error(`[SearchSong] 아티스트 ${artistId}의 앨범 목록 가져오기 실패:`, e);
-            return null;
-          }
-        });
-
-        const results = await Promise.all(promises);
-
-        results.forEach((result) => {
-          if (result) {
-            result.albums.forEach((album) => {
-              albumMap[Number(album.id)] = album;
-            });
-          }
-        });
-
-        setAlbums(albumMap);
-      } catch (e) {
-        console.error("[SearchSong] 아티스트별 앨범 정보 가져오기 오류:", e);
-      }
-    },
-    [API_BASE]
-  );
   /* ===================== API 호출 ===================== */
 
   useEffect(() => {
@@ -279,37 +226,23 @@ export default function SearchSong() {
           isAi: r.is_ai,
           albumId: r.album_id,
           artistId: r.artist_id,
+          albumImage: r.album_image,
         }));
 
         if (runId !== searchRunIdRef.current) return; // 최신만 반영
         setApiSongs(converted);
-
-        const uniqueArtistIds = Array.from(
-          new Set(data.results.map((r) => r.artist_id).filter((id): id is number => id !== null))
-        );
-
-
-      if (uniqueArtistIds.length > 0) {
-        await fetchArtistAlbums(uniqueArtistIds);
-        if (runId !== searchRunIdRef.current) return;                  
-      } else {
-        if (runId !== searchRunIdRef.current) return;
-        setAlbums({});
-      }
-
       } catch (e: unknown) {
         if ((e as DOMException)?.name === "AbortError") return;
         console.error("[SearchSong] 검색 API 오류:", e);
         setError(e instanceof Error ? e.message : "알 수 없는 오류");
         setApiSongs([]);
-        setAlbums({});
       } finally {
       if (runId === searchRunIdRef.current) setLoading(false);
       }
     })();
 
     return () => controller.abort();
-  }, [API_BASE, q, excludeAi, fetchArtistAlbums]);
+  }, [API_BASE, q, excludeAi]);
 
   /* ===================== 검색/필터 ===================== */
 
@@ -419,27 +352,23 @@ export default function SearchSong() {
 
     const audioUrl = await fetchTrackAudioUrl(String(musicId));
 
-    const apiSong = apiSongs.find((as) => as.id === s.id);
+    // API에서 직접 제공하는 album_image 사용
     let coverUrl: string | undefined = undefined;
+    const albumImage = s.albumImage;
 
-    if (apiSong?.albumId) {
-      const album = albums[apiSong.albumId];
-      const albumImage = album?.image_large_square || album?.album_image;
-
-      if (albumImage) {
-        if (albumImage.startsWith("http") || albumImage.startsWith("//")) {
-          coverUrl = albumImage;
-        } else if (API_BASE && albumImage.startsWith("/")) {
-          coverUrl = `${API_BASE.replace("/api/v1", "")}${albumImage}`;
-        } else {
-          coverUrl = albumImage;
-        }
+    if (albumImage) {
+      if (albumImage.startsWith("http") || albumImage.startsWith("//")) {
+        coverUrl = albumImage;
+      } else if (API_BASE && albumImage.startsWith("/")) {
+        coverUrl = `${API_BASE.replace("/api/v1", "")}${albumImage}`;
+      } else {
+        coverUrl = albumImage;
       }
     }
 
     if (__DEV__) {
       // eslint-disable-next-line no-console
-      console.log(`[SearchSong] track ready`, { id: s.id, musicId, title: s.title, audioUrl, coverUrl });
+      console.log(`[SearchSong] track ready`, { id: s.id, musicId, title: s.title, audioUrl, coverUrl, albumImage: s.albumImage });
     }
 
     return {
@@ -749,13 +678,8 @@ const addSelectedToPlaylist = async (playlistId: string) => {
                 {/* 앨범 이미지 */}
                 <div className="ml-2 w-12 h-12 rounded-xl bg-white/5 overflow-hidden relative flex-shrink-0 shadow-lg">
                   {(() => {
-                    const apiSong = apiSongs.find((as) => as.id === s.id);
-                    let albumImage: string | null = null;
-
-                    if (apiSong?.albumId) {
-                      const album = albums[apiSong.albumId];
-                      albumImage = album?.image_large_square || album?.album_image || null;
-                    }
+                    // API에서 직접 제공하는 album_image 사용
+                    const albumImage = s.albumImage;
 
                     const src =
                       albumImage && (albumImage.startsWith("http") || albumImage.startsWith("//"))
@@ -777,7 +701,7 @@ const addSelectedToPlaylist = async (playlistId: string) => {
                               // eslint-disable-next-line no-console
                               console.error("[SearchSong] ❌ 곡 앨범 이미지 로드 실패:", {
                                 song: s.title,
-                                album_id: apiSong?.albumId,
+                                album_id: s.albumId,
                                 image_url: albumImage,
                               });
                             }
