@@ -102,11 +102,15 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     repeatModeRef.current = repeatMode;
   }, [repeatMode]);
 
-  // ✅ 볼륨 상태 (0~1)
-  const [volume, _setVolume] = useState(0.8);
+  // ✅ 볼륨 상태 (0~1) - localStorage에서 불러오기
+  const [volume, _setVolume] = useState(() => {
+    const saved = localStorage.getItem("player-volume");
+    return saved !== null ? parseFloat(saved) : 0.8;
+  });
   const setVolume = useCallback((v: number) => {
     const vol = Math.max(0, Math.min(1, v));
     _setVolume(vol);
+    localStorage.setItem("player-volume", String(vol));
     if (audioRef.current) audioRef.current.volume = vol;
   }, []);
 
