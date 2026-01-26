@@ -905,7 +905,7 @@ export default function NowPlayingPage() {
     }, [leftOpen]);
 
     // ✅ 좋아요 상태
-    const [_musicId, setMusicId] = useState<number | null>(null);
+    const [musicId, setMusicId] = useState<number | null>(null);
     const [liked, setLiked] = useState(false);
     const [likeCount, setLikeCount] = useState(0);
     const [likeLoading, setLikeLoading] = useState(false);

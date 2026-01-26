@@ -122,8 +122,8 @@ const refreshLikedAlbums = useCallback(async () => {
  *  3) 좋아요 플레이리스트(= API)
  * ========================= */
 const [likedPlaylistsApi, setLikedPlaylistsApi] = useState<LikedPlaylistSummary[]>([]);
-const [_likedPlaylistsLoading, setLikedPlaylistsLoading] = useState(false);
-const [_likedPlaylistsError, setLikedPlaylistsError] = useState<string | null>(null);
+const [likedPlaylistsLoading, setLikedPlaylistsLoading] = useState(false);
+const [likedPlaylistsError, setLikedPlaylistsError] = useState<string | null>(null);
 
 const refreshLikedPlaylists = useCallback(async () => {
   setLikedPlaylistsLoading(true);

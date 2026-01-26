@@ -9,7 +9,7 @@ import { extractPastelColors } from "../../utils/color";
 function MainLayout2() {
     const PLAYER_H = 85;
     const { current } = usePlayer();
-    const [bgColors, setBgColors] = useState<string[]>([]);
+    const [effectiveBgColors, setEffectiveBgColors] = useState<string[]>([]);
 
     const coverUrl = useMemo(() => {
         const raw = current?.coverUrl;
@@ -24,10 +24,10 @@ function MainLayout2() {
 
     useEffect(() => { 
         if (coverUrl) 
-            { extractPastelColors(coverUrl, 3).then(colors => setBgColors(colors)); } 
+            { extractPastelColors(coverUrl, 3).then(colors => setEffectiveBgColors(colors)); } 
         else { 
             // eslint-disable-next-line react-hooks/set-state-in-effect 
-            setBgColors([]); 
+            setEffectiveBgColors([]); 
         } 
     }, [coverUrl]);
 
