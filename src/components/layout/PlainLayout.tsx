@@ -58,7 +58,7 @@ export default function PlainLayout() {
                                     transform: "scale(1.2)",
                                 }}
                             />
-                            <div className="pointer-events-none fixed inset-0 bg-black/50 z-[1]" />
+                            <div className="pointer-events-none fixed inset-0 bg-black/70 z-[1]" />
                         </>
                     ) : (
                         <div className="pointer-events-none fixed inset-0 bg-[#080808] z-0" />

@@ -3,8 +3,8 @@ import { useMemo, useState, useEffect, useCallback } from "react";
 import type { DragEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { MdFavorite, MdAutoAwesome, MdQueueMusic, MdClose, MdDelete, MdDragIndicator, MdPlayArrow, MdPause, MdSkipNext, MdSkipPrevious, MdShuffle, MdRepeat } from "react-icons/md";
-import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, Treemap } from "recharts";
-import { RiDashboardFill } from "react-icons/ri";
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, Treemap, ReferenceLine } from "recharts";
+import { RiDashboardFill, RiBarChartLine, RiMusic2Line, RiPriceTag3Line } from "react-icons/ri";
 import { GrContract } from "react-icons/gr";
 import { usePlayer } from "../../player/PlayerContext";
 import { likecount, likeTrack, deleteTrack } from "../../api/LikedSong";
@@ -912,7 +912,7 @@ export default function NowPlayingPage() {
     useEffect(() => {
         void musicId; // 혹은 void musicId; 같은 꼼수
     }, []);
-    
+
 
     // ✅ 현재 곡의 musicId definition moved up
 
@@ -1197,26 +1197,35 @@ export default function NowPlayingPage() {
                         <div className="rounded-[24px] border border-white/10 bg-white/[0.05] backdrop-blur-xl p-4 shadow-xl flex flex-col min-h-0">
                             <div className="text-lg font-bold text-white/95 mb-2 tracking-wide">시간대별 재생횟수</div>
                             {playLogsLoading ? (
-                                <div className="flex-1 flex items-center justify-center text-white/50 text-base">로딩 중...</div>
+                                <div className="flex-1 flex flex-col items-center justify-center text-white/40 gap-3">
+                                    <RiBarChartLine size={32} className="animate-pulse" />
+                                    <div className="text-sm font-medium">데이터를 분석하고 있어요...</div>
+                                </div>
                             ) : playLogs.length === 0 ? (
-                                <div className="flex-1 flex items-center justify-center text-white/50 text-base">재생 기록이 없습니다</div>
+                                <div className="flex-1 flex flex-col items-center justify-center text-white/30 gap-3">
+                                    <RiBarChartLine size={32} />
+                                    <div className="text-sm font-medium">재생 기록이 아직 없어요</div>
+                                </div>
                             ) : !chartsReady ? (
-                                <div className="flex-1 flex items-center justify-center text-white/50 text-base">차트 로딩 중...</div>
+                                <div className="flex-1 flex flex-col items-center justify-center text-white/40 gap-3">
+                                    <RiBarChartLine size={32} className="animate-pulse" />
+                                    <div className="text-sm font-medium">차트를 그리고 있어요...</div>
+                                </div>
                             ) : (
                                 <div className="flex-1 w-full min-h-0 relative">
                                     <ResponsiveContainer width="100%" height="100%" debounce={50}>
-                                        <AreaChart data={playLogs} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                                        <AreaChart data={playLogs} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                             <defs>
                                                 <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
                                                     <stop offset="5%" stopColor="#AFDEE2" stopOpacity={0.8} />
                                                     <stop offset="95%" stopColor="#AFDEE2" stopOpacity={0} />
                                                 </linearGradient>
                                             </defs>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.1)" />
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.08)" />
                                             <XAxis
                                                 dataKey="time"
                                                 stroke="rgba(255,255,255,0.3)"
-                                                tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 11 }}
+                                                tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10 }}
                                                 tickLine={false}
                                                 axisLine={false}
                                                 interval="preserveStartEnd"
@@ -1224,12 +1233,14 @@ export default function NowPlayingPage() {
                                             />
                                             <YAxis
                                                 stroke="rgba(255,255,255,0.3)"
-                                                tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 11 }}
+                                                tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10 }}
                                                 tickLine={false}
                                                 axisLine={false}
                                                 domain={[0, 'auto']}
                                                 allowDecimals={false}
                                             />
+                                            {/* 바닥 가이드 라인 (데이터가 0일 때 시각적 보조) */}
+                                            <ReferenceLine y={0} stroke="rgba(255,255,255,0.1)" />
                                             <Tooltip
                                                 contentStyle={{
                                                     backgroundColor: 'rgba(20, 20, 20, 0.9)',
@@ -1249,7 +1260,9 @@ export default function NowPlayingPage() {
                                                 strokeWidth={2}
                                                 fillOpacity={1}
                                                 fill="url(#colorCount)"
-                                                activeDot={{ r: 5, fill: '#AFDEE2', stroke: '#fff', strokeWidth: 2 }}
+                                                // 데이터가 0이어도 점이 보이도록 항상 dot 표시
+                                                dot={{ r: 3, fill: '#AFDEE2', strokeWidth: 0 }}
+                                                activeDot={{ r: 5, fill: '#fff', stroke: '#AFDEE2', strokeWidth: 2 }}
                                             />
                                         </AreaChart>
                                     </ResponsiveContainer>
@@ -1262,9 +1275,15 @@ export default function NowPlayingPage() {
                             <div className="text-lg font-bold text-white/95 mb-2 tracking-wide z-10 relative">유사 음악</div>
 
                             {recommendationsLoading ? (
-                                <div className="flex-1 flex items-center justify-center text-white/50 text-base">추천 중...</div>
+                                <div className="flex-1 flex flex-col items-center justify-center text-white/40 gap-3">
+                                    <RiMusic2Line size={32} className="animate-pulse" />
+                                    <div className="text-sm font-medium">비슷한 곡을 찾고 있어요...</div>
+                                </div>
                             ) : recommendations.length === 0 ? (
-                                <div className="flex-1 flex items-center justify-center text-white/50 text-base">추천 곡이 없습니다</div>
+                                <div className="flex-1 flex flex-col items-center justify-center text-white/30 gap-3">
+                                    <RiMusic2Line size={32} />
+                                    <div className="text-sm font-medium">추천할 곡이 없어요</div>
+                                </div>
                             ) : (
                                 <div className="grid grid-cols-2 grid-rows-2 gap-2 flex-1 min-h-0">
                                     {recommendations.slice(0, 4).map((rec) => {
@@ -1298,7 +1317,7 @@ export default function NowPlayingPage() {
                                                             ) || imageUrl || "",
                                                             audioUrl: detail.audio_url || "",
                                                             musicId: detail.music_id
-                                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                                         } as any);
                                                     } else {
                                                         // 상세 정보 실패 시 기존 데이터로 재생
@@ -1308,7 +1327,7 @@ export default function NowPlayingPage() {
                                                             artist: artist,
                                                             coverUrl: imageUrl || "",
                                                             musicId: rec.music_id
-                                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                                         } as any);
                                                     }
                                                 }}
@@ -1349,11 +1368,20 @@ export default function NowPlayingPage() {
                             <div className="text-lg font-bold text-white/95 mb-2 tracking-wide">태그 분석</div>
 
                             {tagGraphLoading ? (
-                                <div className="flex-1 flex items-center justify-center text-white/50 text-sm">로딩 중...</div>
+                                <div className="flex-1 flex flex-col items-center justify-center text-white/40 gap-3">
+                                    <RiPriceTag3Line size={32} className="animate-pulse" />
+                                    <div className="text-sm font-medium">태그를 읽어오고 있어요...</div>
+                                </div>
                             ) : tagGraph.length === 0 ? (
-                                <div className="flex-1 flex items-center justify-center text-white/50 text-sm">태그 데이터가 없습니다</div>
+                                <div className="flex-1 flex flex-col items-center justify-center text-white/30 gap-3">
+                                    <RiPriceTag3Line size={32} />
+                                    <div className="text-sm font-medium">분석된 태그가 없어요</div>
+                                </div>
                             ) : !chartsReady ? (
-                                <div className="flex-1 flex items-center justify-center text-white/50 text-sm">차트 로딩 중...</div>
+                                <div className="flex-1 flex flex-col items-center justify-center text-white/40 gap-3">
+                                    <RiPriceTag3Line size={32} className="animate-pulse" />
+                                    <div className="text-sm font-medium">차트를 준비 중이에요...</div>
+                                </div>
                             ) : (
                                 <div className="flex-1 w-full min-h-0 relative">
                                     <ResponsiveContainer width="100%" height="100%" debounce={50}>

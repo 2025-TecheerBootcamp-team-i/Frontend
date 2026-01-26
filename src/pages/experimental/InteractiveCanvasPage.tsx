@@ -84,6 +84,15 @@ function mapToCanvasAlbum(item: TagSearchResult): CanvasAlbum | null {
     };
 }
 
+const RECOMMENDED_TAGS = [
+    "action", "adventure", "advertising", "ambiental", "background", "ballad", "calm", "children", "christmas", "commercial",
+    "cool", "corporate", "dark", "deep", "documentary", "drama", "dramatic", "dream", "emotional", "energetic",
+    "epic", "fast", "film", "fun", "funny", "game", "groovy", "happy", "heavy", "holiday",
+    "hopeful", "horror", "inspiring", "love", "meditative", "melancholic", "mellow", "melodic", "motivational", "movie",
+    "nature", "party", "positive", "powerful", "relaxing", "retro", "romantic", "sad", "sexy", "slow",
+    "soft", "soundscape", "space", "sport", "summer", "trailer", "travel", "upbeat", "uplifting"
+];
+
 export default function InteractiveCanvasPage() {
     const navigate = useNavigate();
     const [albums, setAlbums] = useState<CanvasAlbum[]>([]);
@@ -92,6 +101,7 @@ export default function InteractiveCanvasPage() {
     const [showOverlay, setShowOverlay] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [searchError, setSearchError] = useState<string | null>(null); // 에러 메시지 상태 추가
 
     // Cache for search results
     const searchCacheRef = useRef<CanvasAlbum[]>([]);
@@ -194,19 +204,29 @@ export default function InteractiveCanvasPage() {
     }, [loadChunkFromCache]);
 
     // Handle search submission
-    const handleSearch = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!searchQuery.trim()) return;
+    const handleSearch = async (e?: React.FormEvent, overrideQuery?: string) => {
+        if (e) e.preventDefault();
+
+        const q = overrideQuery || searchQuery;
+        if (!q.trim()) return;
 
         setIsLoading(true);
+        setSearchError(null); // 에러 초기화
 
         try {
             // Parse tags (comma-separated)
-            const tags = searchQuery.split(',').map(t => t.trim()).filter(Boolean).join(',');
+            const tags = q.split(',').map(t => t.trim()).filter(Boolean).join(',');
             currentTagsRef.current = tags;
+            if (overrideQuery) setSearchQuery(overrideQuery);
 
             // Fetch all results
             const results = await searchByTags(tags, 120);
+
+            if (!results || results.length === 0) {
+                setSearchError("검색 결과가 없습니다. 다른 태그로 시도해보세요.");
+                setIsLoading(false);
+                return;
+            }
 
             // Convert to CanvasAlbum format
             const canvasAlbums = results
@@ -233,6 +253,7 @@ export default function InteractiveCanvasPage() {
             setShowOverlay(false);
         } catch (error) {
             console.error("Search failed:", error);
+            setSearchError("검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
         } finally {
             setIsLoading(false);
         }
@@ -289,48 +310,70 @@ export default function InteractiveCanvasPage() {
 
                     {/* Search Box Container */}
                     <form
-                        onSubmit={handleSearch}
+                        onSubmit={(e) => handleSearch(e)}
                         className="relative z-10 w-full max-w-xl mx-4"
                     >
                         {/* Glassmorphism Search Box - Light Theme */}
-                        <div className="bg-white/60 backdrop-blur-xl border border-black/10 rounded-2xl p-6 shadow-2xl">
+                        <div className="bg-white/70 backdrop-blur-2xl border border-white/20 rounded-[32px] p-8 shadow-[0_30px_60px_rgba(0,0,0,0.12)]">
                             {/* Title */}
-                            <h2 className="text-black text-3xl font-bold mb-2 text-center tracking-tight">
+                            <h2 className="text-black/90 text-3xl font-black mb-2 text-center tracking-tight">
                                 Album Verse
                             </h2>
-                            <p className="text-black/50 text-sm text-center mb-6">
-                                태그를 검색하고 탐험하세요
+                            <p className="text-black/50 text-sm text-center mb-8 font-medium">
+                                감성적인 태그로 나만의 음악 우주를 탐험하세요
                             </p>
 
                             {/* Search Input */}
-                            <div className="relative">
+                            <div className="relative group">
                                 <input
                                     type="text"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder="summer, sad, happy..."
-                                    className="w-full bg-transparent border border-black/20 rounded-xl px-5 py-4 text-black placeholder-black/40 focus:outline-none focus:border-black/50 focus:bg-black/5 transition-all text-lg"
+                                    placeholder="무드나 장르를 입력하세요 (예: summer, dream)"
+                                    className="w-full bg-black/[0.03] border border-black/5 rounded-2xl pl-6 pr-14 py-4 text-black placeholder-black/30 focus:outline-none focus:bg-white focus:border-black/10 focus:shadow-lg transition-all text-lg font-medium"
                                     disabled={isLoading}
                                 />
                                 <button
                                     type="submit"
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/10 hover:bg-black/20 p-2 rounded-lg transition-colors disabled:opacity-50"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-colors disabled:opacity-50 hover:bg-black/5 text-black/60"
                                     disabled={isLoading}
                                 >
                                     {isLoading ? (
-                                        <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                                        <div className="w-6 h-6 border-2 border-black/10 border-t-black/60 rounded-full animate-spin" />
                                     ) : (
-                                        <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                         </svg>
                                     )}
                                 </button>
                             </div>
 
-                            {/* Hint */}
-                            <p className="text-black/30 text-xs text-center mt-3">
-                                쉼표로 여러 태그를 검색할 수 있습니다
-                            </p>
+                            {/* Error Message */}
+                            {searchError && (
+                                <div className="mt-4 p-3 rounded-xl bg-red-50 text-red-500 text-sm text-center font-medium animate-fadeIn">
+                                    {searchError}
+                                </div>
+                            )}
+
+                            {/* Recommended Tags */}
+                            <div className="mt-8">
+                                <p className="text-xs font-bold text-black/30 uppercase tracking-widest text-center mb-4">
+                                    Recommended Tags
+                                </p>
+                                <div className="flex flex-wrap justify-center gap-2 max-h-[160px] overflow-y-auto pr-2 no-scrollbar mask-gradient-b">
+                                    {RECOMMENDED_TAGS.map((tag) => (
+                                        <button
+                                            key={tag}
+                                            type="button"
+                                            onClick={() => handleSearch(undefined, tag)}
+                                            className="px-4 py-1.5 rounded-full bg-black/[0.03] hover:bg-black/[0.08] text-sm text-black/60 font-medium transition-all hover:scale-105 active:scale-95 border border-transparent hover:border-black/5"
+                                            disabled={isLoading}
+                                        >
+                                            #{tag}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     </form>
                 </div>
