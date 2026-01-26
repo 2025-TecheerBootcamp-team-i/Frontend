@@ -284,7 +284,7 @@ function HomePage() {
             {/* 2. AI 음악 만들기 (Bottom ~50%) */}
             <div
               onClick={() => navigate("/ai")}
-              className="group relative flex-1 rounded-[32px] overflow-hidden cursor-pointer shadow-2xl transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(0,0,0,0.4)]"
+              className="group ml-1.5 relative flex-1 rounded-[32px] overflow-hidden cursor-pointer shadow-2xl transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(0,0,0,0.4)]"
             >
               {/* Background Image */}
               <div className="absolute inset-0 bg-black">
