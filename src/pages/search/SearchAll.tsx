@@ -150,11 +150,19 @@ type ApiSearchResult = {
   is_ai: boolean;
   audio_url: string | null;
   album_image: string | null;
+  related_artists?: RelatedArtist[];
+};
+
+type RelatedArtist = {
+  artist_id: number;
+  artist_name: string;
+  artist_image: string | null;
 };
 
 type ApiSearchResponse = {
   count: number;
   results: ApiSearchResult[];
+  related_artists?: RelatedArtist[];
 };
 
 type ArtistAlbum = {
@@ -230,6 +238,7 @@ export default function SearchHome() {
 
   const [apiSongs, setApiSongs] = useState<Song[]>([]);
   const [apiArtists, setApiArtists] = useState<Artist[]>([]);
+  const [relatedArtists, setRelatedArtists] = useState<Artist[]>([]);
   const [apiAlbums, setApiAlbums] = useState<ArtistAlbum[]>([]);
   const [loading, setLoading] = useState(false);
   const [artistDetails, setArtistDetails] = useState<Record<number, ArtistDetail>>({});
@@ -302,6 +311,7 @@ export default function SearchHome() {
     if (!API_BASE || !q.trim()) {
       setApiSongs([]);
       setApiArtists([]);
+      setRelatedArtists([]);
       setApiAlbums([]);
       setSearchResults([]);
       setArtistDetails({});
@@ -343,6 +353,17 @@ export default function SearchHome() {
         setApiSongs(convertedSongs);
         setApiArtists(Array.from(artistMap.values()));
 
+        if (data.related_artists) {
+          const related = data.related_artists.map((ra) => ({
+            id: String(ra.artist_id),
+            name: ra.artist_name,
+            image: ra.artist_image,
+          }));
+          setRelatedArtists(related);
+        } else {
+          setRelatedArtists([]);
+        }
+
         const uniqueArtistIds = Array.from(
           new Set(data.results.map((r) => r.artist_id).filter((id): id is number => id !== null))
         ).slice(0, 8);
@@ -360,10 +381,40 @@ export default function SearchHome() {
     return () => controller.abort();
   }, [API_BASE, q, fetchArtistAlbums, fetchArtistDetails]);
 
-  const artists = useMemo(
-    () => apiArtists.map((a) => ({ ...a, image: artistDetails[Number(a.id)]?.artist_image || null })),
-    [apiArtists, artistDetails]
-  );
+  const artists = useMemo(() => {
+    // 1. API 검색 결과에서 나온 아티스트들 (이미지는 artistDetails에 의존)
+    const fromSearch = apiArtists.map((a) => ({
+      ...a,
+      image: artistDetails[Number(a.id)]?.artist_image || null,
+    }));
+
+    // 2. related_artists (이미지가 이미 포함됨)
+    const fromRelated = relatedArtists;
+
+    // 3. 중복 제거 및 합치기 (id 기준)
+    const map = new Map<string, Artist>();
+
+    // 검색 결과 아티스트 우선 넣기
+    fromSearch.forEach((a) => map.set(a.id, a));
+
+    // 연관 아티스트 넣기 (이미 있으면 스킵하거나, 이미지가 있는 쪽을 선호할 수도 있음. 
+    // 여기서는 연관 아티스트에 이미지가 확실히 있다면 덮어쓰거나, 없는 경우만 넣는 로직 등을 고려)
+    // 보통 검색 결과가 더 direct match일 수 있으나, related_artists 정보가 더 풍부할 수도 있음(이미지 등).
+    // User request implies related_artists has images. 
+    fromRelated.forEach((a) => {
+      if (!map.has(a.id)) {
+        map.set(a.id, a);
+      } else {
+        // 이미 존재하는데 이미지가 없다면 related data의 이미지로 채워주기
+        const existing = map.get(a.id)!;
+        if (!existing.image && a.image) {
+          map.set(a.id, { ...existing, image: a.image });
+        }
+      }
+    });
+
+    return Array.from(map.values());
+  }, [apiArtists, artistDetails, relatedArtists]);
 
   const albums = useMemo<Album[]>(
     () =>

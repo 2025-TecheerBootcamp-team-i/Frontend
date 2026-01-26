@@ -102,8 +102,9 @@ function SimpleWordCloud({
             .rotate(() => (~~(Math.random() * 2) * 90))
             .spiral('rectangular') // 더 꽉 차 보이게 배치
             .font("Pretendard")
-            .fontSize((d) => {
-                const val = d.size as number;
+            .fontSize((d: any) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const val = (d as any).size as number;
                 const vals = words.map(w => w.value);
                 const max = Math.max(...vals, 1);
                 const min = Math.min(...vals, 0);
@@ -113,7 +114,7 @@ function SimpleWordCloud({
                 // 더 풍성해보이게 크기 키움 (14~50 -> 16~64)
                 return 16 + (normalized * 48);
             })
-            .on("end", (drawnWords) => {
+            .on("end", (drawnWords: any[]) => {
                 g.selectAll("text")
                     .data(drawnWords)
                     .enter().append("text")
