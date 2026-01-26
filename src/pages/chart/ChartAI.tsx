@@ -624,6 +624,8 @@ export default function ChartAI() {
                           <img
                             src={row.albumImage}
                             alt={row.albumName}
+                            width={56}
+                            height={56}
                             className="w-full h-full object-cover"
                             onError={(e) => {
                               e.currentTarget.style.display = "none";

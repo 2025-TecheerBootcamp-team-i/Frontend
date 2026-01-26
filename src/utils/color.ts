@@ -48,20 +48,10 @@ export async function extractPastelColors(url: string, count: number = 3): Promi
           .map(([rgbStr]) => {
             const [r, g, b] = rgbStr.split(",").map(Number);
 
-            // 단색이 강해지는 것을 방지하는 보정 로직
-            // 1. 회색조(Grayscale)를 살짝 섞어 채도를 낮춤 (0.7:0.3 비율)
-            const avg = (r + g + b) / 3;
-            let nr = r * 0.7 + avg * 0.3;
-            let ng = g * 0.7 + avg * 0.3;
-            let nb = b * 0.7 + avg * 0.3;
+            // 단색이 강해지는 것을 방지하는 보정 로직 (제거: 원색 그대로 사용)
+            // 사용자의 요청대로 색 변화를 확실하게 하기 위해 보정 없이 원본 RGB 그대로 반환
 
-            // 2. 너무 어둡거나 너무 밝지 않게 밸런스 조정
-            const pastelMix = 120; // 중립적인 밝기값 섞기
-            nr = Math.floor(nr * 0.6 + pastelMix * 0.4);
-            ng = Math.floor(ng * 0.6 + pastelMix * 0.4);
-            nb = Math.floor(nb * 0.6 + pastelMix * 0.4);
-
-            return `rgb(${nr}, ${ng}, ${nb})`;
+            return `rgb(${r}, ${g}, ${b})`;
           });
 
         if (sortedColors.length === 0) {

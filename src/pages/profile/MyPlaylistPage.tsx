@@ -7,25 +7,26 @@ import {
   listLikedPlaylists,
   isSystemPlaylist,
   type PlaylistSummary,
+  getPlaylistDetail
 } from "../../api/playlist";
 import { fetchLikedTracks, type LikedTrack } from "../../api/LikedSong";
 import { getCurrentUserId } from "../../utils/auth";
 import axiosInstance from "../../api/axiosInstance";
 
-const LIKED_SYSTEM_ID = "liked"; // 나중에 "liked -system으로 수정해야 함. 그렇지 않으면 개인 목록 맨 앞에 좋아요 누른 곡 리스트 생성됨"
+const LIKED_SYSTEM_ID = "liked";
 
 /* ===================== 타입 ===================== */
 type PlaylistItem = {
-    id: string;
-    title: string;
-    owner: string;
-    scope: "personal" | "shared";
-    liked?: boolean;
-    kind?: "playlist" | "system" | "album";
-    isPublic?: boolean;        // 공개/비공개
-    coverUrl?: string | null;  // 단일 대표커버
-    coverUrls?: string[];      // 2x2 모자이크용(좋아요 카드에서 사용)
-    };
+  id: string;
+  title: string;
+  owner: string;
+  scope: "personal" | "shared";
+  liked?: boolean;
+  kind?: "playlist" | "system" | "album";
+  isPublic?: boolean; // 공개/비공개
+  coverUrl?: string | null; // 단일 대표커버
+  coverUrls?: string[]; // 2x2 모자이크용(좋아요 카드에서 사용)
+};
 
 type LikedAlbumApi = {
   album_id: number;
@@ -64,240 +65,256 @@ function toLikedAlbumItem(a: LikedAlbumApi): PlaylistItem {
   };
 }
 
+function buildCoverFromPlaylistDetailItems(items: any[], limit = 4) {
+  const urls = (items ?? [])
+    .map((it) => it?.music?.album_image)
+    .filter((v): v is string => typeof v === "string" && v.length > 0);
+
+  const unique = Array.from(new Set(urls)).slice(0, limit);
+  return { coverUrls: unique, coverUrl: unique[0] ?? null };
+}
+
+
 /* ===================== UI 컴포넌트 ===================== */
 function Tab({ to, label }: { to: string; label: string }) {
-    return (
-        <NavLink
-        to={to}
-        end
-        className={({ isActive }) =>
-            [
-            "px-4 py-2 rounded-full text-base transition whitespace-nowrap",
+  return (
+    <NavLink
+      to={to}
+      end
+      className={({ isActive }) =>
+        [
+          "px-4 py-2 rounded-full text-lg transition whitespace-nowrap", // text-base -> text-lg
           isActive
-              ? "bg-[#E4524D]/80 text-[#F6F6F6]"
-              : "bg-white/20 text-[#F6F6F6] hover:bg-white/[0.08]",
-            ].join(" ")
-        }
+            ? "bg-[#E4524D]/80 text-[#f6f6f6] font-semibold scale-105 z-10"
+            : "bg-white/20 text-[#F6F6F6] hover:bg-white/[0.08] font-semibold hover:scale-105",
+        ].join(" ")
+      }
+    >
+      {label}
+    </NavLink>
+  );
+}
+
+type HorizontalScrollerProps = {
+  children: React.ReactNode;
+  scrollStep?: number;
+  gradientFromClass?: string;
+};
+
+function HorizontalScroller({
+  children,
+  scrollStep = 300,
+  gradientFromClass = "from-[#2d2d2d]/80",
+}: HorizontalScrollerProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [canScroll, setCanScroll] = useState(false);
+  const [showLeft, setShowLeft] = useState(false);
+  const [showRight, setShowRight] = useState(false);
+
+  const update = () => {
+    const el = ref.current;
+    if (!el) return;
+
+    const can = el.scrollWidth > el.clientWidth + 1;
+    setCanScroll(can);
+
+    if (!can) {
+      setShowLeft(false);
+      setShowRight(false);
+      return;
+    }
+
+    const left = el.scrollLeft;
+    const max = el.scrollWidth - el.clientWidth;
+
+    setShowLeft(left > 4);
+    setShowRight(left < max - 4);
+  };
+
+  useEffect(() => {
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  return (
+    <div className="relative mt-2">
+      <div ref={ref} onScroll={update} className="overflow-x-auto overflow-y-hidden no-scrollbar">
+        {children}
+      </div>
+
+      {canScroll && showLeft && (
+        <button
+          type="button"
+          onClick={() => {
+            ref.current?.scrollBy({ left: -scrollStep, behavior: "smooth" });
+            setTimeout(update, 250);
+          }}
+          className="
+            absolute left-1 top-1/2 -translate-y-1/2 z-10
+            h-10 w-10 rounded-full
+            bg-[#1d1d1d]/50 text-[#f6f6f6]
+            flex items-center justify-center
+            hover:bg-[#1d1d1d]/70 transition
+          "
+          aria-label="왼쪽으로 이동"
         >
-        {label}
-        </NavLink>
-    );
-    }
+          <MdOutlineNavigateNext className="rotate-180" size={24} />
+        </button>
+      )}
 
-    type HorizontalScrollerProps = {
-    children: React.ReactNode;
-    scrollStep?: number;
-    gradientFromClass?: string;
-    };
+      {canScroll && showRight && (
+        <button
+          type="button"
+          onClick={() => {
+            ref.current?.scrollBy({ left: scrollStep, behavior: "smooth" });
+            setTimeout(update, 250);
+          }}
+          className="
+            absolute right-1 top-1/2 -translate-y-1/2 z-10
+            h-10 w-10 rounded-full
+            bg-[#1d1d1d]/50 text-[#f6f6f6]
+            flex items-center justify-center
+            hover:bg-[#1d1d1d]/70 transition
+          "
+          aria-label="오른쪽으로 이동"
+        >
+          <MdOutlineNavigateNext size={24} />
+        </button>
+      )}
 
-    function HorizontalScroller({
-    children,
-    scrollStep = 300,
-    gradientFromClass = "from-[#2d2d2d]/80",
-    }: HorizontalScrollerProps) {
-    const ref = useRef<HTMLDivElement>(null);
-    const [canScroll, setCanScroll] = useState(false);
-    const [showLeft, setShowLeft] = useState(false);
-    const [showRight, setShowRight] = useState(false);
-
-    const update = () => {
-        const el = ref.current;
-        if (!el) return;
-
-        const can = el.scrollWidth > el.clientWidth + 1;
-        setCanScroll(can);
-
-        if (!can) {
-        setShowLeft(false);
-        setShowRight(false);
-        return;
-        }
-
-        const left = el.scrollLeft;
-        const max = el.scrollWidth - el.clientWidth;
-
-        setShowLeft(left > 4);
-        setShowRight(left < max - 4);
-    };
-
-    useEffect(() => {
-        update();
-        window.addEventListener("resize", update);
-        return () => window.removeEventListener("resize", update);
-    }, []);
-
-    return (
-        <div className="relative mt-2">
-        <div ref={ref} onScroll={update} className="overflow-x-auto overflow-y-hidden no-scrollbar">
-            {children}
-        </div>
-
-        {canScroll && showLeft && (
-            <button
-            type="button"
-            onClick={() => {
-                ref.current?.scrollBy({ left: -scrollStep, behavior: "smooth" });
-                setTimeout(update, 250);
-            }}
-            className="
-                absolute left-1 top-1/2 -translate-y-1/2 z-10
-                h-9 w-9 rounded-full
-                bg-[#1d1d1d]/50 text-[#f6f6f6]
-                flex items-center justify-center
-                hover:bg-[#1d1d1d]/70 transition
-            "
-            aria-label="왼쪽으로 이동"
-            >
-            <MdOutlineNavigateNext className="rotate-180" size={22} />
-            </button>
-        )}
-
-        {canScroll && showRight && (
-            <button
-            type="button"
-            onClick={() => {
-                ref.current?.scrollBy({ left: scrollStep, behavior: "smooth" });
-                setTimeout(update, 250);
-            }}
-            className="
-                absolute right-1 top-1/2 -translate-y-1/2 z-10
-                h-9 w-9 rounded-full
-                bg-[#1d1d1d]/50 text-[#f6f6f6]
-                flex items-center justify-center
-                hover:bg-[#1d1d1d]/70 transition
-            "
-            aria-label="오른쪽으로 이동"
-            >
-            <MdOutlineNavigateNext size={22} />
-            </button>
-        )}
-
-        {canScroll && showRight && (
-            <div
-            className={[
-                "pointer-events-none absolute right-0 top-0 h-full w-16 bg-gradient-to-l to-transparent",
-                gradientFromClass,
-            ].join(" ")}
-            />
-        )}
-        {canScroll && showLeft && (
-            <div
-            className={[
-                "pointer-events-none absolute left-0 top-0 h-full w-16 bg-gradient-to-r to-transparent",
-                gradientFromClass,
-            ].join(" ")}
-            />
-        )}
-        </div>
-    );
-    }
+      {canScroll && showRight && (
+        <div
+          className={[
+            "pointer-events-none absolute right-0 top-0 h-full w-16 bg-gradient-to-l to-transparent",
+            gradientFromClass,
+          ].join(" ")}
+        />
+      )}
+      {canScroll && showLeft && (
+        <div
+          className={[
+            "pointer-events-none absolute left-0 top-0 h-full w-16 bg-gradient-to-r to-transparent",
+            gradientFromClass,
+          ].join(" ")}
+        />
+      )}
+    </div>
+  );
+}
 /* ===================== UI 컴포넌트 ===================== */
 
-    function Section({
-    title,
-    items,
-    onMore,
-    onClickItem,
-    }: {
-    title: string;
-    items: PlaylistItem[];
-    onMore?: () => void;
-    onClickItem?: (id: string) => void;
-    }) {
-    return (
-        <section className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10">
-        <div className="px-8 pt-6 pb-2 flex items-center justify-between">
-            <div className="text-xl font-semibold text-[#f6f6f6]">
-            {title}
-            </div>
+function Section({
+  title,
+  items,
+  onMore,
+  onClickItem,
+}: {
+  title: string;
+  items: PlaylistItem[];
+  onMore?: () => void;
+  onClickItem?: (id: string) => void;
+}) {
+  return (
+    <section className="rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10">
+      <div className="px-8 pt-6 pb-2 flex items-center justify-between">
+        <div className="text-2xl font-bold text-[#f6f6f6]">{title}</div>
+        {/* text-xl -> text-2xl */}
 
-            {onMore && (
-            <button
+        {onMore && (
+          <button
             type="button"
             onClick={onMore}
-            className="text-[#F6F6F6] hover:text-[#f6f6f6]/50 transition text-xl leading-none"
+            className="text-[#F6F6F6] hover:text-[#f6f6f6]/50 transition text-2xl leading-none"
             aria-label={`${title} 더보기`}
             title="더보기"
-            >
-            <MdOutlineNavigateNext size={30} />
-            </button>
-            )}
-        </div>
+          >
+            <MdOutlineNavigateNext size={34} />
+          </button>
+        )}
+      </div>
 
-        <div className="mb-4 mx-4 border-b border-white/10" />
+      <div className="mb-4 mx-4 border-b border-white/10" />
 
-        <div className="px-6 pb-6">
-            <HorizontalScroller gradientFromClass="from-transparent">
-            <div className="flex gap-5 min-w-max pr-2">
-                {items.map((it) => (
-                <button
-                    key={`${it.kind ?? "playlist"}:${it.id}`}
-                    type="button"
-                    onClick={() => onClickItem?.(it.id)}
-                    className="w-[220px] text-left group shrink-0"
-                >
-                    <div className="relative aspect-square rounded-2xl overflow-hidden bg-white/20 group-hover:bg-white/10 transition-all duration-500 shadow-xl">
-                      {/* ✅ 커버(2x2 모자이크 우선) */}
-                        {it.coverUrls?.length ? (
-                            <div className="absolute inset-0 grid grid-cols-2 grid-rows-2">
-                            {Array.from({ length: 4 }).map((_, idx) => {
-                                const src = it.coverUrls?.[idx];
-                                return src ? (
-                                <img
-                                    key={idx}
-                                    src={src}
-                                    alt={`${it.title} cover ${idx + 1}`}
-                                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
-                                    loading="lazy"
-                                    decoding="async"
-                                    onError={(e) => {
-                                    (e.currentTarget as HTMLImageElement).style.display = "none";
-                                    }}
-                                />
-                                ) : (
-                                <div key={idx} className="w-full h-full bg-white/5" />
-                                );
-                            })}
-                            </div>
-                        ) : it.coverUrl ? (
-                            <img
-                            src={it.coverUrl}
-                            alt={`${it.title} cover`}
-                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+      <div className="px-6 pb-6">
+        <HorizontalScroller gradientFromClass="from-transparent">
+          <div className="flex gap-5 min-w-max pr-2">
+            {items.map((it) => (
+              <button
+                key={`${it.kind ?? "playlist"}:${it.id}`}
+                type="button"
+                onClick={() => onClickItem?.(it.id)}
+                className="w-[220px] text-left group shrink-0"
+              >
+                <div className="relative aspect-square rounded-2xl overflow-hidden bg-white/20 group-hover:bg-white/10 transition-all duration-500 shadow-xl">
+                  {/* ✅ 커버(2x2 모자이크 우선) */}
+                  {it.coverUrls?.length ? (
+                    <div className="absolute inset-0 grid grid-cols-2 grid-rows-2">
+                      {Array.from({ length: 4 }).map((_, idx) => {
+                        const src = it.coverUrls?.[idx];
+                        return src ? (
+                          <img
+                            key={idx}
+                            src={src}
+                            alt={`${it.title} cover ${idx + 1}`}
+                            className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                             loading="lazy"
                             decoding="async"
                             onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).style.display = "none";
+                              (e.currentTarget as HTMLImageElement).style.display = "none";
                             }}
-                            />
+                          />
                         ) : (
-                            <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
-                        )}
-                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    {/* ❤️ 좋아요 하트 */}
-                    {it.liked || it.kind === "system" ? (
-                    <div className={[
-                        "absolute top-2 right-3 text-2xl",
-                        it.kind === "system" ? "text-[#E4524D]/80" : "text-[#AFDEE2]/80"].join(" ")}
-                    >♥
+                          <div key={idx} className="w-full h-full bg-white/5" />
+                        );
+                      })}
                     </div>
-                    ) : null}
+                  ) : it.coverUrl ? (
+                    <img
+                      src={it.coverUrl}
+                      alt={`${it.title} cover`}
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                      loading="lazy"
+                      decoding="async"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
+                  )}
+
+                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                  {/* ❤️ 좋아요 하트 */}
+                  {it.liked || it.kind === "system" ? (
+                    <div
+                      className={[
+                        "absolute top-2 right-3 text-3xl", // text-2xl -> text-3xl
+                        it.kind === "system" ? "text-[#E4524D]/80" : "text-[#AFDEE2]/80",
+                      ].join(" ")}
+                    >
+                      ♥
                     </div>
-                        <div className="mx-1 mt-3 text-sm font-semibold text-[#f6f6f6]/95 truncate group-hover:text-[#AFDEE2] transition-colors">
-                            {it.title}
-                        </div>
-                        <div className="mx-1 mt-1 text-xs text-[#f6f6f6]/20">
-                            {it.owner}
-                        </div>
-                    
-                </button>
-                ))}
-            </div>
-            </HorizontalScroller>
-        </div>
-        </section>
-    );
-    }
+                  ) : null}
+                </div>
+
+                <div className="mx-1 mt-3 text-base font-semibold text-[#f6f6f6]/95 truncate group-hover:text-[#AFDEE2] transition-colors">
+                  {/* text-sm -> text-base */}
+                  {it.title}
+                </div>
+                <div className="mx-1 mt-1 text-sm text-[#f6f6f6]/20">
+                  {/* text-xs -> text-sm */}
+                  {it.owner}
+                </div>
+              </button>
+            ))}
+          </div>
+        </HorizontalScroller>
+      </div>
+    </section>
+  );
+}
 
 /* ===================== 페이지 화면 및 API ===================== */
 export default function MyPlaylistPage() {
@@ -310,10 +327,12 @@ export default function MyPlaylistPage() {
   ===================== */
 
   // 1) 개인 / 좋아요 플레이리스트 / 좋아요 앨범 (중요 API)
-
   const [myPlaylists, setMyPlaylists] = useState<PlaylistSummary[]>([]);
   const [likedPlaylists, setLikedPlaylists] = useState<PlaylistSummary[]>([]);
   const [likedAlbums, setLikedAlbums] = useState<LikedAlbumApi[]>([]);
+  const [personalCovers, setPersonalCovers] = useState<
+    Record<string, { coverUrls: string[]; coverUrl: string | null }>
+  >({});
 
   useEffect(() => {
     let cancelled = false;
@@ -337,6 +356,18 @@ export default function MyPlaylistPage() {
           ? likedPl.filter((p) => p.visibility !== "system" && !isSystemPlaylist(p.title))
           : [];
 
+        console.groupCollapsed("[MyPlaylistPage] myPlaylists fetched");
+        console.log("mineFiltered count:", mineFiltered.length);
+        console.table(
+          mineFiltered.map((p) => ({
+            id: p.playlist_id,
+            title: p.title,
+            visibility: p.visibility,
+            item_count: p.item_count,
+          }))
+        );
+        console.groupEnd();
+
         setMyPlaylists(mineFiltered);
         setLikedPlaylists(likedPlFiltered);
         setLikedAlbums(Array.isArray(likedAlRes.data) ? likedAlRes.data : []);
@@ -350,10 +381,51 @@ export default function MyPlaylistPage() {
       }
     })();
 
+
+
+
     return () => {
       cancelled = true;
     };
   }, []);
+
+  // ✅ 개인 플레이리스트 커버 생성: 상단 6개만 detail 조회해서 모자이크 커버 만들기
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const targets = (myPlaylists ?? []).slice(0, 6);
+
+        const results = await Promise.allSettled(
+          targets.map(async (p) => {
+            const detail = await getPlaylistDetail(p.playlist_id);
+            const cover = buildCoverFromPlaylistDetailItems(detail.items, 4);
+            return [String(p.playlist_id), cover] as const;
+          })
+        );
+
+        if (cancelled) return;
+
+        setPersonalCovers((prev) => {
+          const next = { ...prev };
+          for (const r of results) {
+            if (r.status === "fulfilled") {
+              const [id, cover] = r.value;
+              next[id] = cover;
+            }
+          }
+          return next;
+        });
+      } catch (e) {
+        console.error("[MyPlaylistPage] personal covers fetch 실패:", e);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [myPlaylists]);
 
   // 2) 좋아요 누른 곡 리스트 (API)
   const [likedTracks, setLikedTracks] = useState<LikedTrack[]>([]);
@@ -373,27 +445,30 @@ export default function MyPlaylistPage() {
   }, []);
 
   // 3) 좋아요 곡들의 앨범이미지로 2x2 모자이크 커버 생성
-  const likedCoverUrls = useMemo(
-    () => buildCoverUrlsFromLikedTracks(likedTracks, 4),
-    [likedTracks]
-  );
+  const likedCoverUrls = useMemo(() => buildCoverUrlsFromLikedTracks(likedTracks, 4), [likedTracks]);
 
   /* =====================
    파생 데이터는 useMemo로 계산
   ===================== */
-
-  // 개인 목록(시스템 liked 제외)
+  // 개인 목록(시스템 liked 제외) + ✅ cover 주입
   const personalAll: PlaylistItem[] = useMemo(() => {
-    return myPlaylists.map((p) => ({
-      id: String(p.playlist_id),
-      title: p.title,
-      owner: p.creator_nickname ?? "—",
-      scope: "personal" as const,
-      kind: "playlist",
-      liked: p.is_liked,
-      isPublic: p.visibility === "public",
-    }));
-  }, [myPlaylists]);
+    return myPlaylists.map((p) => {
+      const id = String(p.playlist_id);
+      const cover = personalCovers[id];
+
+      return {
+        id,
+        title: p.title,
+        owner: p.creator_nickname ?? "—",
+        scope: "personal" as const,
+        kind: "playlist",
+        liked: p.is_liked,
+        isPublic: p.visibility === "public",
+        coverUrls: cover?.coverUrls,
+        coverUrl: cover?.coverUrl ?? null,
+      };
+    });
+  }, [myPlaylists, personalCovers]);
 
   // 좋아요 섹션(시스템 카드 + 좋아요 앨범 + 좋아요 플레이리스트)
   const likedAll: PlaylistItem[] = useMemo(() => {

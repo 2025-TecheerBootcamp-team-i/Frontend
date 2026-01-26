@@ -3,121 +3,18 @@ import { useNavigate } from "react-router-dom";
 
 import { fetchPopularArtists, type PopularArtist } from "../../api/artist";
 import { fetchChart, type ChartData, type ChartType, type ChartRow as ApiChartRow } from "../../api/chart";
-import { listPublicPlaylists, type PlaylistSummary } from "../../api/playlist";
+
+
 import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
 
 import { MdOutlineNavigateNext } from "react-icons/md";
 import { FaPlay } from "react-icons/fa6";
 
-type HorizontalScrollerProps = {
-  children: React.ReactNode;
-  scrollStep?: number;
-  gradientFromClass?: string;
-};
+import DjStationSection from "./DjStationSection";
 
-function HorizontalScroller({
-  children,
-  scrollStep = 300,
-  gradientFromClass = "from-[#2d2d2d]",
-}: HorizontalScrollerProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [canScroll, setCanScroll] = useState(false);
-  const [showLeft, setShowLeft] = useState(false);
-  const [showRight, setShowRight] = useState(false);
 
-  const update = () => {
-    const el = ref.current;
-    if (!el) return;
 
-    const can = el.scrollWidth > el.clientWidth + 1;
-    setCanScroll(can);
-
-    if (!can) {
-      setShowLeft(false);
-      setShowRight(false);
-      return;
-    }
-
-    const left = el.scrollLeft;
-    const max = el.scrollWidth - el.clientWidth;
-
-    setShowLeft(left > 4);
-    setShowRight(left < max - 4);
-  };
-
-  useEffect(() => {
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
-
-  return (
-    <div className="relative mt-2">
-      <div ref={ref} onScroll={update} className="overflow-x-auto overflow-y-hidden no-scrollbar">
-        {children}
-      </div>
-
-      {canScroll && showLeft && (
-        <button
-          type="button"
-          onClick={() => {
-            ref.current?.scrollBy({ left: -scrollStep, behavior: "smooth" });
-            setTimeout(update, 250);
-          }}
-          className="
-            absolute left-1 top-1/2 -translate-y-1/2 z-10
-            h-9 w-9 rounded-full
-            bg-[#1d1d1d]/50 text-[#f6f6f6]
-            flex items-center justify-center
-            hover:bg-[#1d1d1d]/70 transition
-            rotate-180
-          "
-          aria-label="왼쪽으로 이동"
-        >
-          <MdOutlineNavigateNext size={22} />
-        </button>
-      )}
-
-      {canScroll && showRight && (
-        <button
-          type="button"
-          onClick={() => {
-            ref.current?.scrollBy({ left: scrollStep, behavior: "smooth" });
-            setTimeout(update, 250);
-          }}
-          className="
-            absolute right-1 top-1/2 -translate-y-1/2 z-10
-            h-9 w-9 rounded-full
-            bg-[#1d1d1d]/50 text-[#f6f6f6]
-            flex items-center justify-center
-            hover:bg-[#1d1d1d]/70 transition
-          "
-          aria-label="오른쪽으로 이동"
-        >
-          <MdOutlineNavigateNext size={22} />
-        </button>
-      )}
-
-      {canScroll && showRight && (
-        <div
-          className={[
-            "pointer-events-none absolute right-0 top-0 h-full w-16 bg-gradient-to-l to-transparent",
-            gradientFromClass,
-          ].join(" ")}
-        />
-      )}
-      {canScroll && showLeft && (
-        <div
-          className={[
-            "pointer-events-none absolute left-0 top-0 h-full w-16 bg-gradient-to-r to-transparent",
-            gradientFromClass,
-          ].join(" ")}
-        />
-      )}
-    </div>
-  );
-}
 
 function getErrorMessage(e: unknown, fallback: string) {
   if (e instanceof Error) return e.message;
@@ -148,9 +45,9 @@ function HomePage() {
   const [chartLoading, setChartLoading] = useState(false);
   const [chartError, setChartError] = useState<string | null>(null);
 
-  const [publicPlaylists, setPublicPlaylists] = useState<PlaylistSummary[]>([]);
-  const [playlistsLoading, setPlaylistsLoading] = useState(false);
-  const [playlistsError, setPlaylistsError] = useState<string | null>(null);
+
+
+
 
   const TAB_TO_CHARTTYPE: Record<"TOP100" | "DAILY" | "AI", ChartType> = {
     TOP100: "realtime",
@@ -180,7 +77,7 @@ function HomePage() {
         setPopularLoading(true);
         setPopularError(null);
 
-        const data = await fetchPopularArtists(6);
+        const data = await fetchPopularArtists(20);
         if (!alive) return;
 
         setPopularArtists(data);
@@ -237,33 +134,7 @@ function HomePage() {
     };
   }, []);
 
-  useEffect(() => {
-    let alive = true;
 
-    (async () => {
-      try {
-        setPlaylistsLoading(true);
-        setPlaylistsError(null);
-
-        const data = await listPublicPlaylists();
-        if (!alive) return;
-
-        const filtered = data.filter((p) => p.like_count >= 20 && p.visibility !== "system");
-        const shuffled = [...filtered].sort(() => Math.random() - 0.5);
-
-        setPublicPlaylists(shuffled);
-      } catch (e: unknown) {
-        if (!alive) return;
-        setPlaylistsError(getErrorMessage(e, "플레이리스트 로딩 실패"));
-      } finally {
-        if (alive) setPlaylistsLoading(false);
-      }
-    })();
-
-    return () => {
-      alive = false;
-    };
-  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -298,6 +169,8 @@ function HomePage() {
     };
   }, []);
 
+
+
   const tabBtn = (key: "TOP100" | "DAILY" | "AI", label: string) => {
     const active = tab === key;
     return (
@@ -305,7 +178,7 @@ function HomePage() {
         type="button"
         onClick={() => setTab(key)}
         className={[
-          "h-10 text-base px-4 py-2 rounded-full transition whitespace-nowrap",
+          "h-8 text-sm px-3 py-1.5 rounded-full transition whitespace-nowrap",
           active
             ? "bg-[#E4524D]/80 text-[#f6f6f6] font-semibold scale-105 z-10"
             : "bg-white/20 text-[#F6F6F6] hover:bg-white/[0.08] font-semibold hover:scale-105",
@@ -356,13 +229,16 @@ function HomePage() {
       <div className="min-w-[1280px]">
         {/* 인기 아티스트 */}
         <section className="mb-2">
-          <div className="relative">
+          <div className="relative overflow-x-auto pb-2">
             <div
               ref={scrollRef}
               // ✅ 줄어들면 줄바꿈/압축 대신 그냥 가로가 길어지게
-              className="flex gap-8 min-w-max w-max px-4 py-6"
+              className="flex gap-8 min-w-max w-max px-4 py-6 min-h-[280px]"
             >
-              {popularLoading && <div className="text-[#F6F6F6]/70 px-2">로딩중...</div>}
+              {/* 로딩/에러 상태를 실제 콘텐츠 영역 안에서 처리 */}
+              {popularLoading && (
+                <div className="flex items-center justify-center w-full text-[#F6F6F6]/50">로딩중...</div>
+              )}
               {popularError && <div className="text-red-300 px-2">{popularError}</div>}
 
               {!popularLoading &&
@@ -389,6 +265,8 @@ function HomePage() {
                           <img
                             src={a.image_small_circle}
                             alt={a.artist_name}
+                            width={180}
+                            height={180}
                             className="w-full h-full object-cover transition-all duration-1000 group-hover:scale-125 opacity-80 group-hover:opacity-100 brightness-95 group-hover:brightness-110"
                             loading="lazy"
                             decoding="async"
@@ -426,6 +304,10 @@ function HomePage() {
           </div>
         </section>
 
+
+
+
+
         {/* 차트 요약 */}
         <section className="mb-4">
           <div className="w-full rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 p-8 pb-4">
@@ -433,16 +315,16 @@ function HomePage() {
               <div className="min-w-full">
                 <div className="flex items-center justify-between gap-4 pt-2 mb-4">
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-4 mb-1 min-w-0">
+                    <div className="flex items-end gap-4 mb-1 min-w-0">
                       <button
                         type="button"
                         onClick={goChart}
-                        className="px-2 text-5xl font-bold text-[#f6f6f6] leading-none hover:text-[#f6f6f6]/50 transition whitespace-nowrap"
+                        className="px-2 text-[43px] font-bold text-[#f6f6f6] leading-none hover:text-[#f6f6f6]/50 transition whitespace-nowrap"
                       >
                         실시간 차트
                       </button>
 
-                      <div className="flex gap-4 shrink-0">
+                      <div className="flex gap-3 shrink-0">
                         {tabBtn("TOP100", "TOP 100")}
                         {tabBtn("DAILY", "일일차트")}
                         {tabBtn("AI", "AI 음악")}
@@ -462,11 +344,14 @@ function HomePage() {
 
                 <div className="border-b border-white/10" />
 
-                {chartLoading && <div className="p-4 text-[#f6f6f6]/50">차트 로딩중...</div>}
-                {chartError && <div className="p-4 text-red-400/80">{chartError}</div>}
+                {/* min-height로 레이아웃 고정 */}
+                <div className="divide-y divide-white/5 overflow-hidden min-h-[540px]">
+                  {chartLoading && (
+                    <div className="flex items-center justify-center h-[540px] text-[#f6f6f6]/50">차트 로딩중...</div>
+                  )}
+                  {chartError && <div className="p-4 text-red-400/80">{chartError}</div>}
 
-                <div className="divide-y divide-white/5 overflow-hidden">
-                  {previewRows.map((row) => (
+                  {!chartLoading && !chartError && previewRows.map((row) => (
                     <div
                       key={row.musicId}
                       className="
@@ -510,6 +395,8 @@ function HomePage() {
                           <img
                             src={row.albumImage}
                             alt={row.albumName}
+                            width={72}
+                            height={72}
                             className="w-[72px] h-[72px] rounded-2xl object-cover bg-[#D9D9D9] shrink-0 shadow-lg"
                             loading="lazy"
                             decoding="async"
@@ -522,9 +409,8 @@ function HomePage() {
                           />
                         ) : null}
                         <div
-                          className={`w-[72px] h-[72px] rounded-2xl bg-[#D9D9D9] shrink-0 ${
-                            row.albumImage ? "hidden" : ""
-                          }`}
+                          className={`w-[72px] h-[72px] rounded-2xl bg-[#D9D9D9] shrink-0 ${row.albumImage ? "hidden" : ""
+                            }`}
                         />
 
                         <div className="min-w-0">
@@ -568,55 +454,12 @@ function HomePage() {
           </div>
         </section>
 
-        {/* 인기 공개 플레이리스트 */}
-        <section className="mb-6">
-          <div className="w-full rounded-[40px] bg-white/[0.05] backdrop-blur-2xl border border-white/10 p-8 pb-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="px-3 pt-2 text-3xl font-bold text-[#f6f6f6] whitespace-nowrap transition">
-                인기 공개 플레이리스트
-              </div>
-            </div>
+        {/* DJ Station */}
+        <DjStationSection />
 
-            <div className="mb-4 border-b border-white/10" />
 
-            {playlistsLoading && <div className="p-8 text-white/50 text-lg">플레이리스트 로딩중...</div>}
-            {playlistsError && <div className="p-8 text-red-400/80 text-lg">{playlistsError}</div>}
-
-            {!playlistsLoading && !playlistsError && publicPlaylists.length > 0 && (
-              <HorizontalScroller gradientFromClass="from-transparent">
-                <div className="flex gap-2 min-w-max pr-2">
-                  {publicPlaylists.map((p) => (
-                    <button
-                      key={p.playlist_id}
-                      type="button"
-                      onClick={() => navigate(`/playlist/${p.playlist_id}`)}
-                      className="w-[260px] text-left group shrink-0"
-                    >
-                      <div className="w-[260px] h-[260px] rounded-[32px] bg-white/5 border border-white/10 group-hover:bg-white/10 transition-all duration-500 shadow-xl overflow-hidden relative">
-                        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent" />
-                      </div>
-
-                      <div className="mt-5 px-2">
-                        <div className="text-lg font-bold text-[#F6F6F6] truncate group-hover:text-[#AFDEE2] transition-colors">
-                          {p.title}
-                        </div>
-                        <div className="mt-2 text-sm text-[#F6F6F6]/40 font-medium truncate">
-                          {p.creator_nickname} · {p.item_count}곡 · ♥ {p.like_count}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </HorizontalScroller>
-            )}
-
-            {!playlistsLoading && !playlistsError && publicPlaylists.length === 0 && (
-              <div className="px-4 mb-2 text-[#F6F6F6]/30 text-base text-left">인기 플레이리스트가 없습니다</div>
-            )}
-          </div>
-        </section>
       </div>
-    </div>
+    </div >
   );
 }
 

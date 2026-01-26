@@ -12,7 +12,7 @@ import { usePlayer } from "../../player/PlayerContext";
 import type { PlayerTrack } from "../../player/PlayerContext";
 import { requireLogin } from "../../api/auth";
 
-import { listMyPlaylists, addPlaylistItems, type PlaylistSummary } from "../../api/playlist";
+import { listMyPlaylists, addPlaylistItem, type PlaylistSummary } from "../../api/playlist";
 import { likeTrack } from "../../api/LikedSong";
 
 /* ===================== 타입 ===================== */
@@ -117,14 +117,15 @@ function BaseModal({
         <button type="button" className="absolute inset-0 bg-black/50" onClick={onClose} aria-label="닫기" />
         <div className="absolute inset-0 grid place-items-center p-6">
           <div
-            className={`w-full ${maxWidthClass} rounded-3xl bg-[#2d2d2d] border border-[#464646] shadow-2xl overflow-hidden`}
+            className={`w-full ${maxWidthClass} rounded-3xl bg-[#3d3d3d]/80 border border-white/10 shadow-2xl overflow-hidden`}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-label={title}
           >
-            <div className="px-6 py-4 flex items-center justify-between border-b border-[#464646]">
-              <div className="text-base font-semibold text-[#F6F6F6]">{title}</div>
+            <div className="px-6 py-4 flex items-center justify-between border-b border-white/10">
+              {/* ✅ text-base → text-lg */}
+              <div className="text-lg font-semibold text-[#F6F6F6]">{title}</div>
               <button
                 type="button"
                 onClick={onClose}
@@ -168,6 +169,9 @@ export default function SearchSong() {
       }
     >
   >({});
+  
+  // 추가: 검색 요청 최신성(runId) 관리
+  const searchRunIdRef = useRef(0);
 
   const toggleExcludeAi = () => {
     const next = new URLSearchParams(sp);
@@ -186,6 +190,7 @@ export default function SearchSong() {
       return;
     }
 
+    const runId = ++searchRunIdRef.current;
     const controller = new AbortController();
 
     (async () => {
@@ -210,7 +215,7 @@ export default function SearchSong() {
         const data: ApiSearchResponse = await res.json();
 
         const converted: Song[] = data.results.map((r) => ({
-          id: String(r.itunes_id),
+          id: String(r.music_id),
           musicId: r.music_id,
           title: r.music_name,
           artist: r.artist_name,
@@ -224,6 +229,7 @@ export default function SearchSong() {
           albumImage: r.album_image,
         }));
 
+        if (runId !== searchRunIdRef.current) return; // 최신만 반영
         setApiSongs(converted);
       } catch (e: unknown) {
         if ((e as DOMException)?.name === "AbortError") return;
@@ -231,7 +237,7 @@ export default function SearchSong() {
         setError(e instanceof Error ? e.message : "알 수 없는 오류");
         setApiSongs([]);
       } finally {
-        setLoading(false);
+      if (runId === searchRunIdRef.current) setLoading(false);
       }
     })();
 
@@ -419,18 +425,53 @@ export default function SearchSong() {
     };
   }, [addOpen]);
 
-  const addSelectedToPlaylist = async (playlistId: string) => {
-    if (selectedCount === 0) return;
+const addSelectedToPlaylist = async (playlistId: string) => {
+  if (selectedCount === 0) return;
 
-    try {
-      const musicIds = (await Promise.all(checkedSongs.map(findMusicId))).filter(
-        (id): id is number => typeof id === "number"
-      );
-      const unique = Array.from(new Set(musicIds));
-      if (unique.length === 0) return;
+  try {
+    const musicIds = (await Promise.all(checkedSongs.map(findMusicId))).filter(
+      (id): id is number => typeof id === "number"
+    );
+    const unique = Array.from(new Set(musicIds));
+    if (unique.length === 0) return;
 
-      await addPlaylistItems(playlistId, unique);
+    const results = await Promise.allSettled(
+      unique.map(async (id) => {
+        try {
+          await addPlaylistItem(playlistId, id);
+          return { id, ok: true };
+        } catch (e) {
+          if (axios.isAxiosError(e)) {
+            const status = e.response?.status;
+            const msg = (e.response?.data as any)?.error || (e.response?.data as any)?.message || "";
 
+            const isAlready =
+              status === 409 ||
+              (status === 400 && typeof msg === "string" && msg.includes("이미 플레이리스트에 추가된 곡"));
+
+            if (isAlready) {
+              return { id, ok: true, already: true };
+            }
+          }
+          throw e;
+        }
+      })
+    );
+
+    const fulfilled = results.filter((r) => r.status === "fulfilled").map((r) => (r as PromiseFulfilledResult<any>).value);
+
+    const already = fulfilled.filter((v) => v?.already).length;
+    const ok = fulfilled.filter((v) => v?.ok && !v?.already).length;
+    const fail = results.length - (ok + already);
+
+    alert(
+      fail === 0
+        ? already > 0
+          ? `담기 완료: ${ok}곡 / 이미 담김: ${already}곡`
+          : `담기 완료: ${ok}곡`
+        : `담기 완료: ${ok}곡 / 실패: ${fail}곡${already > 0 ? ` / 이미 담김: ${already}곡` : ""}`
+    );
+    
       setAddOpen(false);
       setCheckedIds({});
     } catch (e) {
@@ -539,13 +580,17 @@ export default function SearchSong() {
         <div className="px-8 pt-8 pb-6 border-b border-white/10 overflow-x-auto whitespace-nowrap no-scrollbar">
           <div className="flex items-end justify-between">
             <div className="flex items-center gap-4">
-              <h2 className="text-xl font-semibold text-[#F6F6F6]">곡</h2>
+              {/* ✅ text-xl → text-2xl */}
+              <h2 className="text-2xl font-bold text-[#F6F6F6]">곡</h2>
               {loading ? (
-                <div className="text-sm text-white/40">검색 중...</div>
+                // ✅ text-sm → text-base
+                <div className="text-base text-white/40">검색 중...</div>
               ) : error ? (
-                <div className="text-sm text-red-400">오류: {error}</div>
+                // ✅ text-sm → text-base
+                <div className="text-base text-red-400">오류: {error}</div>
               ) : (
-                <div className="text-sm text-white/40">총 {songs.length}곡</div>
+                // ✅ text-sm → text-base
+                <div className="text-base text-white/40">총 {songs.length}곡</div>
               )}
             </div>
           </div>
@@ -555,7 +600,8 @@ export default function SearchSong() {
               type="button"
               onClick={toggleExcludeAi}
               className={[
-                "shrink-0 px-4 py-2 rounded-2xl transition-all text-sm flex items-center gap-2.5 border border-[#f6f6f6]/10",
+                // ✅ text-sm → text-base
+                "shrink-0 px-4 py-2 rounded-2xl transition-all text-base flex items-center gap-2.5 border border-[#f6f6f6]/10",
                 excludeAi
                   ? "border-[#AFDEE2] text-[#AFDEE2]"
                   : "text-[#f6f6f6]/80 hover:bg-[#f6f6f6]/10 hover:text-[#f6f6f6] hover:border-[#f6f6f6]/20",
@@ -572,7 +618,8 @@ export default function SearchSong() {
                 disabled={selectedCount === 0}
                 onClick={() => handleAction(a.key)}
                 className={[
-                  "px-4 py-2 rounded-2xl border border-[#f6f6f6]/10 text-sm flex items-center gap-2.5 transition",
+                  // ✅ text-sm → text-base
+                  "px-4 py-2 rounded-2xl border border-[#f6f6f6]/10 text-base flex items-center gap-2.5 transition",
                   selectedCount === 0
                     ? "text-[#f6f6f6]/20 border-[#f6f6f6]/5 cursor-not-allowed"
                     : "text-[#f6f6f6]/80 hover:bg-[#f6f6f6]/10 hover:text-[#f6f6f6] hover:border-[#f6f6f6]/20",
@@ -587,7 +634,8 @@ export default function SearchSong() {
 
         {/* 리스트 헤더 */}
         <div className="px-4 pt-4 border-b border-white/10">
-          <div className="px-4 grid grid-cols-[28px_56px_1fr_90px] gap-x-4 pb-3 text-xs text-[#f6f6f6]/60">
+          {/* ✅ text-xs → text-sm */}
+          <div className="px-4 grid grid-cols-[28px_56px_1fr_90px] gap-x-4 pb-3 text-sm text-[#f6f6f6]/60">
             <input
               ref={selectAllRef}
               type="checkbox"
@@ -603,11 +651,14 @@ export default function SearchSong() {
         {/* 리스트 */}
         <div className="divide-y divide-white/10">
           {loading && songs.length === 0 ? (
-            <div className="px-6 py-12 text-center text-white/20">검색 중...</div>
+            // ✅ text-center text-white/20 그대로, text-base로 업
+            <div className="px-6 py-12 text-center text-base text-white/20">검색 중...</div>
           ) : error && songs.length === 0 ? (
-            <div className="px-6 py-12 text-center text-red-400">오류가 발생했습니다: {error}</div>
+            <div className="px-6 py-12 text-center text-base text-red-400">오류가 발생했습니다: {error}</div>
           ) : songs.length === 0 ? (
-            <div className="px-6 py-8 text-center text-white/20">{q ? "검색 결과 없음" : "검색어를 입력해주세요"}</div>
+            <div className="px-6 py-8 text-center text-base text-white/20">
+              {q ? "검색 결과 없음" : "검색어를 입력해주세요"}
+            </div>
           ) : (
             songs.map((s) => (
               <div
@@ -633,14 +684,16 @@ export default function SearchSong() {
                       albumImage && (albumImage.startsWith("http") || albumImage.startsWith("//"))
                         ? albumImage
                         : albumImage && API_BASE && albumImage.startsWith("/")
-                        ? `${API_BASE.replace("/api/v1", "")}${albumImage}`
-                        : albumImage || "";
+                          ? `${API_BASE.replace("/api/v1", "")}${albumImage}`
+                          : albumImage || "";
 
                     return albumImage ? (
                       <>
                         <img
                           src={src}
                           alt={s.title}
+                          width={48}
+                          height={48}
                           className="w-full h-full object-cover relative z-10"
                           onError={(e) => {
                             if (__DEV__) {
@@ -671,18 +724,21 @@ export default function SearchSong() {
                 </div>
 
                 <div className="min-w-0">
+                  {/* ✅ text-base → text-lg */}
                   <div className="ml-1 text-base text-[#f6f6f6] truncate group-hover:text-[#AFDEE2] transition-colors">
                     {s.title}
                     {s.isAi && (
-                      <span className="shrink-0 ml-3 text-[10px] font-black px-2 py-0.5 rounded-full bg-[#E4524D]/20 text-[#E4524D] border border-[#E4524D]/20 uppercase">
+                      <span className="shrink-0 ml-3 text-xs font-black px-2 py-0.5 rounded-full bg-[#E4524D]/20 text-[#E4524D] border border-[#E4524D]/20 uppercase">
                         AI
                       </span>
                     )}
                   </div>
-                  <div className="ml-1 text-xs text-white/30 truncate">{s.artist}</div>
+                  {/* ✅ text-xs → text-sm */}
+                  <div className="ml-1 text-sm text-white/30 truncate">{s.artist}</div>
                 </div>
 
-                <div className="mr-1 text-sm text-white/70 text-right group-hover:text-[#AFDEE2]/70 transition-colors">
+                {/* ✅ text-sm → text-base */}
+                <div className="mr-1 text-base text-white/70 text-right group-hover:text-[#AFDEE2]/70 transition-colors">
                   {s.duration}
                 </div>
               </div>
@@ -693,24 +749,32 @@ export default function SearchSong() {
 
       {/* ✅ 담기 모달 (Portal) */}
       <BaseModal open={addOpen} onClose={() => setAddOpen(false)} title="플레이리스트 선택" maxWidthClass="max-w-[420px]">
-        <div className="px-6 py-4 text-sm text-[#F6F6F6]/70">선택한 {selectedCount}곡을 담을 플레이리스트를 골라주세요</div>
+        {/* ✅ text-sm → text-base */}
+        <div className="px-6 py-4 text-base text-[#F6F6F6]/70">
+          선택한 {selectedCount}곡을 담을 플레이리스트를 골라주세요
+        </div>
 
-        <div className="max-h-[360px] overflow-y-auto border-t border-[#464646]">
+        <div className="max-h-[360px] overflow-y-auto border-t border-white/10">
           {addTargetsLoading ? (
-            <div className="px-6 py-6 text-sm text-[#aaa]">플레이리스트 불러오는 중...</div>
+            // ✅ text-sm → text-base
+            <div className="px-6 py-6 text-base text-[#aaa]">플레이리스트 불러오는 중...</div>
           ) : addTargetsError ? (
-            <div className="px-6 py-6 text-sm text-red-400">오류: {addTargetsError}</div>
+            // ✅ text-sm → text-base
+            <div className="px-6 py-6 text-base text-red-400">오류: {addTargetsError}</div>
           ) : addTargets.length === 0 ? (
-            <div className="px-6 py-6 text-sm text-[#aaa]">담을 수 있는 플레이리스트가 없어요.</div>
+            // ✅ text-sm → text-base
+            <div className="px-6 py-6 text-base text-[#aaa]">담을 수 있는 플레이리스트가 없어요.</div>
           ) : (
             addTargets.map((p) => (
               <button
                 key={p.playlist_id}
                 type="button"
                 onClick={() => addSelectedToPlaylist(p.playlist_id.toString())}
-                className="w-full text-left px-6 py-4 hover:bg-white/5 transition border-b border-[#464646]"
+                className="w-full text-left px-6 py-4 hover:bg-white/5 transition border-b border-white/10"
               >
-                <div className="text-sm font-semibold text-[#F6F6F6] truncate">{p.title}</div>
+                {/* ✅ text-sm → text-base */}
+                <div className="text-base font-semibold text-[#F6F6F6] truncate">{p.title}</div>
+                {/* ✅ text-xs → text-sm */}
                 <div className="mt-1 text-xs text-[#F6F6F6]/60 truncate">
                   {p.creator_nickname} · {p.visibility === "public" ? "공개" : "비공개"}
                 </div>
@@ -719,11 +783,12 @@ export default function SearchSong() {
           )}
         </div>
 
-        <div className="px-6 py-4 border-t border-[#464646] flex justify-end">
+        <div className="px-6 py-4 border-t border-white/10 flex justify-end">
           <button
             type="button"
             onClick={() => setAddOpen(false)}
-            className="px-4 py-2 rounded-2xl text-sm text-[#F6F6F6] hover:bg-white/10 transition"
+            // ✅ text-sm → text-base
+            className="px-4 py-2 rounded-2xl text-base text-[#F6F6F6] hover:bg-white/10 transition"
           >
             취소
           </button>
@@ -742,7 +807,8 @@ export default function SearchSong() {
       >
         {pendingPlay && (
           <>
-            <div className="px-6 py-4 text-sm text-[#F6F6F6]/70">
+            {/* ✅ text-sm → text-base */}
+            <div className="px-6 py-4 text-base text-[#F6F6F6]/70">
               선택한 {pendingPlay.tracks.length}곡을 {pendingPlay.key === "shuffle" ? "셔플로 " : ""}어떻게 재생할까요?
             </div>
 
@@ -750,30 +816,39 @@ export default function SearchSong() {
               <button
                 type="button"
                 onClick={() => runPendingPlay("replace")}
-                className="w-full px-4 py-3 rounded-2xl text-sm text-[#F6F6F6] outline outline-1 outline-[#464646] hover:bg-white/10 transition text-left"
+                // ✅ text-sm → text-base
+                className="w-full px-4 py-3 rounded-2xl text-base text-[#F6F6F6] outline outline-1 outline-white/10 hover:bg-white/10 transition text-left"
               >
                 <div className="font-semibold text-[#afdee2]">현재 재생 대기목록 지우고 재생</div>
-                <div className="mt-1 text-xs text-[#999]">지금 재생 대기목록을 초기화하고 선택한 곡들로 새로 재생합니다.</div>
+                {/* ✅ text-xs → text-sm */}
+                <div className="mt-1 text-xs text-[#999]">
+                  지금 재생 대기목록을 초기화하고 선택한 곡들로 새로 재생합니다.
+                </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => runPendingPlay("enqueue")}
-                className="w-full px-4 py-3 rounded-2xl text-sm text-[#F6F6F6] outline outline-1 outline-[#464646] hover:bg-white/10 transition text-left"
+                // ✅ text-sm → text-base
+                className="w-full px-4 py-3 rounded-2xl text-base text-[#F6F6F6] outline outline-1 outline-white/10 hover:bg-white/10 transition text-left"
               >
                 <div className="font-semibold text-[#afdee2]">재생 대기목록 맨 뒤에 추가</div>
-                <div className="mt-1 text-xs text-[#999]">현재 재생은 유지하고, 선택한 곡들을 재생 대기 목록 마지막에 둡니다.</div>
+                {/* ✅ text-xs → text-sm */}
+                <div className="mt-1 text-xs text-[#999]">
+                  현재 재생은 유지하고, 선택한 곡들을 재생 대기 목록 마지막에 둡니다.
+                </div>
               </button>
             </div>
 
-            <div className="px-6 py-4 border-t border-[#464646] flex justify-end">
+            <div className="px-6 py-4 border-t border-white/10 flex justify-end">
               <button
                 type="button"
                 onClick={() => {
                   setPlayConfirmOpen(false);
                   setPendingPlay(null);
                 }}
-                className="px-4 py-2 rounded-2xl text-sm text-[#F6F6F6] hover:bg-white/10 transition"
+                // ✅ text-sm → text-base
+                className="px-4 py-2 rounded-2xl text-base text-[#F6F6F6] hover:bg-white/10 transition"
               >
                 취소
               </button>

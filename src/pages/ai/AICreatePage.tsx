@@ -31,6 +31,7 @@ import {
   MdOutlineNavigateNext,
 } from "react-icons/md";
 import { IoChevronBack, IoShuffle } from "react-icons/io5";
+import { FaPlay } from "react-icons/fa6";
 
 function PillButton({
   icon,
@@ -50,7 +51,7 @@ function PillButton({
       disabled={disabled}
       className="
         shrink-0 px-4 py-2 rounded-2xl outline outline-1 outline-offset-[-1px] outline-stone-500
-        text-sm transition flex items-center gap-2
+        text-base transition flex items-center gap-2
         disabled:text-white/30 disabled:cursor-not-allowed disabled:hover:bg-transparent
         hover:bg-[#f6f6f6]/10"
     >
@@ -686,11 +687,11 @@ export default function AiCreatePage() {
               aria-label="뒤로가기"
               className="p-2 text-[#f6f6f6] rounded-full hover:bg-white/10 transition"
             >
-              <IoChevronBack size={22} />
+              <IoChevronBack size={24} />
             </button>
 
             <div className="flex-1 flex justify-center">
-              <h1 className="mr-10 mt-10 text-3xl font-semibold leading-tight text-[#f6f6f6]">
+              <h1 className="mr-10 mt-10 text-3xl font-bold leading-tight tracking-widest text-[#f6f6f6]">
                 나만의 노래를
                 <br />
                 AI로 만들어보세요!
@@ -710,10 +711,9 @@ export default function AiCreatePage() {
                 <img src={coverUrl} alt="cover preview" className="h-full w-full object-cover transition-transform duration-1000 group-hover/cover:scale-110" />
               ) : (
                 <>
-                  <div className="text-white/40 group-hover/cover:text-[#AFDEE2] transition-colors">
+                  <div className="text-white/40 group-hover/cover:text-[#f6f6f6] transition-colors">
                     <MdAdd size={40} />
                   </div>
-                  <span className="mt-4 text-xs font-black tracking-widest text-white/30 uppercase group-hover/cover:text-white/50 transition-colors">커버 사진 추가</span>
                 </>
               )}
               <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover/cover:opacity-100 transition-opacity pointer-events-none" />
@@ -721,7 +721,7 @@ export default function AiCreatePage() {
           </div>
 
           <div>
-            <p className="mt-4 text-[11px] font-bold tracking-tight text-center text-white/20 uppercase">
+            <p className="mt-4 text-xs font-semibold tracking-tight text-center text-white/20 uppercase">
               커버 사진을 추가하지 않아도 AI가 자동으로 생성해줍니다.
             </p>
           </div>
@@ -755,8 +755,8 @@ export default function AiCreatePage() {
                 style={{ backfaceVisibility: "hidden" }}
               >
                 <div className="relative flex flex-col items-center justify-center min-h-full">
-                  <div className="absolute top-0 left-0 text-[10px] font-black tracking-[0.2em] text-white/20 uppercase">
-                    {prompt ? "User Prompt" : "Input Prompt"}
+                  <div className="absolute top-0 left-0 text-xs text-white/20">
+                    {prompt ? "사용자 입력" : "프롬프트 입력"}
                   </div>
 
                   {/* Typewriter 애니메이션 표시 영역 */}
@@ -775,7 +775,7 @@ export default function AiCreatePage() {
                         <Typewriter text={prompt} config={typewriterConfig} triggerReplay={0} />
                       </div>
                     ) : (
-                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white/10 text-base font-bold text-center w-full uppercase tracking-widest leading-loose">
+                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white/10 text-base text-center w-full tracking-widest leading-loose">
                         어떤 분위기의 노래를<br />만들고 싶으신가요?
                       </div>
                     )}
@@ -808,7 +808,7 @@ export default function AiCreatePage() {
                   />
 
                   {/* 글자 수 표시 */}
-                  <div className="absolute bottom-0 right-0 text-right text-[10px] font-black text-white/20 tracking-tighter z-20">
+                  <div className="absolute bottom-0 right-0 text-right text-xs text-white/20 tracking-tighter z-20">
                     {prompt.length} / {maxPrompt}
                   </div>
                 </div>
@@ -862,13 +862,13 @@ export default function AiCreatePage() {
           </div>
 
           {/* make_instrumental 체크박스 */}
-          <label className="mt-6 mx-10 pt-4 border-t border-white/5 flex items-center gap-3 text-[11px] font-bold text-white/30 cursor-pointer hover:text-white/50 transition-colors uppercase tracking-widest">
+          <label className="mt-4 mx-10 pt-2 border-t border-white/5 flex items-center gap-3 text-xs text-white/30 cursor-pointer hover:text-white/50 transition-colors">
             <input
               type="checkbox"
               checked={makeInstrumental}
               onChange={(e) => setMakeInstrumental(e.target.checked)}
               disabled={isGenerating}
-              className="accent-[#AFDEE2] w-4 h-4 cursor-pointer disabled:cursor-not-allowed"
+              className="accent-[#f6f6f6] w-4 h-4 cursor-pointer disabled:cursor-not-allowed"
             />
             <span>보컬 없이 연주곡(Instrumental)으로 만들기</span>
           </label>
@@ -882,7 +882,7 @@ export default function AiCreatePage() {
               className="
                 px-10 py-4
                 rounded-2xl
-                text-sm font-black tracking-widest uppercase
+                text-base font-bold
                 bg-[#AFDEE2]
                 text-[#1d1d1d]
                 hover:bg-[#87B2B6]
@@ -903,7 +903,7 @@ export default function AiCreatePage() {
                     <span className="h-5 w-5 rounded-full border-2 border-[#1d1d1d]/30 border-t-[#1d1d1d] animate-spin" />
                   </span>
                 ) : (
-                  <MdMusicNote size={20} />
+                  <MdMusicNote size={22} />
                 )}
                 <span className="whitespace-nowrap">
                   {isGenerating ? "AI 노래 생성 중..." : isCompleted ? "생성 완료" : "AI 노래 생성하기"}
@@ -916,41 +916,56 @@ export default function AiCreatePage() {
         </section>
 
         {/* ===================== 우측: 리스트/테이블 ===================== */}
-        <section
-          className="
-            relative min-h-0 flex flex-col
-            rounded-[40px] bg-white/[0.05] backdrop-blur-2xl
-            shadow-[0_30px_80px_rgba(0,0,0,0.5)] border border-white/10
-            overflow-hidden text-white mb-6 mr-6
-          "
-        >
-          <div className="px-10 py-8 border-b border-white/10">
+                {/* ===================== 우측: 리스트/테이블 ===================== */}
+                <aside className="col-span-1 rounded-[40px] border border-white/10 bg-white/[0.05] backdrop-blur-2xl p-0 overflow-hidden whitespace-nowrap mb-6 mr-6">
+          {/* 상단 헤더 (ChartTop100 스타일) */}
+          <div className="px-8 py-6 border-b border-white/10">
             {/* 검색바 */}
-            <div className="flex items-center gap-4 rounded-full bg-white/5 border border-white/10 px-6 py-2.5 text-white/30 focus-within:border-white/20 transition-all">
+            <div className="flex items-center gap-4 rounded-full bg-white/5 border border-white/10 px-6 py-3 text-white/30 focus-within:border-white/20 transition-all">
               <MdSearch size={20} />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="AI 곡 검색하기"
-                className="w-full bg-transparent text-white text-sm font-bold outline-none placeholder:text-white/20 tracking-tight"
+                className="w-full bg-transparent text-white text-base outline-none placeholder:text-white/20 tracking-tight"
               />
             </div>
 
             {/* 액션 버튼들 */}
-            <div className="mt-6 flex items-center justify-between gap-4 text-white">
+            <div className="mt-4 flex items-center justify-between gap-4 text-white">
               <div className="flex flex-nowrap gap-3">
-                <PillButton icon={<MdMusicNote />} label="재생" onClick={() => handleAction("play")} disabled={selectedCount === 0} />
-                <PillButton icon={<IoShuffle />} label="셔플" onClick={() => handleAction("shuffle")} disabled={selectedCount === 0} />
-                <PillButton icon={<MdPlaylistAdd />} label="담기" onClick={() => handleAction("add")} disabled={selectedCount === 0} />
-                <PillButton icon={<MdShare />} label="공유" onClick={() => handleAction("share")} disabled={selectedCount === 0} />
+                <PillButton
+                  icon={<FaPlay />}
+                  label="재생"
+                  onClick={() => handleAction("play")}
+                  disabled={selectedCount === 0}
+                />
+                <PillButton
+                  icon={<IoShuffle size={22}/>}
+                  label="셔플"
+                  onClick={() => handleAction("shuffle")}
+                  disabled={selectedCount === 0}
+                />
+                <PillButton
+                  icon={<MdPlaylistAdd size={22} />}
+                  label="담기"
+                  onClick={() => handleAction("add")}
+                  disabled={selectedCount === 0}
+                />
+                <PillButton
+                  icon={<MdShare size={18} />}
+                  label="공유"
+                  onClick={() => handleAction("share")}
+                  disabled={selectedCount === 0}
+                />
               </div>
 
               <button
                 type="button"
                 onClick={() => navigate("/my/ai-songs")}
                 className="
-                  shrink-0 flex items-center text-sm font-black tracking-widest uppercase
-                  text-white/40 hover:text-[#AFDEE2] transition-all
+                  shrink-0 flex items-center text-base font-semibold tracking-widest uppercase
+                  text-white/40 hover:text-[#f6f6f6] transition-all
                 "
                 aria-label="나의 AI 생성곡 목록으로 이동"
                 title="나의 AI 생성곡 목록"
@@ -961,15 +976,10 @@ export default function AiCreatePage() {
             </div>
           </div>
 
-          {/* 테이블 */}
-          <div 
-            ref={listScrollRef}
-            onScroll={(e) => {
-              setShowScrollTop(e.currentTarget.scrollTop > 300);
-            }}
-            className="mt-0 flex-1 min-h-0 overflow-y-auto no-scrollbar">
-            <div className="grid items-center grid-cols-[60px_minmax(0,1fr)_100px_160px] px-8 py-4 text-[11px] font-black tracking-widest text-white/30 uppercase">
-              <div className="flex justify-center">
+          {/* 테이블 헤더 */}
+          <div>
+            <div className="grid grid-cols-[70px_1fr_120px_160px] items-center py-3 px-4 text-base text-[#f6f6f6]/30">
+              <div className="pl-5 flex items-center justify-start">
                 <input
                   ref={selectAllRef}
                   type="checkbox"
@@ -979,61 +989,97 @@ export default function AiCreatePage() {
                   className="accent-[#AFDEE2] w-4 h-4 cursor-pointer"
                 />
               </div>
-
-              <div className="pl-4 border-l border-white/10 text-white/40">곡정보</div>
-              <div className="pl-4 border-l border-white/10 text-white/40 text-center">길이</div>
-              <div className="pl-4 border-l border-white/10 text-white/40 text-right pr-4">생성 일시</div>
+              <div className="border-l border-white/10 pl-4">곡정보</div>
+              <div className="pl-4 text-center">길이</div>
+              <div className="pl-4 text-right pr-4">생성일시</div>
             </div>
-
             <div className="border-b border-white/10" />
+          </div>
 
+          {/* 리스트 영역 (스크롤) */}
+          <div
+            ref={listScrollRef}
+            onScroll={(e) => setShowScrollTop(e.currentTarget.scrollTop > 300)}
+            className="h-[calc(100%-168px)] overflow-y-auto no-scrollbar"
+          >
             {listLoading ? (
-              <div className="px-8 py-20 text-center text-sm font-black tracking-widest text-white/20 uppercase whitespace-normal">로딩 중...</div>
+              <div className="px-8 py-20 text-center text-sm tracking-widest text-white/20 uppercase whitespace-normal">
+                로딩 중...
+              </div>
             ) : (
-              <div className="px-4 py-4">
-                <div className="space-y-1">
-                  {filtered.map((r, idx) => (
-                    <div
-                      key={r.musicId}
-                      className={[
-                        "grid items-center grid-cols-[60px_minmax(0,1fr)_100px_160px] px-4 py-3 transition-all duration-300 group rounded-2xl",
-                        idx % 2 === 0 ? "bg-white/[0.02]" : "bg-transparent",
-                        "hover:bg-white/[0.08]",
-                      ].join(" ")}
-                    >
-                      <div className="flex justify-center">
-                        <input
-                          type="checkbox"
-                          checked={selected.has(r.musicId)}
-                          onChange={() => toggleOne(r.musicId)}
-                          aria-label={`select ${r.title}`}
-                          className="accent-[#AFDEE2] w-4 h-4 cursor-pointer"
-                        />
-                      </div>
+              <div className="divide-y divide-white/10">
+                {filtered.map((r, idx) => (
+                  <div
+                    key={r.musicId}
+                    className={[
+                      "group grid grid-cols-[70px_1fr_120px_160px] items-center px-4 py-2",
+                      "transition-all duration-300 hover:bg-white/[0.08]",
+                      idx % 2 === 0 ? "bg-white/[0.02]" : "bg-transparent",
+                    ].join(" ")}
+                  >
+                    {/* 체크 */}
+                    <div className="pl-5 flex items-center justify-start">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(r.musicId)}
+                        onChange={() => toggleOne(r.musicId)}
+                        aria-label={`select ${r.title}`}
+                        className="accent-[#AFDEE2] w-4 h-4 cursor-pointer"
+                      />
+                    </div>
 
-                      <div className="pl-4 border-l border-white/5 min-w-0 flex items-center gap-4">
-                        <div className="relative h-14 w-14 rounded-xl bg-white/10 shrink-0 overflow-hidden shadow-lg border border-white/10 group-hover:scale-105 transition-transform duration-500">
-                          {r.coverUrl ? <img src={r.coverUrl} alt={r.title} className="h-full w-full object-cover" /> : <div className="w-full h-full bg-gradient-to-br from-white/5 to-transparent" />}
+                    {/* 곡정보 */}
+                    <div className="pl-4 min-w-0 border-l border-white/10">
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className="relative h-14 w-14 rounded-lg bg-white/10 shrink-0 overflow-hidden group-hover:scale-105 transition-transform duration-500">
+                          {r.coverUrl ? (
+                            <>
+                              <img
+                                src={r.coverUrl}
+                                alt={r.title}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = "none";
+                                  const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                                  if (fallback) fallback.style.display = "block";
+                                }}
+                              />
+                              <div className="hidden w-full h-full bg-white/5" />
+                            </>
+                          ) : (
+                            <div className="w-full h-full bg-white/5" />
+                          )}
+
+                          {/* hover overlay */}
                           <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
+
                         <div className="min-w-0">
                           <button
                             type="button"
                             onClick={() => goToAlSongPage(r.musicId)}
-                            className="block w-full truncate text-left text-[14px] font-bold text-white/95 tracking-tight group-hover:text-[#AFDEE2] transition-colors"
+                            className="block w-full truncate text-left text-base text-[#f6f6f6]/95 group-hover:text-[#AFDEE2] transition-colors"
                           >
                             {r.title}
                           </button>
-                          <div className="truncate text-[11px] font-medium text-white/30 tracking-wide mt-0.5">{r.desc}</div>
+                          <div className="truncate text-sm text-white/40">
+                            {r.desc || r.artist || "AI"}
+                          </div>
                         </div>
                       </div>
-
-                      <div className="pl-4 border-l border-white/5 text-center text-[12px] font-black text-white/40 tabular-nums">{r.duration}</div>
-
-                      <div className="pl-4 border-l border-white/5 text-right text-[12px] font-bold text-white/20 tabular-nums pr-4">{r.createdAt}</div>
                     </div>
-                  ))}
-                </div>
+
+                    {/* 길이 */}
+                    <div className="pl-4 text-center text-base text-[#f6f6f6]/40 tabular-nums group-hover:text-white/60 transition-colors">
+                      {r.duration}
+                    </div>
+
+                    {/* 생성일시 */}
+                    <div className="pl-4 pr-4 text-right text-base text-[#f6f6f6]/30 tabular-nums group-hover:text-white/50 transition-colors">
+                      {r.createdAt}
+                    </div>
+                  </div>
+                ))}
 
                 {filtered.length === 0 && (
                   <div className="px-8 py-20 text-center text-sm font-black tracking-widest text-white/20 uppercase whitespace-normal">
@@ -1044,15 +1090,14 @@ export default function AiCreatePage() {
             )}
           </div>
 
+          {/* 맨 위로 */}
           {showScrollTop && (
             <button
               type="button"
-              onClick={() => {
-                listScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-              }}
+              onClick={() => listScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" })}
               className="
                 absolute w-10 h-10 text-center bottom-6 right-6 z-20
-                rounded-full bg-[#AFDEE2]/50 text-[#2d2d2d]
+                rounded-full bg-[#AFDEE2]/50 text-[#f6f6f6]
                 shadow-lg hover:bg-[#87B2B6]/50
                 active:scale-95 transition
               "
@@ -1062,8 +1107,8 @@ export default function AiCreatePage() {
               ↑
             </button>
           )}
+        </aside>
 
-        </section>
 
         {/* ✅ 담기 모달 */}
         {addOpen && (

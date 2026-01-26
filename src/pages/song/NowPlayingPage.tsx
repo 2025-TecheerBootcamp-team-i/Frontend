@@ -3,8 +3,8 @@ import { useMemo, useState, useEffect, useCallback } from "react";
 import type { DragEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { MdFavorite, MdAutoAwesome, MdQueueMusic, MdClose, MdDelete, MdDragIndicator, MdPlayArrow, MdPause, MdSkipNext, MdSkipPrevious, MdShuffle, MdRepeat } from "react-icons/md";
-import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, Treemap } from "recharts";
-import { RiDashboardFill } from "react-icons/ri";
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, Treemap, ReferenceLine } from "recharts";
+import { RiDashboardFill, RiBarChartLine, RiMusic2Line, RiPriceTag3Line } from "react-icons/ri";
 import { GrContract } from "react-icons/gr";
 import { usePlayer } from "../../player/PlayerContext";
 import { likecount, likeTrack, deleteTrack } from "../../api/LikedSong";
@@ -909,6 +909,10 @@ export default function NowPlayingPage() {
     const [liked, setLiked] = useState(false);
     const [likeCount, setLikeCount] = useState(0);
     const [likeLoading, setLikeLoading] = useState(false);
+    useEffect(() => {
+        void musicId; // 혹은 void musicId; 같은 꼼수
+    }, []);
+
 
     // ✅ 현재 곡의 musicId definition moved up
 
@@ -1073,31 +1077,31 @@ export default function NowPlayingPage() {
                     transform: leftOpen ? "translateX(0)" : `translateX(-${LEFT_W}px)`,
                 }}
             >
-                <div className="mt-12 h-16 px-4 flex items-center justify-between border-b border-white/10">
-                    <div className="px-4 text-sm font-bold text-white/90 tracking-wide">음악 분석</div>
+                <div className="mt-2 h-10 px-5 flex items-center justify-between border-b border-white/10 shrink-0">
+                    <div className="text-sm font-bold text-white/90 tracking-wide">음악 분석</div>
                     <button
                         type="button"
                         onClick={toggleLeft}
-                        className="p-2 rounded-full hover:bg-white/10 transition text-white/60 hover:text-white"
+                        className="p-1.5 rounded-full hover:bg-white/10 transition text-white/60 hover:text-white"
                         aria-label="대시보드 닫기"
                     >
-                        <MdClose size={18} />
+                        <MdClose size={16} />
                     </button>
                 </div>
 
-                <div className="flex-1 p-6 pb-24 overflow-y-auto flex flex-col">
-                    {/* 2x2 그리드 레이아웃 */}
-                    <div className="grid grid-cols-2 gap-5 h-full" style={{ gridTemplateRows: 'auto 1fr' }}>
+                <div className="flex-1 p-4 pb-[100px] overflow-hidden flex flex-col min-h-0">
+                    {/* 2x2 그리드 레이아웃 - 상단 공간 줄이고 하단 최대 확보 (fr 단위 사용으로 gap 포함 계산) */}
+                    <div className="grid grid-cols-2 gap-3 flex-1 min-h-0" style={{ gridTemplateRows: '3.5fr 6.5fr' }}>
                         {/* 1번: 감정 분석 카드 */}
-                        <div className="rounded-[24px] border border-white/10 bg-white/[0.05] backdrop-blur-xl p-6 shadow-xl">
-                            <div className="text-base font-bold text-white/90 mb-4 tracking-wide">감정 분석</div>
+                        <div className="rounded-[24px] border border-white/10 bg-white/[0.05] backdrop-blur-xl p-4 shadow-xl flex flex-col min-h-0">
+                            <div className="text-lg font-bold text-white/95 mb-2 tracking-wide">감정 분석</div>
 
                             {musicAnalysis ? (
-                                <div className="flex items-center justify-around gap-8 py-6">
-                                    {/* Valence (긍정/부정) 원형 */}
+                                <div className="flex items-center justify-center gap-40 w-full flex-1">
+                                    {/* Valence (긍정/부정) 원형 - 사이즈 확대 (103 -> 128) */}
                                     <div className="flex flex-col items-center gap-3">
                                         <div className="relative">
-                                            <svg width="180" height="180" viewBox="0 0 210 210" className="transform -rotate-90">
+                                            <svg width="128" height="128" viewBox="0 0 210 210" className="transform -rotate-90">
                                                 {/* 배경 원 */}
                                                 <circle
                                                     cx="105"
@@ -1105,7 +1109,7 @@ export default function NowPlayingPage() {
                                                     r="93"
                                                     fill="none"
                                                     stroke="rgba(255,255,255,0.08)"
-                                                    strokeWidth="14"
+                                                    strokeWidth="24"
                                                 />
                                                 {/* 프로그레스 원 */}
                                                 <circle
@@ -1114,13 +1118,12 @@ export default function NowPlayingPage() {
                                                     r="93"
                                                     fill="none"
                                                     stroke="url(#valenceGradient)"
-                                                    strokeWidth="14"
+                                                    strokeWidth="24"
                                                     strokeLinecap="round"
                                                     strokeDasharray={2 * Math.PI * 93}
                                                     strokeDashoffset={2 * Math.PI * 93 * (1 - musicAnalysis.valence / 100)}
                                                     className="transition-all duration-1000 ease-out"
                                                 />
-                                                {/* 그라데이션 정의 */}
                                                 <defs>
                                                     <linearGradient id="valenceGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                                                         <stop offset="0%" stopColor="#AFDEE2" />
@@ -1128,22 +1131,22 @@ export default function NowPlayingPage() {
                                                     </linearGradient>
                                                 </defs>
                                             </svg>
-                                            {/* 중앙 텍스트 */}
+                                            {/* 중앙 텍스트 - 폰트 사이즈 조절 */}
                                             <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                                <div className="text-4xl font-black text-[#AFDEE2] tabular-nums">{musicAnalysis.valence}</div>
-                                                <div className="text-sm text-white/50 font-medium">%</div>
+                                                <div className="text-3xl font-black text-[#AFDEE2] tabular-nums">{musicAnalysis.valence}</div>
+                                                <div className="text-sm text-white/60 font-medium">%</div>
                                             </div>
                                         </div>
                                         <div className="text-center">
-                                            <div className="text-base text-white/80 font-semibold">Valence</div>
-                                            <div className="text-sm text-white/50 mt-1">긍정도</div>
+                                            <div className="text-base text-white/90 font-semibold">Valence</div>
+                                            <div className="text-sm text-white/60">긍정도</div>
                                         </div>
                                     </div>
 
-                                    {/* Arousal (에너지) 원형 */}
+                                    {/* Arousal (에너지) 원형 - 사이즈 확대 (103 -> 128) */}
                                     <div className="flex flex-col items-center gap-3">
                                         <div className="relative">
-                                            <svg width="180" height="180" viewBox="0 0 210 210" className="transform -rotate-90">
+                                            <svg width="128" height="128" viewBox="0 0 210 210" className="transform -rotate-90">
                                                 {/* 배경 원 */}
                                                 <circle
                                                     cx="105"
@@ -1151,7 +1154,7 @@ export default function NowPlayingPage() {
                                                     r="93"
                                                     fill="none"
                                                     stroke="rgba(255,255,255,0.08)"
-                                                    strokeWidth="14"
+                                                    strokeWidth="24"
                                                 />
                                                 {/* 프로그레스 원 */}
                                                 <circle
@@ -1160,13 +1163,12 @@ export default function NowPlayingPage() {
                                                     r="93"
                                                     fill="none"
                                                     stroke="url(#arousalGradient)"
-                                                    strokeWidth="14"
+                                                    strokeWidth="24"
                                                     strokeLinecap="round"
                                                     strokeDasharray={2 * Math.PI * 93}
                                                     strokeDashoffset={2 * Math.PI * 93 * (1 - musicAnalysis.arousal / 100)}
                                                     className="transition-all duration-1000 ease-out"
                                                 />
-                                                {/* 그라데이션 정의 */}
                                                 <defs>
                                                     <linearGradient id="arousalGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                                                         <stop offset="0%" stopColor="#E4524D" />
@@ -1174,116 +1176,43 @@ export default function NowPlayingPage() {
                                                     </linearGradient>
                                                 </defs>
                                             </svg>
-                                            {/* 중앙 텍스트 */}
+                                            {/* 중앙 텍스트 - 폰트 사이즈 조절 */}
                                             <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                                <div className="text-4xl font-black text-[#E4524D] tabular-nums">{musicAnalysis.arousal}</div>
-                                                <div className="text-sm text-white/50 font-medium">%</div>
+                                                <div className="text-3xl font-black text-[#E4524D] tabular-nums">{musicAnalysis.arousal}</div>
+                                                <div className="text-sm text-white/60 font-medium">%</div>
                                             </div>
                                         </div>
                                         <div className="text-center">
-                                            <div className="text-base text-white/80 font-semibold">Arousal</div>
-                                            <div className="text-sm text-white/50 mt-1">에너지</div>
+                                            <div className="text-base text-white/90 font-semibold">Arousal</div>
+                                            <div className="text-sm text-white/60">에너지</div>
                                         </div>
                                     </div>
                                 </div>
                             ) : (
-                                <div className="flex items-center justify-around gap-8 py-6">
-                                    {/* Valence (긍정/부정) 원형 - 기본값 0 */}
-                                    <div className="flex flex-col items-center gap-3">
-                                        <div className="relative">
-                                            <svg width="180" height="180" viewBox="0 0 210 210" className="transform -rotate-90">
-                                                <circle
-                                                    cx="105"
-                                                    cy="105"
-                                                    r="93"
-                                                    fill="none"
-                                                    stroke="rgba(255,255,255,0.08)"
-                                                    strokeWidth="14"
-                                                />
-                                                <circle
-                                                    cx="105"
-                                                    cy="105"
-                                                    r="93"
-                                                    fill="none"
-                                                    stroke="url(#valenceGradient)"
-                                                    strokeWidth="14"
-                                                    strokeLinecap="round"
-                                                    strokeDasharray={2 * Math.PI * 93}
-                                                    strokeDashoffset={2 * Math.PI * 93}
-                                                />
-                                                <defs>
-                                                    <linearGradient id="valenceGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                        <stop offset="0%" stopColor="#AFDEE2" />
-                                                        <stop offset="100%" stopColor="#7EC8CC" />
-                                                    </linearGradient>
-                                                </defs>
-                                            </svg>
-                                            <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                                <div className="text-4xl font-black text-[#AFDEE2] tabular-nums">0</div>
-                                                <div className="text-sm text-white/50 font-medium">%</div>
-                                            </div>
-                                        </div>
-                                        <div className="text-center">
-                                            <div className="text-base text-white/80 font-semibold">Valence</div>
-                                            <div className="text-sm text-white/50 mt-1">긍정도</div>
-                                        </div>
-                                    </div>
-
-                                    {/* Arousal (에너지) 원형 - 기본값 0 */}
-                                    <div className="flex flex-col items-center gap-3">
-                                        <div className="relative">
-                                            <svg width="180" height="180" viewBox="0 0 210 210" className="transform -rotate-90">
-                                                <circle
-                                                    cx="105"
-                                                    cy="105"
-                                                    r="93"
-                                                    fill="none"
-                                                    stroke="rgba(255,255,255,0.08)"
-                                                    strokeWidth="14"
-                                                />
-                                                <circle
-                                                    cx="105"
-                                                    cy="105"
-                                                    r="93"
-                                                    fill="none"
-                                                    stroke="url(#arousalGradient)"
-                                                    strokeWidth="14"
-                                                    strokeLinecap="round"
-                                                    strokeDasharray={2 * Math.PI * 93}
-                                                    strokeDashoffset={2 * Math.PI * 93}
-                                                />
-                                                <defs>
-                                                    <linearGradient id="arousalGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                        <stop offset="0%" stopColor="#E4524D" />
-                                                        <stop offset="100%" stopColor="#C43E3A" />
-                                                    </linearGradient>
-                                                </defs>
-                                            </svg>
-                                            <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                                <div className="text-4xl font-black text-[#E4524D] tabular-nums">0</div>
-                                                <div className="text-sm text-white/50 font-medium">%</div>
-                                            </div>
-                                        </div>
-                                        <div className="text-center">
-                                            <div className="text-base text-white/80 font-semibold">Arousal</div>
-                                            <div className="text-sm text-white/50 mt-1">에너지</div>
-                                        </div>
-                                    </div>
-                                </div>
+                                <div className="flex-1 flex items-center justify-center text-white/30 text-sm">분석 데이터 없음</div>
                             )}
                         </div>
 
                         {/* 2번: 시간대별 재생횟수 차트 카드 */}
-                        <div className="rounded-[24px] border border-white/10 bg-white/[0.05] backdrop-blur-xl p-6 shadow-xl flex flex-col">
-                            <div className="text-base font-bold text-white/90 mb-4 tracking-wide">시간대별 재생횟수</div>
+                        <div className="rounded-[24px] border border-white/10 bg-white/[0.05] backdrop-blur-xl p-4 shadow-xl flex flex-col min-h-0">
+                            <div className="text-lg font-bold text-white/95 mb-2 tracking-wide">시간대별 재생횟수</div>
                             {playLogsLoading ? (
-                                <div className="flex-1 flex items-center justify-center text-white/50 text-sm min-h-[150px]">로딩 중...</div>
+                                <div className="flex-1 flex flex-col items-center justify-center text-white/40 gap-3">
+                                    <RiBarChartLine size={32} className="animate-pulse" />
+                                    <div className="text-sm font-medium">데이터를 분석하고 있어요...</div>
+                                </div>
                             ) : playLogs.length === 0 ? (
-                                <div className="flex-1 flex items-center justify-center text-white/50 text-sm min-h-[150px]">재생 기록이 없습니다</div>
+                                <div className="flex-1 flex flex-col items-center justify-center text-white/30 gap-3">
+                                    <RiBarChartLine size={32} />
+                                    <div className="text-sm font-medium">재생 기록이 아직 없어요</div>
+                                </div>
                             ) : !chartsReady ? (
-                                <div className="flex-1 flex items-center justify-center text-white/50 text-sm min-h-[150px]">차트 로딩 중...</div>
+                                <div className="flex-1 flex flex-col items-center justify-center text-white/40 gap-3">
+                                    <RiBarChartLine size={32} className="animate-pulse" />
+                                    <div className="text-sm font-medium">차트를 그리고 있어요...</div>
+                                </div>
                             ) : (
-                                <div className="w-full" style={{ height: '300px', minHeight: '300px', position: 'relative' }}>
+                                <div className="flex-1 w-full min-h-0 relative">
                                     <ResponsiveContainer width="100%" height="100%" debounce={50}>
                                         <AreaChart data={playLogs} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                             <defs>
@@ -1292,44 +1221,48 @@ export default function NowPlayingPage() {
                                                     <stop offset="95%" stopColor="#AFDEE2" stopOpacity={0} />
                                                 </linearGradient>
                                             </defs>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.1)" />
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.08)" />
                                             <XAxis
                                                 dataKey="time"
                                                 stroke="rgba(255,255,255,0.3)"
-                                                tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }}
+                                                tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10 }}
                                                 tickLine={false}
                                                 axisLine={false}
                                                 interval="preserveStartEnd"
+                                                height={20}
                                             />
                                             <YAxis
                                                 stroke="rgba(255,255,255,0.3)"
-                                                tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }}
+                                                tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10 }}
                                                 tickLine={false}
                                                 axisLine={false}
-                                                domain={[0, 10]}
+                                                domain={[0, 'auto']}
                                                 allowDecimals={false}
                                             />
+                                            {/* 바닥 가이드 라인 (데이터가 0일 때 시각적 보조) */}
+                                            <ReferenceLine y={0} stroke="rgba(255,255,255,0.1)" />
                                             <Tooltip
                                                 contentStyle={{
                                                     backgroundColor: 'rgba(20, 20, 20, 0.9)',
                                                     border: '1px solid rgba(255,255,255,0.1)',
                                                     borderRadius: '12px',
                                                     color: '#fff',
-                                                    boxShadow: '0 4px 20px rgba(0,0,0,0.5)'
+                                                    padding: '8px 12px'
                                                 }}
-                                                itemStyle={{ color: '#fff', fontSize: '13px' }}
-                                                labelStyle={{ color: '#AFDEE2', fontSize: '12px', marginBottom: '4px' }}
+                                                itemStyle={{ color: '#fff', fontSize: '12px' }}
+                                                labelStyle={{ color: '#AFDEE2', fontSize: '11px', marginBottom: '2px' }}
                                                 cursor={{ stroke: 'rgba(255,255,255,0.2)', strokeWidth: 1, strokeDasharray: '4 4' }}
                                             />
                                             <Area
                                                 type="monotone"
                                                 dataKey="count"
                                                 stroke="#AFDEE2"
-                                                strokeWidth={3}
+                                                strokeWidth={2}
                                                 fillOpacity={1}
                                                 fill="url(#colorCount)"
-                                                activeDot={{ r: 6, fill: '#AFDEE2', stroke: '#fff', strokeWidth: 2 }}
-                                                dot={{ r: 4, fill: '#2d2d2d', stroke: '#AFDEE2', strokeWidth: 2 }}
+                                                // 데이터가 0이어도 점이 보이도록 항상 dot 표시
+                                                dot={{ r: 3, fill: '#AFDEE2', strokeWidth: 0 }}
+                                                activeDot={{ r: 5, fill: '#fff', stroke: '#AFDEE2', strokeWidth: 2 }}
                                             />
                                         </AreaChart>
                                     </ResponsiveContainer>
@@ -1338,15 +1271,21 @@ export default function NowPlayingPage() {
                         </div>
 
                         {/* 3번: 유사 음악 (4개, 2x2 그리드) */}
-                        <div className="rounded-[24px] border border-white/10 bg-white/[0.05] backdrop-blur-xl p-6 shadow-xl flex flex-col overflow-hidden relative">
-                            <div className="text-base font-bold text-white/90 mb-4 tracking-wide z-10 relative">유사 음악</div>
+                        <div className="rounded-[24px] border border-white/10 bg-white/[0.05] backdrop-blur-xl p-4 shadow-xl flex flex-col overflow-hidden relative min-h-0">
+                            <div className="text-lg font-bold text-white/95 mb-2 tracking-wide z-10 relative">유사 음악</div>
 
                             {recommendationsLoading ? (
-                                <div className="flex-1 flex items-center justify-center text-white/50 text-sm">추천 중...</div>
+                                <div className="flex-1 flex flex-col items-center justify-center text-white/40 gap-3">
+                                    <RiMusic2Line size={32} className="animate-pulse" />
+                                    <div className="text-sm font-medium">비슷한 곡을 찾고 있어요...</div>
+                                </div>
                             ) : recommendations.length === 0 ? (
-                                <div className="flex-1 flex items-center justify-center text-white/50 text-sm">추천 곡이 없습니다</div>
+                                <div className="flex-1 flex flex-col items-center justify-center text-white/30 gap-3">
+                                    <RiMusic2Line size={32} />
+                                    <div className="text-sm font-medium">추천할 곡이 없어요</div>
+                                </div>
                             ) : (
-                                <div className="grid grid-cols-2 grid-rows-2 gap-3 flex-1 h-full min-h-0">
+                                <div className="grid grid-cols-2 grid-rows-2 gap-2 flex-1 min-h-0">
                                     {recommendations.slice(0, 4).map((rec) => {
                                         // 데이터 필드 정규화
                                         const imageUrl = processImageUrl(
@@ -1378,6 +1317,7 @@ export default function NowPlayingPage() {
                                                             ) || imageUrl || "",
                                                             audioUrl: detail.audio_url || "",
                                                             musicId: detail.music_id
+                                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                                         } as any);
                                                     } else {
                                                         // 상세 정보 실패 시 기존 데이터로 재생
@@ -1387,6 +1327,7 @@ export default function NowPlayingPage() {
                                                             artist: artist,
                                                             coverUrl: imageUrl || "",
                                                             musicId: rec.music_id
+                                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                                         } as any);
                                                     }
                                                 }}
@@ -1405,14 +1346,14 @@ export default function NowPlayingPage() {
 
                                                 {/* 텍스트 오버레이 */}
                                                 <div className="absolute inset-0 p-3 flex flex-col justify-end text-left bg-gradient-to-t from-black/80 via-black/20 to-transparent">
-                                                    <div className="text-sm font-bold text-white truncate drop-shadow-md">{rec.music_name}</div>
-                                                    <div className="text-xs text-white/70 truncate drop-shadow-md">{rec.artist_name}</div>
+                                                    <div className="text-base font-bold text-white truncate drop-shadow-md">{rec.music_name}</div>
+                                                    <div className="text-sm text-white/80 truncate drop-shadow-md">{rec.artist_name}</div>
                                                 </div>
 
                                                 {/* 호버 시 재생 아이콘 */}
                                                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <div className="p-2 rounded-full bg-white/20 backdrop-blur-sm">
-                                                        <MdPlayArrow size={24} className="text-white" />
+                                                        <MdPlayArrow size={30} className="text-white" />
                                                     </div>
                                                 </div>
                                             </button>
@@ -1423,71 +1364,65 @@ export default function NowPlayingPage() {
                         </div>
 
                         {/* 4번: 태그 그래프 (Treemap) */}
-                        <div className="rounded-[24px] border border-white/10 bg-white/[0.05] backdrop-blur-xl p-6 shadow-xl flex flex-col overflow-hidden flex-1">
-                            <div className="text-base font-bold text-white/90 mb-4 tracking-wide">태그 분석</div>
+                        <div className="rounded-[24px] border border-white/10 bg-white/[0.05] backdrop-blur-xl p-4 shadow-xl flex flex-col overflow-hidden flex-1 min-h-0">
+                            <div className="text-lg font-bold text-white/95 mb-2 tracking-wide">태그 분석</div>
 
                             {tagGraphLoading ? (
-                                <div className="flex-1 flex items-center justify-center text-white/50 text-sm">로딩 중...</div>
+                                <div className="flex-1 flex flex-col items-center justify-center text-white/40 gap-3">
+                                    <RiPriceTag3Line size={32} className="animate-pulse" />
+                                    <div className="text-sm font-medium">태그를 읽어오고 있어요...</div>
+                                </div>
                             ) : tagGraph.length === 0 ? (
-                                <div className="flex-1 flex items-center justify-center text-white/50 text-sm">태그 데이터가 없습니다</div>
+                                <div className="flex-1 flex flex-col items-center justify-center text-white/30 gap-3">
+                                    <RiPriceTag3Line size={32} />
+                                    <div className="text-sm font-medium">분석된 태그가 없어요</div>
+                                </div>
                             ) : !chartsReady ? (
-                                <div className="flex-1 flex items-center justify-center text-white/50 text-sm">차트 로딩 중...</div>
+                                <div className="flex-1 flex flex-col items-center justify-center text-white/40 gap-3">
+                                    <RiPriceTag3Line size={32} className="animate-pulse" />
+                                    <div className="text-sm font-medium">차트를 준비 중이에요...</div>
+                                </div>
                             ) : (
-                                <div className="flex-1" style={{ width: '100%', minWidth: 0, position: 'relative' }}>
+                                <div className="flex-1 w-full min-h-0 relative">
                                     <ResponsiveContainer width="100%" height="100%" debounce={50}>
                                         <Treemap
                                             key={`treemap-${currentMusicId}-${tagGraphWithIds.length}`}
                                             data={tagGraphWithIds}
                                             dataKey="size"
-                                            stroke="#ffffff" // ✅ 흰색 구분선 (요청사항)
+                                            stroke="#ffffff"
                                             fill="transparent"
                                             nameKey="name"
                                             isAnimationActive={true}
+                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                             content={({ x, y, width, height, name, index, color }: any) => {
                                                 if (!width || !height || width < 10 || height < 10) return <g />;
 
-                                                // 1. 앨범 커버 색상 기반 동적 채색
-                                                // 기본값: 청록색 계열 (AFDEE2)
                                                 let finalColor = 'hsla(186, 46%, 79%, 0.35)';
 
                                                 if (treemapBaseColor) {
-                                                    // 앨범 커버 색상 (HSL) + 태그 크기에 따른 투명도 변화
                                                     const baseHsl = treemapBaseColor;
-
-                                                    // 면적(width * height)을 기준 (= 백엔드 수치에 비례)으로 투명도/명도 조절
-                                                    // 백엔드에서 이미 세제곱 등으로 강조된 수치이므로, 이 면적 비율 그대로 시각화에 반영
-
-                                                    // 반응형 컨테이너라 절대적인 maxArea를 알기 어렵지만, 
-                                                    // 대략적으로 큰 태그가 더 진하게 보이도록 로그/선형 스케일 적용
                                                     const area = width * height;
-
-                                                    // 컨테이너 크기(대략 300~400px square 근처) 고려하여 정규화 인자 조정
-                                                    // 너무 복잡한 계산 없이 면적이 클수록 투명도를 높임 (0.2 ~ 0.8)
                                                     const opacity = Math.min(0.85, 0.2 + (area / 20000));
-                                                    const lightness = baseHsl.l + ((1 - opacity) * 10); // 투명도가 낮을수록(작을수록) 약간 더 밝게
-
+                                                    const lightness = baseHsl.l + ((1 - opacity) * 10);
                                                     finalColor = `hsla(${baseHsl.h}, ${baseHsl.s}%, ${lightness}%, ${opacity})`;
                                                 } else if (color) {
-                                                    // 기존 API에서 준 color가 있다면 fallback (근데 우리가 API 로직도 바꿨으면 이걸 쓸수도 있음)
-                                                    // 여기선 그냥 기본값 유지하거나 기존 로직 사용
                                                     finalColor = color;
                                                 }
 
                                                 return (
                                                     <g key={`tag-${index}-${name}`}>
-                                                        {/* ✅ 유리 재질 배경 + 흰색 테두리 */}
                                                         <rect
                                                             x={x}
                                                             y={y}
                                                             width={width}
                                                             height={height}
-                                                            rx={4} // 살짝 둥글게
+                                                            rx={4}
                                                             ry={4}
                                                             style={{
                                                                 fill: finalColor,
-                                                                stroke: '#ffffff', // ✅ 흰색 테두리 강제 적용
+                                                                stroke: '#ffffff',
                                                                 strokeWidth: 2,
-                                                                strokeOpacity: 0.5, // 테두리도 약간 투명하게 해서 더 고급스럽게
+                                                                strokeOpacity: 0.5,
                                                             }}
                                                         />
                                                         {width > 35 && height > 18 && (
@@ -1500,7 +1435,7 @@ export default function NowPlayingPage() {
                                                                 fontSize={Math.min(20, width / 5)}
                                                                 fontWeight="600"
                                                                 style={{
-                                                                    textShadow: '0 2px 4px rgba(0,0,0,0.2)', // 글자 가독성
+                                                                    textShadow: '0 2px 4px rgba(0,0,0,0.2)',
                                                                     pointerEvents: 'none'
                                                                 }}
                                                             >
