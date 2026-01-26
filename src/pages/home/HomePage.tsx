@@ -178,7 +178,7 @@ function HomePage() {
         type="button"
         onClick={() => setTab(key)}
         className={[
-          "h-8 text-sm px-3 py-1.5 rounded-full transition whitespace-nowrap",
+          "h-10 text-sm px-4 py-2 rounded-full transition whitespace-nowrap",
           active
             ? "bg-[#E4524D]/80 text-[#f6f6f6] font-semibold scale-105 z-10"
             : "bg-white/20 text-[#F6F6F6] hover:bg-white/[0.08] font-semibold hover:scale-105",
