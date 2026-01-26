@@ -514,6 +514,7 @@ const addSelectedToPlaylist = async (playlistId: string) => {
         } catch (e) {
           if (axios.isAxiosError(e)) {
             const status = e.response?.status;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const msg = (e.response?.data as any)?.error || (e.response?.data as any)?.message || "";
 
             const isAlready =
@@ -528,7 +529,7 @@ const addSelectedToPlaylist = async (playlistId: string) => {
         }
       })
     );
-
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const fulfilled = results.filter((r) => r.status === "fulfilled").map((r) => (r as PromiseFulfilledResult<any>).value);
 
     const already = fulfilled.filter((v) => v?.already).length;
