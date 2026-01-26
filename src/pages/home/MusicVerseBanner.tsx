@@ -8,7 +8,7 @@ export default function MusicVerseBanner() {
     return (
         <div
             onClick={() => navigate('/canvas')}
-            className="group relative w-full h-[280px] rounded-[32px] overflow-hidden cursor-pointer shadow-2xl transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(0,0,0,0.4)]"
+            className="group ml-1.5 relative w-full h-[280px] rounded-[32px] overflow-hidden cursor-pointer shadow-2xl transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_60px_rgba(0,0,0,0.4)]"
         >
             {/* Background Image - Cosmic/Abstract */}
             <div className="absolute inset-0 bg-black">

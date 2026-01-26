@@ -2,7 +2,7 @@ import axios from "axios";
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import type { DragEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { MdFavorite, MdAutoAwesome, MdQueueMusic, MdClose, MdDelete, MdDragIndicator, MdPlayArrow, MdPause, MdSkipNext, MdSkipPrevious, MdShuffle, MdRepeat } from "react-icons/md";
+import { MdFavorite, MdQueueMusic, MdClose, MdDelete, MdDragIndicator, MdPlayArrow } from "react-icons/md";
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, ReferenceLine } from "recharts";
 import * as D3 from "d3";
 import cloud from "d3-cloud";
@@ -223,14 +223,8 @@ export default function NowPlayingPage() {
         queue,
         history,
         isPlaying,
-        toggle,
         removeFromQueue,
         moveQueueItem,
-        shuffleQueue,
-        nextTrack,
-        previousTrack,
-        repeatMode,
-        toggleRepeat,
         setTrackAndPlay,
     } = usePlayer();
 
@@ -313,7 +307,7 @@ export default function NowPlayingPage() {
                                     return;
                                 }
                             }
-                        } catch (err) { /* ignore */ }
+                        } catch { /* ignore */ }
                     }
                 }
 
@@ -949,10 +943,6 @@ export default function NowPlayingPage() {
         setOverIndex(null);
     };
 
-    const handleStartStation = () => {
-        if (!current) return;
-    };
-
     return (
         <div className="relative h-full w-full text-[#F6F6F6] overflow-hidden">
 
@@ -1495,15 +1485,6 @@ export default function NowPlayingPage() {
 
                     <button
                         type="button"
-                        onClick={handleStartStation}
-                        className="text-white/60 hover:text-white transition"
-                        title="스테이션 시작"
-                    >
-                        <MdAutoAwesome size={24} />
-                    </button>
-
-                    <button
-                        type="button"
                         onClick={() => navigate(-1)}
                         className="text-white/60 hover:text-white transition"
                         title="축소하기"
@@ -1522,7 +1503,7 @@ export default function NowPlayingPage() {
                                 {hasTrack && (
                                     <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" style={{ width: 820, height: 240, opacity: 0.75, zIndex: 0 }}>
                                         <div className="w-full h-full flex items-end justify-center gap-[10px]">
-                                            {Array.from({ length: 26 }).map((_, i) => {
+                                            {Array.from({ length: 35 }).map((_, i) => {
                                                 const eqActive = hasTrack && isPlaying;
                                                 const dur = 1.6 + (i % 7) * 0.18;
                                                 const delay = (i % 11) * 0.07;
@@ -1587,21 +1568,6 @@ export default function NowPlayingPage() {
                                 ))}
                             </div>
                         )}
-                    </div>
-
-                    {/* 하단 컨트롤 바 - 투명하게 배치 */}
-                    <div className="p-10 bg-gradient-to-t from-black/40 to-transparent">
-                        <div className="max-w-4xl mx-auto flex flex-col items-center gap-8">
-                            <div className="flex items-center gap-10">
-                                <button onClick={shuffleQueue} className="text-white/40 hover:text-white transition"><MdShuffle size={24} /></button>
-                                <button onClick={previousTrack} className="text-white/60 hover:text-white transition"><MdSkipPrevious size={36} /></button>
-                                <button onClick={toggle} className="h-16 w-16 rounded-full bg-[#E4524D] text-white flex items-center justify-center hover:scale-105 transition shadow-xl">
-                                    {isPlaying ? <MdPause size={36} /> : <MdPlayArrow size={36} className="ml-1" />}
-                                </button>
-                                <button onClick={nextTrack} className="text-white/60 hover:text-white transition"><MdSkipNext size={36} /></button>
-                                <button onClick={toggleRepeat} className={repeatMode === "one" ? "text-[#AFDEE2]" : "text-white/40 hover:text-white transition"}><MdRepeat size={24} /></button>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
