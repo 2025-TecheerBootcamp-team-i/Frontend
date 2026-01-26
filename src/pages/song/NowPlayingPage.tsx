@@ -54,8 +54,8 @@ function ensureNowPlayingHintStyle() {
         filter: brightness(1);
       }
       50% { 
-        transform: scaleX(1.12); 
-        filter: brightness(2);
+        transform: scaleX(1.2); 
+        filter: brightness(5);
         }
     }
     .np-tab-hint {
