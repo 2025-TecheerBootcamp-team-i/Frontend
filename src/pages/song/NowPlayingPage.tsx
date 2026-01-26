@@ -926,7 +926,7 @@ export default function NowPlayingPage() {
 
     useEffect(() => {
         // 페이지 들어오면 4초 정도만 힌트 주고 자동 종료
-        const t = window.setTimeout(() => setHintTabs(false), 1000);
+        const t = window.setTimeout(() => setHintTabs(false), 1800);
         return () => window.clearTimeout(t);
         }, []);
     
