@@ -36,7 +36,6 @@ export default function SearchPage() {
           <Tab to={`song${search}`} label="곡" />
           <Tab to={`artist${search}`} label="아티스트" />
           <Tab to={`album${search}`} label="앨범" />
-          <Tab to={`playlist${search}`} label="플레이리스트" />
         </div>
 
         <div className="mt-4 border-b border-white/10" />
