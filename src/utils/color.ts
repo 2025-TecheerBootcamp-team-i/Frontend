@@ -47,16 +47,43 @@ export async function extractPastelColors(url: string, count: number = 3): Promi
           colorCounts[key] = (colorCounts[key] || 0) + 1;
         }
 
-        // 4. 빈도순 정렬 및 상위 색상 추출
+        // 4. 빈도순 정렬 및 상위 색상 추출 (비비드/밝은 색상 가중치 적용)
         const sortedColors = Object.entries(colorCounts)
-          .sort((a, b) => b[1] - a[1])
+          .sort((a, b) => {
+            const [r1, g1, b1] = a[0].split(",").map(Number);
+            const [r2, g2, b2] = b[0].split(",").map(Number);
+
+            const getScore = (r: number, g: number, b: number, count: number) => {
+              const max = Math.max(r, g, b);
+              const min = Math.min(r, g, b);
+              const l = (max + min) / 2 / 255; // 0~1
+              const d = max - min;
+              const s = max === 0 ? 0 : d / max; // 0~1 (HSV style mostly)
+
+              // 가중치 계산
+              let score = count;
+
+              // 1. 무채색(회색조) 페널티: 채도가 낮을수록 점수 대폭 감소
+              if (s < 0.2) score *= 0.3;
+              else if (s < 0.4) score *= 0.8;
+              else score *= 1.5; // 채도 높으면 가점
+
+              // 2. 너무 어둡거나 너무 밝은 색 페널티
+              if (l < 0.15) score *= 0.3; // 너무 어두움
+              else if (l > 0.9) score *= 0.5; // 너무 밝음 (흰색)
+              else if (l > 0.4) score *= 1.2; // 중간 밝기 이상 선호
+
+              return score;
+            };
+
+            const scoreA = getScore(r1, g1, b1, a[1]);
+            const scoreB = getScore(r2, g2, b2, b[1]);
+
+            return scoreB - scoreA;
+          })
           .slice(0, count)
           .map(([rgbStr]) => {
             const [r, g, b] = rgbStr.split(",").map(Number);
-
-            // 단색이 강해지는 것을 방지하는 보정 로직 (제거: 원색 그대로 사용)
-            // 사용자의 요청대로 색 변화를 확실하게 하기 위해 보정 없이 원본 RGB 그대로 반환
-
             return `rgb(${r}, ${g}, ${b})`;
           });
 

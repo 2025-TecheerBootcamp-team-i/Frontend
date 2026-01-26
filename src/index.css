@@ -156,3 +156,24 @@
     animation: none;
   }
 }
+
+/* 잉크 번짐 효과 */
+@keyframes inkSpread {
+  0% {
+    transform: translate(-50%, -50%) scale(0.2);
+    opacity: 0.8;
+  }
+
+  50% {
+    opacity: 0.6;
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(4);
+    opacity: 0;
+  }
+}
+
+.animate-ink {
+  animation: inkSpread 2s ease-out forwards;
+}

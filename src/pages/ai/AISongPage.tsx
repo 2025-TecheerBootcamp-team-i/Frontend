@@ -532,8 +532,6 @@ export default function AiSongPage() {
     const ok = window.confirm("이 곡을 삭제할까요? (되돌릴 수 없어요)");
     if (!ok) return;
 
-    const trackIdStr = track.musicId.toString();
-
     // 2) 서버 삭제
     if (API_BASE) {
       try {

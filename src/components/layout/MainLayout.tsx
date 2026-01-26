@@ -115,6 +115,36 @@ function MainLayout() {
                             bg-[length:260%_260%]"
                         />
 
+                        {/* ✅ Ink Spread Effect (Transient on track change) - 3 Dispersed Blobs */}
+                        <div key={current?.musicId || 'no-track'} className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+                            {/* Blob 1: Top Left */}
+                            <div
+                                className="absolute top-[20%] left-[20%] w-[500px] h-[500px] rounded-full blur-[80px] animate-ink"
+                                style={{
+                                    background: `radial-gradient(circle, ${dominantColor} 0%, transparent 70%)`,
+                                    transform: 'translate(-50%, -50%)'
+                                }}
+                            />
+                            {/* Blob 2: Middle Right */}
+                            <div
+                                className="absolute top-[40%] right-[10%] w-[450px] h-[450px] rounded-full blur-[80px] animate-ink"
+                                style={{
+                                    background: `radial-gradient(circle, ${dominantColor} 0%, transparent 70%)`,
+                                    animationDelay: '0.2s',
+                                    transform: 'translate(50%, -50%)'
+                                }}
+                            />
+                            {/* Blob 3: Bottom Center/Left */}
+                            <div
+                                className="absolute bottom-[10%] left-[40%] w-[550px] h-[550px] rounded-full blur-[80px] animate-ink"
+                                style={{
+                                    background: `radial-gradient(circle, ${dominantColor} 0%, transparent 70%)`,
+                                    animationDelay: '0.4s',
+                                    transform: 'translate(-50%, 50%)'
+                                }}
+                            />
+                        </div>
+
                         {/* Layer 2: Darker/Blur Overlay (Depth) */}
                         <div
                             className="pointer-events-none absolute inset-0 
