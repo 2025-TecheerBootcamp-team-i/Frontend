@@ -8,6 +8,7 @@ import { fetchChart, type ChartData, type ChartType } from "../../api/chart";
 
 import DjStationSection from "./DjStationSection";
 import GenreStationSection from "./GenreStationSection";
+import QuickPickSection from "./QuickPickSection";
 
 
 import MusicVerseBanner from "./MusicVerseBanner";
@@ -334,6 +335,8 @@ function HomePage() {
         {/* Genre Station */}
         <GenreStationSection />
 
+        {/* Quick Pick - 사용자 Top 태그 기반 빠른 선곡 */}
+        <QuickPickSection />
 
       </div>
     </div >
