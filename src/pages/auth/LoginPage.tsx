@@ -122,26 +122,30 @@ export default function LoginPage() {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               style={{ contentVisibility: "auto" as any }} // ✅ CHANGED
             >
-              <div className="h-full w-full bg-gradient-to-br from-[#5fd8e4] via-[#9fd6db] to-[#eef6f6]" />
-              <div className="absolute inset-0 bg-black/15" />
-              {/* ✅ CHANGED: blur 유지하되 원 크기 줄여서 부담 감소 */}
-              <div className="absolute -top-24 -left-24 h-48 w-48 rounded-full bg-white/20 blur-xl" />
-              <div className="absolute -bottom-24 -right-24 h-48 w-48 rounded-full bg-black/20 blur-xl" />
+              {/* ✨ Base Dark Glass */}
+              <div className="h-full w-full bg-slate-900/60 backdrop-blur-2xl" />
+
+              {/* ✨ Ambient Color Orbs (Cyan & Purple for Muniverse Vibe) */}
+              <div className="absolute top-[-20%] left-[-20%] h-[300px] w-[300px] rounded-full bg-cyan-500/20 blur-[100px]" />
+              <div className="absolute bottom-[-10%] right-[-10%] h-[250px] w-[250px] rounded-full bg-purple-600/20 blur-[80px]" />
+
+              {/* ✨ Subtle Overlay for Texture */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-50" />
             </div>
 
             <div className="relative z-10 flex items-center justify-between">
-              <div className="font-bold tracking-wide text-xl text-[#2d2d2d]">
+              <div className="font-bold tracking-wide text-xl text-white/90">
                 muniverse
               </div>
               <button
                 type="button"
                 className="
-                  text-[#2d2d2d]
+                  text-white/90
                   text-sm
                   px-3 py-2
                   rounded-full
-                  bg-white/20
-                  hover:bg-white/50
+                  bg-white/10
+                  hover:bg-white/30
                   transition
                 "
                 onClick={() => navigate("/home")}
@@ -151,12 +155,12 @@ export default function LoginPage() {
             </div>
 
             <div className="relative z-10 mt-10 animate-verticalFloat">
-              <p className="text-[#2d2d2d] text-3xl md:text-4xl font-semibold leading-tight">
+              <p className="text-white text-3xl md:text-4xl font-semibold leading-tight">
                 Listen & Create
                 <br />
                 Stay in the Flow
               </p>
-              <p className="mt-4 text-[#2d2d2d]/70 text-sm md:text-base max-w-[360px]">
+              <p className="mt-4 text-white/70 text-sm md:text-base max-w-[360px]">
                 완성도 높은 스트리밍을 기반으로
                 <br />
                 음악을 보고, 이해하고, 직접 만들어보세요 🎶
