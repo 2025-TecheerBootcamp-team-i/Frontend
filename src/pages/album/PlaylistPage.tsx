@@ -189,7 +189,7 @@ Component
 export default function PlaylistDetailPage() {
     const { playlistId } = useParams();
     const isLikedSystem = playlistId === LIKED_SYSTEM_ID;
-    const { playTracks, enqueueTracks } = usePlayer();
+    const { playTracks, enqueueTracks, playListAtIndex } = usePlayer();
     const navigate = useNavigate();
 
     const API_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
@@ -723,14 +723,19 @@ export default function PlaylistDetailPage() {
                                                 // GET API 호출하여 오디오 URL 획득
                                                 const realUrl = await playTrack(musicId);
 
-                                                if (realUrl) {
-                                                    const one = {
-                                                        ...toPlayerTrack(t),
-                                                        audioUrl: realUrl,
-                                                    };
-                                                    playTracks([one], { shuffle: false });
+                                                // 전체 리스트 변환
+                                                const allPlayerTracks = tracks.map(toPlayerTrack);
+                                                const idx = allPlayerTracks.findIndex((x) => x.id === String(t.item_id));
+
+                                                if (idx !== -1 && realUrl) {
+                                                    allPlayerTracks[idx].audioUrl = realUrl;
+                                                    playListAtIndex(allPlayerTracks, idx);
                                                 } else {
-                                                    console.error("Audio URL not found for music:", musicId);
+                                                    // 혹시 실패하면 그냥 기존 로직대로(URL 없이) 혹은 알림
+                                                    console.warn("Audio URL not found or index error", musicId);
+                                                    if (idx !== -1) {
+                                                        playListAtIndex(allPlayerTracks, idx);
+                                                    }
                                                 }
                                             } catch (err) {
                                                 console.error("Failed to play track via GET API:", err);

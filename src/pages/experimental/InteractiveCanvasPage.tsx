@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from 'react-router-dom';
 import InfiniteCanvas from "../../components/canvas/InfiniteCanvas";
 import AlbumDetailOverlay from "../../components/canvas/AlbumDetailOverlay";
@@ -279,7 +279,12 @@ export default function InteractiveCanvasPage() {
     };
 
     return (
-        <div className="w-full h-full relative">
+        <motion.div
+            className="w-full h-full relative"
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }} // Decelerate out
+        >
             {/* Canvas Background */}
             <InfiniteCanvas
                 albums={albums}
@@ -433,6 +438,6 @@ export default function InteractiveCanvasPage() {
                     Home
                 </button>
             </div>
-        </div>
+        </motion.div>
     );
 }
