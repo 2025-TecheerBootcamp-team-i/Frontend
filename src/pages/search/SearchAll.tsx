@@ -128,6 +128,9 @@ type Song = {
   albumId?: number | null;
   artistId?: number | null;
   albumName?: string;
+  image?: string | null;
+  audioUrl?: string | null;
+  musicId?: number | null;
 };
 type Artist = { id: string; name: string; image?: string | null };
 type Album = { id: string; name: string; artist: string; image?: string | null };
@@ -242,7 +245,7 @@ export default function SearchHome() {
   const [apiAlbums, setApiAlbums] = useState<ArtistAlbum[]>([]);
   const [loading, setLoading] = useState(false);
   const [artistDetails, setArtistDetails] = useState<Record<number, ArtistDetail>>({});
-  const [searchResults, setSearchResults] = useState<ApiSearchResult[]>([]);
+
 
   const fetchArtistDetails = useCallback(
     async (artistIds: number[]) => {
@@ -313,7 +316,7 @@ export default function SearchHome() {
       setApiArtists([]);
       setRelatedArtists([]);
       setApiAlbums([]);
-      setSearchResults([]);
+
       setArtistDetails({});
       return;
     }
@@ -329,7 +332,7 @@ export default function SearchHome() {
         });
         if (!res.ok) throw new Error(`API 오류: ${res.status}`);
         const data: ApiSearchResponse = await res.json();
-        setSearchResults(data.results);
+
 
         const convertedSongs: Song[] = data.results.map((r) => ({
           id: String(r.itunes_id),
@@ -341,6 +344,9 @@ export default function SearchHome() {
           albumId: r.album_id,
           artistId: r.artist_id,
           albumName: r.album_name,
+          image: r.album_image,
+          audioUrl: r.audio_url,
+          musicId: r.music_id,
         }));
 
         const artistMap = new Map<number, Artist>();
@@ -444,16 +450,16 @@ export default function SearchHome() {
     return url;
   };
 
-  const toTrack = (r: ApiSearchResult): PlayerTrack => ({
-    id: String(r.itunes_id),
-    musicId: r.music_id || r.itunes_id,
-    title: r.music_name,
-    artist: r.artist_name,
-    coverUrl: r.album_image || "",
-    audioUrl: r.audio_url || "/audio/sample.mp3",
-    duration: r.duration
-      ? `${Math.floor(r.duration / 60)}:${(r.duration % 60).toString().padStart(2, "0")}`
-      : "0:00",
+
+
+  const songToTrack = (s: Song): PlayerTrack => ({
+    id: s.id,
+    musicId: s.musicId || Number(s.id),
+    title: s.title,
+    artist: s.artist,
+    coverUrl: s.image || "",
+    audioUrl: s.audioUrl || "/audio/sample.mp3",
+    duration: s.duration,
   });
 
   const hasQuery = !!q.trim();
@@ -518,11 +524,14 @@ export default function SearchHome() {
                       const isArtist = featured.type === "artist";
                       const data = featured.data;
 
-                      const r = !isArtist
-                        ? searchResults.find((x) => String(x.itunes_id) === (data as Song).id)
-                        : null;
+                      // If it's a song, we have the full data in `data` (Song type).
+                      // If it's an artist, we might want to play the first song of artist? 
+                      // Wait, original logic for artist played the first song of searchResults corresponding to apiSongs[0]? 
+                      // "const firstSong = searchResults.find((x) => String(x.itunes_id) === apiSongs[0].id);"
+                      // This implies play the top song if artist is featured? That seems weird but okay.
+                      // Let's stick to fixing the Song case. The Song case uses `r`. I want to use `data` directly.
 
-                      const img = isArtist ? (data as Artist).image : r?.album_image;
+                      const img = isArtist ? (data as Artist).image : (data as Song).image;
 
                       return (
                         <div className="flex flex-col">
@@ -561,18 +570,17 @@ export default function SearchHome() {
                             </div>
                           </div>
 
-                          {((!isArtist && r) || (isArtist && apiSongs.length > 0)) && (
+                          {((!isArtist) || (isArtist && apiSongs.length > 0)) && (
                             <button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (!isArtist && r) {
-                                  setTrackAndPlay(toTrack(r));
+                                if (!isArtist) {
+                                  setTrackAndPlay(songToTrack(data as Song));
                                 } else if (isArtist && apiSongs.length > 0) {
-                                  const firstSong = searchResults.find(
-                                    (x) => String(x.itunes_id) === apiSongs[0].id
-                                  );
-                                  if (firstSong) setTrackAndPlay(toTrack(firstSong));
+                                  // For artist, it plays the first returned song? 
+                                  const firstSong = apiSongs[0];
+                                  if (firstSong) setTrackAndPlay(songToTrack(firstSong));
                                 }
                               }}
                               className="
@@ -645,14 +653,13 @@ export default function SearchHome() {
                     </div>
                   ) : (
                     apiSongs.slice(0, 4).map((s) => {
-                      const r = searchResults.find((x) => String(x.itunes_id) === s.id);
-                      const albumImage = r?.album_image ?? null;
+                      const albumImage = s.image ?? null;
 
                       return (
                         <button
                           key={s.id}
                           type="button"
-                          onClick={() => r && setTrackAndPlay(toTrack(r))}
+                          onClick={() => setTrackAndPlay(songToTrack(s))}
                           className="w-full text-left px-2 py-3 hover:bg-white/5 transition border-b border-white/10 last:border-b-0"
                         >
                           <div className="flex items-center gap-4">

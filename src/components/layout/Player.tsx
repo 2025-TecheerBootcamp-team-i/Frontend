@@ -130,50 +130,50 @@ export default function Player({ height = 92 }: Props) {
             <div className="h-full px-6 grid grid-cols-[240px_1fr_240px] items-center gap-6">
                 {/* 좌: 정보 */}
                 <div className="flex items-center gap-3 min-w-[240px]">
-                {/* ✅ 앨범 커버 클릭 시 Now Playing으로 이동 */}
-                <button
-                    type="button"
-                    onClick={() => {
-                        if (!hasTrack) return;
-                        if (isExpanded) {
-                        navigate(-1);          // ✅ 축소
-                        } else {
-                        navigate("/now-playing"); // ✅ 확대
-                        }
-                    }}
-                    disabled={!hasTrack}
-                    className={[
-                        "h-12 w-12 rounded-xl overflow-hidden relative flex-shrink-0",
-                        "transition",
-                        hasTrack
-                        ? "bg-[#777] hover:brightness-110 active:scale-[0.98] cursor-pointer"
-                        : "bg-[#777] opacity-60 cursor-not-allowed",
-                    ].join(" ")}
-                    aria-label={isExpanded ? "플레이어 축소" : "플레이어 확대"}
+                    {/* ✅ 앨범 커버 클릭 시 Now Playing으로 이동 */}
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (!hasTrack) return;
+                            if (isExpanded) {
+                                navigate(-1);          // ✅ 축소
+                            } else {
+                                navigate("/now-playing"); // ✅ 확대
+                            }
+                        }}
+                        disabled={!hasTrack}
+                        className={[
+                            "h-12 w-12 rounded-xl overflow-hidden relative flex-shrink-0",
+                            "transition",
+                            hasTrack
+                                ? "bg-[#777] hover:brightness-110 active:scale-[0.98] cursor-pointer"
+                                : "bg-[#777] opacity-60 cursor-not-allowed",
+                        ].join(" ")}
+                        aria-label={isExpanded ? "플레이어 축소" : "플레이어 확대"}
                     >
 
-                    {hasTrack && coverUrl ? (
-                    <img
-                        src={coverUrl}
-                        alt={current!.title}
-                        width={48}
-                        height={48}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                        e.currentTarget.style.display = "none";
-                        }}
-                    />
-                    ) : (
-                    <div className="w-full h-full bg-[#777]" />
-                    )}
-                </button>
+                        {hasTrack && coverUrl ? (
+                            <img
+                                src={coverUrl}
+                                alt={current!.title}
+                                width={48}
+                                height={48}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                    e.currentTarget.style.display = "none";
+                                }}
+                            />
+                        ) : (
+                            <div className="w-full h-full bg-[#777]" />
+                        )}
+                    </button>
 
-                <div className="min-w-0">
-                    <div className="text-sm text-[#F6F6F6] truncate">
-                    {hasTrack ? current!.title : "재생할 곡을 선택하세요"}
+                    <div className="min-w-0">
+                        <div className="text-sm text-[#F6F6F6] truncate">
+                            {hasTrack ? current!.title : "재생할 곡을 선택하세요"}
+                        </div>
+                        <div className="text-xs text-[#999] truncate">{hasTrack ? current!.artist : "—"}</div>
                     </div>
-                    <div className="text-xs text-[#999] truncate">{hasTrack ? current!.artist : "—"}</div>
-                </div>
                 </div>
 
 

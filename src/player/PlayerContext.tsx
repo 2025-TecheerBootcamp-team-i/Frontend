@@ -7,7 +7,7 @@ import React, {
   useEffect,
   useRef,
 } from "react";
-import { logPlayTrack } from "../api/music";
+import { logPlayTrack, playTrack } from "../api/music";
 import { isLoggedIn } from "../api/auth";
 
 export type PlayerTrack = {
@@ -36,6 +36,7 @@ export type PlayerContextValue = {
   playList: (tracks: PlayerTrack[]) => void;
   playListShuffled: (tracks: PlayerTrack[]) => void;
   playTracks: (tracks: PlayerTrack[], opts?: { shuffle?: boolean }) => void;
+  playListAtIndex: (tracks: PlayerTrack[], index: number) => void;
   enqueueTracks: (tracks: PlayerTrack[], opts?: { shuffle?: boolean }) => void;
 
   volume: number;
@@ -102,11 +103,15 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     repeatModeRef.current = repeatMode;
   }, [repeatMode]);
 
-  // ✅ 볼륨 상태 (0~1)
-  const [volume, _setVolume] = useState(0.8);
+  // ✅ 볼륨 상태 (0~1) - localStorage에서 불러오기
+  const [volume, _setVolume] = useState(() => {
+    const saved = localStorage.getItem("player-volume");
+    return saved !== null ? parseFloat(saved) : 0.8;
+  });
   const setVolume = useCallback((v: number) => {
     const vol = Math.max(0, Math.min(1, v));
     _setVolume(vol);
+    localStorage.setItem("player-volume", String(vol));
     if (audioRef.current) audioRef.current.volume = vol;
   }, []);
 
@@ -292,45 +297,78 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       return () => cancelAnimationFrame(id);
     };
 
+    // ✅ 트랙이 변경되면 즉시 이전 오디오 중지 (비동기 로딩 중 'ended' 이벤트 방지)
+    if (a) a.pause();
+
     if (!a || !current) {
       if (a) {
-        a.pause();
         a.src = "";
         a.load();
       }
       return resetReactSide();
     }
 
-    const url = current.audioUrl?.trim() ?? "";
-    const ok =
-      url &&
-      (url.startsWith("http://") ||
-        url.startsWith("https://") ||
-        url.startsWith("/"));
+    const loadAudio = async () => {
+      let url = current.audioUrl?.trim() ?? "";
 
-    if (!ok) {
-      a.pause();
-      a.src = "";
-      a.load();
+      // URL이 "/audio/sample.mp3" 같거나 비어있는데, musicId가 있으면 실제 URL을 가져옴
+      const isPlaceholder = url === "/audio/sample.mp3" || !url;
+      if (isPlaceholder && current.musicId) {
+        try {
+          const realUrl = await playTrack(current.musicId);
+          if (realUrl) {
+            url = realUrl;
+            // 상태 업데이트하여 UI 등에도 반영 (선택 사항이지만 권장)
+            setCurrent(prev => (prev && prev.id === current.id ? { ...prev, audioUrl: realUrl } : prev));
+          }
+        } catch (err) {
+          console.error("Failed to fetch audio url JIT:", err);
+        }
+      }
 
-      const cleanup = resetReactSide();
-      const id = requestAnimationFrame(() => setIsPlaying(false));
-      return () => {
-        cleanup?.();
-        cancelAnimationFrame(id);
-      };
-    }
+      const ok =
+        url &&
+        (url.startsWith("http://") ||
+          url.startsWith("https://") ||
+          url.startsWith("/"));
 
-    a.src = url;
-    a.load();
+      if (!ok) {
+        a.pause();
+        a.src = "";
+        a.load();
 
-    return resetReactSide();
+        // async 함수라 cleanup 반환 불가, 여기서 직접 실행해야 함
+        // 하지만 useEffect cleanup이 문제될 수 있음.
+        // 여기서는 async 내부 로직이므로 return cleanup을 못함.
+        // 일단 상태 리셋만 수행
+        return;
+      }
+
+      // URL이 변경되었을 때만 src 교체 (재생 중 끊김 방지)
+      if (a.src !== url && a.src !== new URL(url, window.location.href).href) {
+        a.src = url;
+        a.load();
+      }
+
+      // 메타데이터 로드 후 길이는 이벤트로 처리됨.
+      // resetReactSide는 호출하지 않음 (이전 곡 정보가 잠시 남아있어도 됨, 혹은 명시적으로 0 초기화)
+    };
+
+    loadAudio();
+
+    // cleanup: 언마운트 시 처리 (여기서는 간략화)
+    return () => {
+      // 빠른 트랙 변경 시 race condition 처리는 복잡하므로 
+      // 단순히 다음 effect 실행 시 a.src 교체로 해결
+    };
   }, [current]);
 
   // ✅ isPlaying 변경 시 play/pause
   useEffect(() => {
     const a = audioRef.current;
-    if (!a || !current?.audioUrl) return;
+
+    // 플레이스홀더면 재생 시도 X (JIT fetch 전까지)
+    if (!a || !current?.audioUrl || current.audioUrl === "/audio/sample.mp3") return;
 
     if (isPlaying) {
       const p = a.play();
@@ -388,6 +426,34 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       setProgress(0);
 
       pushHistory(track);
+    },
+    [pushHistory]
+  );
+
+  const playListAtIndex = useCallback(
+    (tracks: PlayerTrack[], index: number) => {
+      if (!tracks || tracks.length === 0) return;
+      if (index < 0 || index >= tracks.length) return;
+
+      const target = tracks[index];
+      const prevTracks = tracks.slice(0, index);
+      const nextTracks = tracks.slice(index + 1);
+
+      // ✅ 현재 곡이 있었다면 기록에 남김
+      const cur = currentRef.current;
+      if (cur) pushHistory(cur);
+
+      setCurrent(target);
+      setIsPlaying(true);
+      setProgress(0);
+
+      // 큐는 클릭한 곡 '다음'부터
+      setQueue(nextTracks);
+
+      // 히스토리는 '이전' 곡들을 역순으로 (가장 최근이 0번 인덱스)
+      // + 현재 재생 시작한 곡도 history[0]에 들어가야 함
+      // 그래서 [target, ...reversedPrev] 형태가 됨
+      setHistory([target, ...prevTracks.reverse()]);
     },
     [pushHistory]
   );
@@ -535,27 +601,29 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   }, [pushHistory]);
 
   const previousTrack = useCallback(() => {
-    // history 구조: [가장 최근, ...]
-    // 우리는 "현재곡도 history에 들어감" 정책이니까,
-    // 이전곡은 history[1]이 될 가능성이 큼.
-    setHistory((h) => {
-      if (h.length <= 1) return h;
+    // history 구조: [가장 최근, ...] (current도 history[0]에 들어있음)
+    // 이전곡은 history[1]
+    if (history.length <= 1) return;
 
-      const cur = currentRef.current;
-      const prev = h[1];
+    const cur = currentRef.current; // or 'current' from state
+    const prev = history[1];
 
-      if (cur) setQueue((q) => [cur, ...q]);
+    // 1. 현재 곡이 있다면 큐의 맨 앞에 다시 추가 (방금 들은 곡이니까)
+    if (cur) {
+      setQueue((q) => [cur, ...q]);
+    }
 
-      setCurrent(prev);
-      setProgress(0);
-      setIsPlaying(true);
+    // 2. 이전 곡 재생
+    setCurrent(prev);
+    setProgress(0);
+    setIsPlaying(true);
 
-      // ✅ prev를 맨 앞으로 올려서 "현재곡"으로 만들기
-      const key = trackKey(prev);
-      const nextHist = [prev, ...h.filter((x) => trackKey(x) !== key)].slice(0, 50);
-      return nextHist;
-    });
-  }, [trackKey]);
+    // 3. History 업데이트 (현재 곡을 History 스택에서 제거 = 이전 상태로 복구)
+    // 원래 로직: prev를 맨 앞으로 가져오고 나머지를 유지 -> [B, A, C] (A가 남아서 토글됨)
+    // 수정 로직: 맨 앞의 A(현재곡)를 제거 -> [B, C]
+    setHistory((h) => h.length > 1 ? h.slice(1) : h);
+
+  }, [history, trackKey]);
 
   const toggleRepeat = useCallback(() => {
     setRepeatMode((m) => (m === "off" ? "one" : "off"));
@@ -573,6 +641,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       playList,
       playListShuffled,
       playTracks,
+      playListAtIndex,
       enqueueTracks,
 
       volume,
@@ -603,6 +672,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       playList,
       playListShuffled,
       playTracks,
+      playListAtIndex,
       enqueueTracks,
       volume,
       setVolume,

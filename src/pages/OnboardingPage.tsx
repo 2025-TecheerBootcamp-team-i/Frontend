@@ -10,9 +10,9 @@ export default function OnboardingPage() {
       <div className="px-12 max-w-[420px] translate-x-[6vw] translate-y-[-2vh]">
         {/* 문구 */}
         <div className="text-white/90 text-3xl font-semibold tracking-tight leading-snug">
-          당신만의 음악을
+          당신의 취향으로 
           <br />
-          더 쉽게.
+          완성되는 음악 세계
         </div>
 
         <div className="mt-4 text-white/70 text-sm leading-relaxed">

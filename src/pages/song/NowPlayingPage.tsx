@@ -8,8 +8,10 @@ import * as D3 from "d3";
 import cloud from "d3-cloud";
 import "tippy.js/dist/tippy.css";
 import "tippy.js/animations/scale.css";
-import { RiDashboardFill, RiBarChartLine, RiMusic2Line, RiPriceTag3Line } from "react-icons/ri";
+import { RiDashboardFill, RiBarChartLine, RiMusic2Line, RiPriceTag3Line, RiDiscLine, RiAlbumLine } from "react-icons/ri";
 import { GrContract } from "react-icons/gr";
+import { motion, AnimatePresence } from "framer-motion";
+import StarField from "../../components/canvas/StarField";
 import { usePlayer } from "../../player/PlayerContext";
 import { likecount, likeTrack, deleteTrack } from "../../api/LikedSong";
 import { getMusicDetail, getTagGraph } from "../../api/music";
@@ -210,11 +212,47 @@ type SearchApiResponse = {
 type AlbumTrack = { music_id?: number | null; music_name?: string | null };
 type AlbumDetailResponse = { tracks?: AlbumTrack[] };
 
+
+// ✅ Heart Explosion Effect Helper
+const triggerHeartExplosion = (x: number, y: number) => {
+    const colors = ['#FF4B4B', '#FF8F8F', '#FFC0C0', '#FFFFFF'];
+    for (let i = 0; i < 20; i++) {
+        const particle = document.createElement('div');
+        particle.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`;
+        particle.style.position = 'fixed';
+        particle.style.left = `${x}px`;
+        particle.style.top = `${y}px`;
+        particle.style.color = colors[Math.floor(Math.random() * colors.length)];
+        particle.style.pointerEvents = 'none';
+        particle.style.zIndex = '9999';
+        particle.style.transform = 'translate(-50%, -50%) scale(0)';
+        document.body.appendChild(particle);
+
+        // Animation
+        const angle = Math.random() * Math.PI * 2;
+        const velocity = 50 + Math.random() * 100;
+        const tx = Math.cos(angle) * velocity;
+        const ty = Math.sin(angle) * velocity;
+        const rotation = (Math.random() - 0.5) * 360;
+
+        const animation = particle.animate([
+            { transform: 'translate(-50%, -50%) scale(0) rotate(0deg)', opacity: 1 },
+            { transform: `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(${0.5 + Math.random()}) rotate(${rotation}deg)`, opacity: 0 }
+        ], {
+            duration: 800 + Math.random() * 400,
+            easing: 'cubic-bezier(0, .9, .57, 1)'
+        });
+
+        animation.onfinish = () => particle.remove();
+    }
+};
+
 export default function NowPlayingPage() {
     ensureNowPlayingEqStyle();
     ensureNowPlayingHintStyle();
 
     const navigate = useNavigate();
+    const [viewMode, setViewMode] = useState<"cover" | "vinyl">("cover");
     const [hintTabs, setHintTabs] = useState(true);
 
 
@@ -946,6 +984,8 @@ export default function NowPlayingPage() {
 
     return (
         <div className="relative h-full w-full text-[#F6F6F6] overflow-hidden">
+            {/* ✅ Dynamic Star Background */}
+            <StarField />
 
             {/* 좌측 대시보드 */}
             <aside
@@ -1338,7 +1378,7 @@ export default function NowPlayingPage() {
 
                                     return (
                                         <div
-                                            key={t.id}
+                                            key={`${t.id}-${i}`}
                                             onDragEnter={handleDragEnter(i, isQueue)}
                                             onDragOver={handleDragOver(i, isQueue)}
                                             onDrop={handleDrop(i, isQueue)}
@@ -1469,11 +1509,24 @@ export default function NowPlayingPage() {
                     </div>
                 )}
 
-                {/* 상단 우측 버튼 세트 (Like, Station, Contract) */}
                 <div className="absolute right-8 top-6 z-20 flex items-center gap-5">
+                    {/* View Toggle */}
                     <button
                         type="button"
-                        onClick={(ev) => { ev.stopPropagation(); toggleLike(); }}
+                        onClick={() => setViewMode(v => v === 'cover' ? 'vinyl' : 'cover')}
+                        className="p-2 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition"
+                        title={viewMode === 'cover' ? "LP 모드로 보기" : "커버 모드로 보기"}
+                    >
+                        {viewMode === 'cover' ? <RiDiscLine size={24} /> : <RiAlbumLine size={24} />}
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={(ev) => {
+                            ev.stopPropagation();
+                            toggleLike();
+                            triggerHeartExplosion(ev.clientX, ev.clientY);
+                        }}
                         className={[
                             "flex items-center gap-2 transition hover:opacity-80",
                             liked ? "text-[#AFDEE2]" : "text-white/60"
@@ -1500,7 +1553,7 @@ export default function NowPlayingPage() {
                 >
                     <div className="h-full flex flex-col items-center justify-center px-6 pb-20">
                         <div className="w-full max-w-[860px] flex flex-col items-center gap-6">
-                            <div className="relative">
+                            <div className="relative h-[380px] w-full flex justify-center items-center">
                                 {hasTrack && (
                                     <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" style={{ width: 820, height: 240, opacity: 0.75, zIndex: 0 }}>
                                         <div className="w-full h-full flex items-end justify-center gap-[10px]">
@@ -1515,13 +1568,74 @@ export default function NowPlayingPage() {
                                         </div>
                                     </div>
                                 )}
-                                <div className="w-[380px] aspect-square rounded-[40px] bg-white/10 overflow-hidden relative z-10 shadow-[0_40px_100px_rgba(0,0,0,0.6)] border border-white/10">
-                                    {hasTrack && coverImage ? (
-                                        <img src={coverImage} alt={current.title} className="w-full h-full object-cover" />
+
+                                <AnimatePresence mode="wait">
+                                    {viewMode === 'cover' ? (
+                                        <motion.div
+                                            key="cover"
+                                            initial={{ scale: 0.9, opacity: 0 }}
+                                            animate={{ scale: 1, opacity: 1 }}
+                                            exit={{ scale: 0.9, opacity: 0 }}
+                                            transition={{ type: "spring", duration: 0.5 }}
+                                            className="w-[380px] aspect-square rounded-[40px] bg-white/10 overflow-hidden relative z-10 shadow-[0_40px_100px_rgba(0,0,0,0.6)] border border-white/10"
+                                        >
+                                            {hasTrack && coverImage ? (
+                                                <img src={coverImage} alt={current.title} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center bg-white/5"><span className="text-white/20 font-black tracking-tighter text-4xl uppercase">No Cover</span></div>
+                                            )}
+                                        </motion.div>
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-white/5"><span className="text-white/20 font-black tracking-tighter text-4xl uppercase">No Cover</span></div>
+                                        <motion.div
+                                            key="vinyl"
+                                            initial={{ scale: 0.9, opacity: 0 }}
+                                            animate={{ scale: 1, opacity: 1 }}
+                                            exit={{ scale: 0.9, opacity: 0 }}
+                                            transition={{ type: "spring", duration: 0.5 }}
+                                            className="relative z-10"
+                                        >
+                                            <div className="relative w-[380px] h-[380px]">
+                                                {/* Vinyl Disc */}
+                                                <motion.div
+                                                    className="w-full h-full rounded-full shadow-2xl relative z-10"
+                                                    animate={{ rotate: isPlaying ? 360 : 0 }}
+                                                    transition={{
+                                                        duration: isPlaying ? 3 : 0.6,
+                                                        repeat: isPlaying ? Infinity : 0,
+                                                        ease: "linear",
+                                                    }}
+                                                >
+                                                    {/* Vinyl Texture */}
+                                                    <div className="absolute inset-0 rounded-full bg-[#111] border border-white/10" />
+                                                    <div className="absolute inset-0 rounded-full bg-[repeating-radial-gradient(#111_0,#111_2px,#222_3px)] opacity-50" />
+
+                                                    {/* Start using existing cover image as label */}
+                                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[40%] h-[40%] rounded-full overflow-hidden border-[8px] border-[#111]">
+                                                        {coverImage && <img src={coverImage} alt="label" className="w-full h-full object-cover" />}
+                                                    </div>
+
+                                                    {/* Center Hole */}
+                                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-[#e5e5e5] rounded-full z-20" />
+                                                </motion.div>
+
+                                                {/* Tone Arm */}
+                                                <div className="absolute -top-[10%] -right-[15%] z-20 w-[180px] h-[240px] pointer-events-none">
+                                                    <motion.div
+                                                        className="w-full h-full origin-[75%_12.5%]"
+                                                        animate={{ rotate: isPlaying ? 25 : 0 }}
+                                                        transition={{ type: "spring", stiffness: 40, damping: 10 }}
+                                                    >
+                                                        <svg width="100%" height="100%" viewBox="0 0 100 120" style={{ overflow: 'visible', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.5))' }}>
+                                                            <circle cx="75" cy="15" r="12" fill="#d4d4d4" stroke="#888" strokeWidth="1" />
+                                                            <path d="M75 15 L35 90" stroke="#c0c0c0" strokeWidth="4" strokeLinecap="round" />
+                                                            <rect x="25" y="85" width="20" height="28" rx="2" fill="#222" transform="rotate(20 35 90)" />
+                                                        </svg>
+                                                    </motion.div>
+                                                </div>
+                                            </div>
+                                        </motion.div>
                                     )}
-                                </div>
+                                </AnimatePresence>
                             </div>
 
                             <div className="min-w-0 text-center space-y-2 mt-4">
