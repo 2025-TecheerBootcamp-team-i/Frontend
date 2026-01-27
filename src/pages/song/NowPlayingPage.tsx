@@ -104,6 +104,7 @@ function SimpleWordCloud({
             .rotate(() => (~~(Math.random() * 2) * 90))
             .spiral('rectangular') // 더 꽉 차 보이게 배치
             .font("Pretendard")
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .fontSize((d: any) => {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const val = (d as any).size as number;
@@ -116,6 +117,7 @@ function SimpleWordCloud({
                 // 더 풍성해보이게 크기 키움 (14~50 -> 16~64)
                 return 16 + (normalized * 48);
             })
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .on("end", (drawnWords: any[]) => {
                 g.selectAll("text")
                     .data(drawnWords)
@@ -1514,7 +1516,7 @@ export default function NowPlayingPage() {
                     <button
                         type="button"
                         onClick={() => setViewMode(v => v === 'cover' ? 'vinyl' : 'cover')}
-                        className="p-2 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition"
+                        className="p-1 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition"
                         title={viewMode === 'cover' ? "LP 모드로 보기" : "커버 모드로 보기"}
                     >
                         {viewMode === 'cover' ? <RiDiscLine size={24} /> : <RiAlbumLine size={24} />}
@@ -1555,7 +1557,7 @@ export default function NowPlayingPage() {
                         <div className="w-full max-w-[860px] flex flex-col items-center gap-6">
                             <div className="relative h-[380px] w-full flex justify-center items-center">
                                 {hasTrack && (
-                                    <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" style={{ width: 820, height: 240, opacity: 0.75, zIndex: 0 }}>
+                                    <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" style={{ width: 820, height: 240, opacity: leftOpen ? 0 : 0.75, zIndex: 0, transition: "opacity 0.3s ease" }}>
                                         <div className="w-full h-full flex items-end justify-center gap-[10px]">
                                             {Array.from({ length: 35 }).map((_, i) => {
                                                 const eqActive = hasTrack && isPlaying;

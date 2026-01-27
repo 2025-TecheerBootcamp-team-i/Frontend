@@ -10,6 +10,7 @@ import {
   MdPersonOutline,
 } from "react-icons/md";
 import { signup } from "../../api/auth";
+import logo5 from "../../assets/logo5.png";
 
 let __verticalFloatStyleInjected = false;
 function ensureVerticalFloatStyle() {
@@ -179,7 +180,7 @@ export default function SignUpPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 min-h-[560px]">
           {/* LEFT (Gradient) */}
-          <div className="relative h-full min-h-[500px] p-8 md:p-10 flex flex-col justify-between">
+          <div className="relative h-full min-h-[500px] p-8 md:p-10 flex flex-col items-start">
             <div
               className="absolute inset-0"
               style={{ contentVisibility: "auto" as any }} // ✅ CHANGED
@@ -195,10 +196,8 @@ export default function SignUpPage() {
               <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-50" />
             </div>
 
-            <div className="relative z-10 flex items-center justify-between">
-              <div className="font-bold tracking-wide text-xl text-white/90">
-                muniverse
-              </div>
+            {/* ✅ Button Fixed at Top-Right */}
+            <div className="absolute top-8 right-8 md:top-10 md:right-10 z-20">
               <button
                 type="button"
                 className="
@@ -209,6 +208,7 @@ export default function SignUpPage() {
                   bg-white/10
                   hover:bg-white/30
                   transition
+                  whitespace-nowrap
                 "
                 onClick={() => navigate("/home")}
               >
@@ -216,7 +216,17 @@ export default function SignUpPage() {
               </button>
             </div>
 
-            <div className="relative z-10 mt-10 animate-verticalFloat">
+            {/* ✅ Logo Fixed at Top-Left (Forced with Inline Styles) */}
+            <div style={{ position: 'absolute', top: '32px', left: '32px', zIndex: 50 }}>
+              <img
+                key="logo-forced-cropped-small"
+                src={logo5}
+                alt="muniverse"
+                className="h-12 w-auto opacity-90 object-contain block"
+              />
+            </div>
+
+            <div className="relative z-10 mt-auto animate-verticalFloat">
               <p className="text-white text-3xl md:text-4xl font-semibold leading-tight">
                 Join the Flow
                 <br />

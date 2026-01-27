@@ -1,5 +1,6 @@
 // src/pages/OnboardingPage.tsx
 import { useNavigate } from "react-router-dom";
+import logo5 from "../assets/logo5.png";
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
@@ -8,9 +9,14 @@ export default function OnboardingPage() {
     <div className="w-full min-h-[100dvh] flex items-center">
       {/* ✅ 콘텐츠: 왼쪽 중앙 */}
       <div className="px-12 max-w-[420px] translate-x-[6vw] translate-y-[-2vh]">
+        {/* 로고 */}
+        <div className="mb-6">
+          <img src={logo5} alt="muniverse" className="h-20 w-auto opacity-90 object-contain" />
+        </div>
+
         {/* 문구 */}
         <div className="text-white/90 text-3xl font-semibold tracking-tight leading-snug">
-          당신의 취향으로 
+          당신의 취향으로
           <br />
           완성되는 음악 세계
         </div>
