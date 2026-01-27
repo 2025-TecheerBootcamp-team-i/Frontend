@@ -245,7 +245,7 @@ export default function SearchHome() {
   const [apiAlbums, setApiAlbums] = useState<ArtistAlbum[]>([]);
   const [loading, setLoading] = useState(false);
   const [artistDetails, setArtistDetails] = useState<Record<number, ArtistDetail>>({});
-  const [searchResults, setSearchResults] = useState<ApiSearchResult[]>([]);
+
 
   const fetchArtistDetails = useCallback(
     async (artistIds: number[]) => {
@@ -316,7 +316,7 @@ export default function SearchHome() {
       setApiArtists([]);
       setRelatedArtists([]);
       setApiAlbums([]);
-      setSearchResults([]);
+
       setArtistDetails({});
       return;
     }
@@ -332,7 +332,7 @@ export default function SearchHome() {
         });
         if (!res.ok) throw new Error(`API 오류: ${res.status}`);
         const data: ApiSearchResponse = await res.json();
-        setSearchResults(data.results);
+
 
         const convertedSongs: Song[] = data.results.map((r) => ({
           id: String(r.itunes_id),
@@ -450,17 +450,7 @@ export default function SearchHome() {
     return url;
   };
 
-  const toTrack = (r: ApiSearchResult): PlayerTrack => ({
-    id: String(r.itunes_id),
-    musicId: r.music_id || r.itunes_id,
-    title: r.music_name,
-    artist: r.artist_name,
-    coverUrl: r.album_image || "",
-    audioUrl: r.audio_url || "/audio/sample.mp3",
-    duration: r.duration
-      ? `${Math.floor(r.duration / 60)}:${(r.duration % 60).toString().padStart(2, "0")}`
-      : "0:00",
-  });
+
 
   const songToTrack = (s: Song): PlayerTrack => ({
     id: s.id,
