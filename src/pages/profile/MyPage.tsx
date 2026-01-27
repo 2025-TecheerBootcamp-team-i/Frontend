@@ -781,7 +781,7 @@ export default function MyPage() {
                 </div>
 
                 <div>
-                    <div className="grid grid-cols-[80px_220px_1fr] items-center py-3 px-4 text-base text-[#f6f6f6]/30">
+                    <div className="grid grid-cols-[80px_300px_1fr] items-center py-3 px-4 text-base text-[#f6f6f6]/30">
                     <div className="border-l border-white/10 pl-4">순위</div>
                     <div className="border-l border-white/10 pl-4">곡정보</div>
                     <div className="border-l border-white/10 pl-4">총 들은 수</div>
@@ -794,7 +794,7 @@ export default function MyPage() {
                     <div
                         key={r.id}
                         className={[
-                        "group grid grid-cols-[80px_220px_1fr] items-center px-4 py-2",
+                        "group grid grid-cols-[80px_300px_1fr] items-center px-4 py-2",
                         "transition-all duration-300 hover:bg-white/[0.08]",
                         idx % 2 === 0 ? "bg-white/[0.02]" : "bg-transparent",
                         ].join(" ")}
