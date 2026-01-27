@@ -640,7 +640,7 @@ export default function ChartTop100() {
                                             <div className="text-base font-semibold text-[#f6f6f6] truncate group-hover:text-[#AFDEE2] transition-colors">
                                                 {row.musicName}
                                                 {row.isAi && (
-                                                    <span className="shrink-0 ml-3 text-xs font-black px-2.5 py-1 rounded-full bg-[#E4524D]/20 text-[#E4524D] border border-[#E4524D]/20 uppercase">
+                                                    <span className="shrink-0 ml-3 text-xs font-bold px-2.5 py-0.5 rounded-full bg-[#E4524D]/20 text-[#E4524D] border border-[#E4524D]/20 uppercase">
                                                         AI
                                                     </span>
                                                 )}

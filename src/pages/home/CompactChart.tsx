@@ -134,7 +134,7 @@ export default function CompactChart({ items, loading, onMoreClick, activeTab, o
                                 <div className="flex items-center gap-2">
                                     <div className="text-base font-bold text-white truncate">{item.musicName}</div>
                                     {item.isAi && (
-                                        <span className="shrink-0 text-xs px-2 py-0.5 rounded bg-[#E4524D]/20 text-[#E4524D] font-bold">AI</span>
+                                        <span className="shrink-0 text-xs px-2 py-0.5 rounded-full bg-[#E4524D]/20 text-[#E4524D] font-bold">AI</span>
                                     )}
                                 </div>
                                 <div className="text-sm text-white/40 truncate mt-1">{item.artistName} · {item.albumName}</div>

@@ -50,7 +50,7 @@ function Header() {
     <header
       className="
         relative z-[70] h-20 bg-transparent border-b border-white/10
-        flex items-center px-6
+        flex items-center px-4
       "
     >
       {/* =========================
@@ -164,9 +164,10 @@ function Header() {
               className="
                 group flex items-center shrink-0
                 bg-white/5 hover:bg-white/10
+                shadow-[0_6px_18px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)]
                 rounded-full transition-all duration-300 ease-in-out
                 w-[50px] hover:w-[130px] h-[50px] overflow-hidden
-                shadow-md
+                
               "
               title="마이페이지"
             >
@@ -200,20 +201,21 @@ function Header() {
               className="
                 group flex items-center shrink-0
                 bg-white/5 hover:bg-white/10
+                shadow-[0_6px_18px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)]
                 rounded-full transition-all duration-300 ease-in-out
                 w-[50px] hover:w-[120px] h-[50px] overflow-hidden
-                shadow-md
+                
               "
             >
-              <div className="flex items-center justify-center w-[50px] h-[50px] shrink-0">
-                <MdLogout size={20} className="text-[#AFDEE2]" />
+              <div className="flex items-center justify-center w-[52px] h-[50px] shrink-0">
+                <MdLogout size={22} className="text-[#AFDEE2]" />
               </div>
               <span
                 className="
-                  flex-1 text-center
+                  flex-1 text-center items-center
                   whitespace-nowrap text-base font-bold text-[#AFDEE2]
                   opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-75
-                  pr-4 translate-y-[-2px]
+                  pr-4
                 "
               >
                 Logout
