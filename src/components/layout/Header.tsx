@@ -188,6 +188,7 @@ function Header() {
                 whitespace-nowrap text-base font-bold text-[#AFDEE2]
                 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-75
                 pr-4
+                translate-y-[-1px]
                 ${profile.avatar ? "ml-2" : ""}
               `}
             >
