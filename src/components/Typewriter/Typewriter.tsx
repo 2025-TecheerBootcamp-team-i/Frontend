@@ -13,7 +13,7 @@ export const Typewriter: React.FC<TypewriterProps> = ({ text, config, triggerRep
   const [isTyping, setIsTyping] = useState(false);
   const [showCursor, setShowCursor] = useState(true);
   const previousTextRef = useRef('');
-  
+
   // To handle the timeout refs for cleanup
   const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
@@ -55,8 +55,8 @@ export const Typewriter: React.FC<TypewriterProps> = ({ text, config, triggerRep
           });
           currentIndex++;
 
-          const randomVar = config.smoothness > 0 
-            ? (Math.random() * config.speed * config.smoothness) 
+          const randomVar = config.smoothness > 0
+            ? (Math.random() * config.speed * config.smoothness)
             : 0;
           const nextDelay = config.speed + randomVar;
 
@@ -67,14 +67,14 @@ export const Typewriter: React.FC<TypewriterProps> = ({ text, config, triggerRep
           setIsTyping(false);
           previousTextRef.current = text;
           if (config.loop) {
-               const loopTimeout = setTimeout(() => {
-                  setDisplayedText('');
-                  previousTextRef.current = '';
-                  currentIndex = 0;
-                  setIsTyping(true);
-                  typeNextChar();
-               }, 2000);
-               timeoutsRef.current.push(loopTimeout);
+            const loopTimeout = setTimeout(() => {
+              setDisplayedText('');
+              previousTextRef.current = '';
+              currentIndex = 0;
+              setIsTyping(true);
+              typeNextChar();
+            }, 2000);
+            timeoutsRef.current.push(loopTimeout);
           }
         }
       };
@@ -106,8 +106,8 @@ export const Typewriter: React.FC<TypewriterProps> = ({ text, config, triggerRep
           });
           currentIndex++;
 
-          const randomVar = config.smoothness > 0 
-            ? (Math.random() * config.speed * config.smoothness) 
+          const randomVar = config.smoothness > 0
+            ? (Math.random() * config.speed * config.smoothness)
             : 0;
           const nextDelay = config.speed + randomVar;
 
@@ -133,8 +133,8 @@ export const Typewriter: React.FC<TypewriterProps> = ({ text, config, triggerRep
     }
 
     // 텍스트가 줄어들거나 내용이 변경된 경우 (삭제 또는 수정)
-    if (text.length <= previousTextRef.current.length || 
-        !text.startsWith(previousTextRef.current)) {
+    if (text.length <= previousTextRef.current.length ||
+      !text.startsWith(previousTextRef.current)) {
       console.log('[Typewriter] ✂️ Text deleted or modified, updating immediately', {
         before: previousTextRef.current,
         after: text,
@@ -151,7 +151,7 @@ export const Typewriter: React.FC<TypewriterProps> = ({ text, config, triggerRep
     // 새로 추가된 부분만 애니메이션
     const previousLength = previousTextRef.current.length;
     const newChars = text.slice(previousLength);
-    
+
     if (newChars.length === 0) {
       console.log('[Typewriter] ⚠️ No new chars to animate', {
         text: text,
@@ -184,8 +184,8 @@ export const Typewriter: React.FC<TypewriterProps> = ({ text, config, triggerRep
         currentIndex++;
 
         // Calculate delay: Base speed + random variation if smoothness > 0
-        const randomVar = config.smoothness > 0 
-          ? (Math.random() * config.speed * config.smoothness) 
+        const randomVar = config.smoothness > 0
+          ? (Math.random() * config.speed * config.smoothness)
           : 0;
         const nextDelay = config.speed + randomVar;
 
@@ -210,8 +210,8 @@ export const Typewriter: React.FC<TypewriterProps> = ({ text, config, triggerRep
   // Cursor Blinking Logic
   useEffect(() => {
     if (isTyping) {
-        setShowCursor(true);
-        return;
+      setShowCursor(true);
+      return;
     }
 
     const interval = setInterval(() => {
@@ -225,7 +225,7 @@ export const Typewriter: React.FC<TypewriterProps> = ({ text, config, triggerRep
   const lines = displayedText.split('\n');
 
   return (
-    <div 
+    <div
       className="relative font-sans text-4xl leading-relaxed text-[#f6f6f6] whitespace-pre-wrap break-words font-bold text-center w-full"
     >
       {lines.map((line, lineIndex) => (
@@ -253,7 +253,7 @@ export const Typewriter: React.FC<TypewriterProps> = ({ text, config, triggerRep
               animate={{ opacity: showCursor ? 1 : 0 }}
               transition={{ duration: 0.3 }}
               className="inline-block text-[#f6f6f6] ml-2 align-baseline text-4xl font-bold"
-              style={{ 
+              style={{
                 color: '#f6f6f6',
                 textShadow: '0 0 10px rgba(246, 246, 246, 0.5)'
               }}

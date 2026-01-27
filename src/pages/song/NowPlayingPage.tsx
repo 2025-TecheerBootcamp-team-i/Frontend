@@ -1338,7 +1338,7 @@ export default function NowPlayingPage() {
 
                                     return (
                                         <div
-                                            key={t.id}
+                                            key={`${t.id}-${i}`}
                                             onDragEnter={handleDragEnter(i, isQueue)}
                                             onDragOver={handleDragOver(i, isQueue)}
                                             onDrop={handleDrop(i, isQueue)}
