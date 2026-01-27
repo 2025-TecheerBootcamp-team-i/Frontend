@@ -9,6 +9,7 @@ import {
   MdVisibilityOff,
 } from "react-icons/md";
 import { login } from "../../api/auth";
+import logo5 from "../../assets/logo5.png";
 
 // ✅ CHANGED: useEffect로 style 주입하지 않고, 모듈 스코프에서 1번만 주입
 let __verticalFloatStyleInjected = false;
@@ -115,7 +116,7 @@ export default function LoginPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 min-h-[560px]">
           {/* LEFT */}
-          <div className="relative h-full p-8 md:p-10 flex flex-col justify-between">
+          <div className="relative h-full p-8 md:p-10 flex flex-col items-start">
             {/* ✅ CHANGED: content-visibility로 페인트 최적화 + blur 원 크기 줄임 */}
             <div
               className="absolute inset-0"
@@ -133,10 +134,8 @@ export default function LoginPage() {
               <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-50" />
             </div>
 
-            <div className="relative z-10 flex items-center justify-between">
-              <div className="font-bold tracking-wide text-xl text-white/90">
-                muniverse
-              </div>
+            {/* ✅ Button Fixed at Top-Right */}
+            <div className="absolute top-8 right-8 md:top-10 md:right-10 z-20">
               <button
                 type="button"
                 className="
@@ -147,6 +146,7 @@ export default function LoginPage() {
                   bg-white/10
                   hover:bg-white/30
                   transition
+                  whitespace-nowrap
                 "
                 onClick={() => navigate("/home")}
               >
@@ -154,7 +154,17 @@ export default function LoginPage() {
               </button>
             </div>
 
-            <div className="relative z-10 mt-10 animate-verticalFloat">
+            {/* ✅ Logo Fixed at Top-Left (Forced with Inline Styles) */}
+            <div style={{ position: 'absolute', top: '32px', left: '32px', zIndex: 50 }}>
+              <img
+                key="logo-forced-cropped-small"
+                src={logo5}
+                alt="muniverse"
+                className="h-12 w-auto opacity-90 object-contain block"
+              />
+            </div>
+
+            <div className="relative z-10 mt-auto animate-verticalFloat">
               <p className="text-white text-3xl md:text-4xl font-semibold leading-tight">
                 Listen & Create
                 <br />
