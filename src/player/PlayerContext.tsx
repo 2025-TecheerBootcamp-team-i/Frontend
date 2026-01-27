@@ -296,7 +296,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       return () => cancelAnimationFrame(id);
     };
 
-    if (!a || !current) {
+    if (!a) return resetReactSide();
+
+    if (!current) {
       if (a) {
         a.pause();
         a.src = "";
@@ -312,10 +314,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         url.startsWith("https://") ||
         url.startsWith("/"));
 
-    if (!ok) {
+    // ✅ [Fix] audioSrc가 없거나 페이지 URL("/")과 같으면 설정하지 않음
+    if (!ok || url === "/" || url === window.location.href) {
       a.pause();
       a.src = "";
-      a.load();
+      // a.load()는 빈 src일 때 에러를 유발할 수 있으므로 제거하거나 주의
 
       const cleanup = resetReactSide();
       const id = requestAnimationFrame(() => setIsPlaying(false));
