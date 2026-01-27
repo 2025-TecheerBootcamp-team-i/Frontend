@@ -337,8 +337,6 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         a.src = "";
         a.load();
 
-        const cleanup = resetReactSide();
-        const id = requestAnimationFrame(() => setIsPlaying(false));
         // async 함수라 cleanup 반환 불가, 여기서 직접 실행해야 함
         // 하지만 useEffect cleanup이 문제될 수 있음.
         // 여기서는 async 내부 로직이므로 return cleanup을 못함.
