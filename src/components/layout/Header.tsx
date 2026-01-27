@@ -59,7 +59,7 @@ function Header() {
         <button
           type="button"
           onClick={goHome}
-          className="hidden lg:flex flex items-center justify-center ml-0 translate-y-[4px] transition" // ✅ 잘림 방지 (ml-0)
+          className="hidden lg:flex flex items-center justify-center ml-2 translate-y-[1px] transition" // ✅ 잘림 방지 (ml-0)
           aria-label="MuniVerse 홈"
           title="MuniVerse"
         >
@@ -67,7 +67,7 @@ function Header() {
             src={logo5}
             alt="muniverse"
             className="
-              h-10 w-auto
+              h-[50px] w-auto
               block
               select-none
               drop-shadow-[0_0_8px_rgba(175,222,226,0.25)]
