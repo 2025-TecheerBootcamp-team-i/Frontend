@@ -183,15 +183,16 @@ function Header() {
                 )}
               </div>
               <span
-                className="
-                  flex-1 text-center
-                  whitespace-nowrap text-base font-bold text-[#AFDEE2]
-                  opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-75
-                  pr-4 translate-y-[-2px]
-                "
-              >
-                my page
-              </span>
+              className={`
+                flex-1 text-center
+                whitespace-nowrap text-base font-bold text-[#AFDEE2]
+                opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-75
+                pr-4
+                ${profile.avatar ? "ml-2" : ""}
+              `}
+            >
+              my page
+            </span>
             </button>
 
             {/* 로그아웃 버튼 */}
