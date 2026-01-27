@@ -1557,7 +1557,7 @@ export default function NowPlayingPage() {
                         <div className="w-full max-w-[860px] flex flex-col items-center gap-6">
                             <div className="relative h-[380px] w-full flex justify-center items-center">
                                 {hasTrack && (
-                                    <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" style={{ width: 820, height: 240, opacity: 0.75, zIndex: 0 }}>
+                                    <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" style={{ width: 820, height: 240, opacity: leftOpen ? 0 : 0.75, zIndex: 0, transition: "opacity 0.3s ease" }}>
                                         <div className="w-full h-full flex items-end justify-center gap-[10px]">
                                             {Array.from({ length: 35 }).map((_, i) => {
                                                 const eqActive = hasTrack && isPlaying;
