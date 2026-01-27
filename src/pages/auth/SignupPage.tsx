@@ -193,7 +193,7 @@ export default function SignUpPage() {
 
             <div className="relative z-10 flex items-center justify-between">
               <div className="font-bold tracking-wide text-xl text-[#2d2d2d]">
-                서비스명
+                muniverse
               </div>
               <button
                 type="button"

@@ -217,7 +217,7 @@ export default function AiCreatePage() {
   const typewriterConfig = {
     speed: 50,
     startDelay: 0,
-    cursorChar: CursorStyle.Pipe,
+    cursorChar: CursorStyle.None,
     cursorBlinkSpeed: 0.8,
     smoothness: 0.3,
     loop: false,
@@ -799,7 +799,7 @@ export default function AiCreatePage() {
                     "
                     style={
                       {
-                        caretColor: "rgba(175, 222, 226, 0.5)",
+                        caretColor: "transparent",
                         zIndex: 10,
                         pointerEvents: "auto",
                       } as CSSProperties
