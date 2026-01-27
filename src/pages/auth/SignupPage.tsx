@@ -124,7 +124,7 @@ export default function SignUpPage() {
     if (!email.trim()) return alert("이메일을 입력해 주세요.");
     if (!emailOk) return alert("이메일 형식이 올바르지 않습니다.");
     if (emailStatus !== "ok") return alert("이메일 중복 확인을 완료해 주세요.");
-    
+
     if (!nickname.trim()) return alert("닉네임을 입력해 주세요.");
 
     if (!pw.trim()) return alert("비밀번호를 입력해 주세요.");
@@ -178,48 +178,52 @@ export default function SignUpPage() {
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 min-h-[560px]">
-          {/* LEFT */}
-          <div className="relative h-full p-8 md:p-10 flex flex-col justify-between">
+          {/* LEFT (Gradient) */}
+          <div className="relative h-full min-h-[500px] p-8 md:p-10 flex flex-col justify-between">
             <div
               className="absolute inset-0"
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               style={{ contentVisibility: "auto" as any }} // ✅ CHANGED
             >
-              <div className="h-full w-full bg-gradient-to-br from-[#5fd8e4] via-[#9fd6db] to-[#eef6f6]" />
-              <div className="absolute inset-0 bg-black/15" />
-              <div className="absolute -top-24 -left-24 h-48 w-48 rounded-full bg-white/20 blur-xl" />
-              <div className="absolute -bottom-24 -right-24 h-48 w-48 rounded-full bg-black/20 blur-xl" />
+              {/* ✨ Base Dark Glass */}
+              <div className="h-full w-full bg-slate-900/60 backdrop-blur-2xl" />
+
+              {/* ✨ Ambient Color Orbs (Cyan & Purple for Muniverse Vibe) */}
+              <div className="absolute top-[-20%] left-[-20%] h-[300px] w-[300px] rounded-full bg-cyan-500/20 blur-[100px]" />
+              <div className="absolute bottom-[-10%] right-[-10%] h-[250px] w-[250px] rounded-full bg-purple-600/20 blur-[80px]" />
+
+              {/* ✨ Subtle Overlay for Texture */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-50" />
             </div>
 
             <div className="relative z-10 flex items-center justify-between">
-              <div className="font-bold tracking-wide text-xl text-[#2d2d2d]">
+              <div className="font-bold tracking-wide text-xl text-white/90">
                 muniverse
               </div>
               <button
                 type="button"
                 className="
-                  text-[#2d2d2d]
+                  text-white/90
                   text-sm
                   px-3 py-2
                   rounded-full
-                  bg-white/20
-                  hover:bg-white/50
+                  bg-white/10
+                  hover:bg-white/30
                   transition
                 "
                 onClick={() => navigate("/home")}
               >
-                바로 서비스 이용하기 →
+                홈으로 돌아가기
               </button>
             </div>
 
             <div className="relative z-10 mt-10 animate-verticalFloat">
-              <p className="text-[#2d2d2d] text-3xl md:text-4xl font-semibold leading-tight">
-                Join Us,
+              <p className="text-white text-3xl md:text-4xl font-semibold leading-tight">
+                Join the Flow
                 <br />
-                Start Your Journey
+                Create your world
               </p>
-              <p className="mt-4 text-[#2d2d2d]/70 text-sm md:text-base max-w-[360px]">
-                회원가입 후 모든 기능을 이용할 수 있어요.
+              <p className="mt-4 text-white/70 text-sm md:text-base max-w-[360px]">
+                뮤니버스와 함께 자신만의 음악적 영감을 발견하세요.
               </p>
             </div>
           </div>
@@ -289,8 +293,8 @@ export default function SignUpPage() {
                       {emailStatus === "checking"
                         ? "확인중..."
                         : emailStatus === "ok"
-                        ? "확인완료"
-                        : "중복확인"}
+                          ? "확인완료"
+                          : "중복확인"}
                     </button>
                   </div>
 
