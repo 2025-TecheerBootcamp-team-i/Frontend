@@ -59,7 +59,7 @@ function Header() {
         <button
           type="button"
           onClick={goHome}
-          className="hidden lg:flex flex items-center justify-center -ml-12 translate-y-[4px] transition" // ✅ 버튼이 너무 떨어져 보이면 -ml-1
+          className="hidden lg:flex flex items-center justify-center ml-0 translate-y-[4px] transition" // ✅ 잘림 방지 (ml-0)
           aria-label="MuniVerse 홈"
           title="MuniVerse"
         >
@@ -67,7 +67,7 @@ function Header() {
             src={logo5}
             alt="muniverse"
             className="
-              h-[180px] w-auto
+              h-10 w-auto
               block
               select-none
               drop-shadow-[0_0_8px_rgba(175,222,226,0.25)]
@@ -84,8 +84,8 @@ function Header() {
           (absolute로 정중앙 배치)
       ========================= */}
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-      <div className="flex items-center gap-3">
-        <button
+        <div className="flex items-center gap-3">
+          <button
             type="button"
             onClick={goHome}
             className="
@@ -100,75 +100,75 @@ function Header() {
           >
             <TiHome size={25} />
           </button>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            goSearch();
-          }}
-          className={[
-            "w-[400px] h-[50px] flex items-center rounded-full px-4 py-3",
-            "bg-white/[0.05]",
-            "shadow-[0_6px_18px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)]",
-            tagMode ? "ring-1 ring-[#AFDEE2]/40" : "",
-          ].join(" ")}
-        >
-          <button
-            type="submit"
-            className="hover:text-[#f6f6f6]/50 transition text-[#f6f6f6]/30 translate-x-[-2px]"
-            aria-label="검색"
-            title="검색"
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              goSearch();
+            }}
+            className={[
+              "w-[400px] h-[50px] flex items-center rounded-full px-4 py-3",
+              "bg-white/[0.05]",
+              "shadow-[0_6px_18px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)]",
+              tagMode ? "ring-1 ring-[#AFDEE2]/40" : "",
+            ].join(" ")}
           >
-            <IoSearch size={25} />
-          </button>
+            <button
+              type="submit"
+              className="hover:text-[#f6f6f6]/50 transition text-[#f6f6f6]/30 translate-x-[-2px]"
+              aria-label="검색"
+              title="검색"
+            >
+              <IoSearch size={25} />
+            </button>
 
-          {tagMode && (
-            <div
-              className="
+            {tagMode && (
+              <div
+                className="
                 ml-2 mr-1 px-2 h-7 rounded-full
                 flex items-center gap-1
                 bg-[#AFDEE2]/10 border border-[#AFDEE2]/20
                 text-[#AFDEE2] text-xs font-semibold
                 select-none
               "
-            >
-              #
-              <span className="text-[#AFDEE2]/70 font-medium">TAG</span>
-            </div>
-          )}
+              >
+                #
+                <span className="text-[#AFDEE2]/70 font-medium">TAG</span>
+              </div>
+            )}
 
-          <input
-            value={query}
-            onChange={(e) => {
-              const v = e.target.value;
-              setQuery(v);
-              if (tagMode && !v.startsWith("# ")) setTagMode(false);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === " " && query === "#") {
-                e.preventDefault();
-                setTagMode(true);
-                setQuery("# ");
-                return;
-              }
-              if (e.key === "Backspace" && tagMode && query === "# ") {
-                e.preventDefault();
-                setQuery("#");
-                setTagMode(false);
-                return;
-              }
-            }}
-            className="
+            <input
+              value={query}
+              onChange={(e) => {
+                const v = e.target.value;
+                setQuery(v);
+                if (tagMode && !v.startsWith("# ")) setTagMode(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === " " && query === "#") {
+                  e.preventDefault();
+                  setTagMode(true);
+                  setQuery("# ");
+                  return;
+                }
+                if (e.key === "Backspace" && tagMode && query === "# ") {
+                  e.preventDefault();
+                  setQuery("#");
+                  setTagMode(false);
+                  return;
+                }
+              }}
+              className="
               bg-transparent outline-none text-sm w-full indent-[4px]
               text-[#f6f6f6]/80 placeholder:text-[#f6f6f6]/30
             "
-            placeholder={
-              tagMode
-                ? "태그를 입력하세요 (예: #발라드 #운동 #퇴근길)"
-                : "노래 또는 아티스트를 검색하세요"
-            }
-          />
-        </form>
-      </div>
+              placeholder={
+                tagMode
+                  ? "태그를 입력하세요 (예: #발라드 #운동 #퇴근길)"
+                  : "노래 또는 아티스트를 검색하세요"
+              }
+            />
+          </form>
+        </div>
       </div>
 
       {/* =========================
