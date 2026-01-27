@@ -1,7 +1,7 @@
-import React, { Suspense, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
 
-const Spline = React.lazy(() => import("@splinetool/react-spline"));
+// const Spline = React.lazy(() => import("@splinetool/react-spline"));
 
 export default function AuthLayout() {
   // ✅ [CHANGED] 첫 프레임/입력 준비 후에만 배경 렌더
@@ -29,12 +29,15 @@ export default function AuthLayout() {
       {/* ✅ Spline 배경 (idle 후 mount) */}
       <div className="absolute inset-0 pointer-events-none">
         {showSpline ? (
-          <Suspense fallback={null}>
+          /* ✅ Spline 일시 비활성화 (React 19 호환성 문제 해결 전까지) */
+          /* <Suspense fallback={null}>
             <Spline
               scene="https://prod.spline.design/8UmKhFdsJ-bH6xn1/scene.splinecode"
               style={{ width: "100%", height: "100%" }}
             />
-          </Suspense>
+          </Suspense> */
+          // <div className="absolute inset-0 flex items-center justify-center text-white/10 text-sm">Target Visual</div>
+          null
         ) : null}
       </div>
 
