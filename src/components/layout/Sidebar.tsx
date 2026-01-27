@@ -61,7 +61,7 @@ function SidebarPlaylistItem({
           flex items-center gap-3
           p-2
           rounded-none
-          hover:bg-[#1a1a1a]
+          hover:bg-[#f6f6f6]/10
           cursor-pointer
           transition-colors
           border-b border-white/20
@@ -195,7 +195,7 @@ function Sidebar() {
         {/* 헤더 */}
         <div className="px-4 py-3 flex items-center justify-between sticky top-0 z-10 shadow-sm bg-transparent">
           <button
-            className="flex items-center gap-3 text-white hover:text-white/80 transition-colors group"
+            className="px-2 flex items-center gap-3 text-[#f6f6f6] hover:text-[#f6f6f6]/50 transition-colors group"
             onClick={() => {
               // "내 라이브러리" 클릭 시 라이브러리 닫기/열기 기능이 있다면 여기에 추가
               // 지금은 그냥 타이틀
