@@ -2,7 +2,7 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import logo5 from "../assets/logo5.png";
-import StarField from "../components/canvas/StarField";
+import WarpStarField from "../components/canvas/WarpStarField";
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
@@ -35,7 +35,7 @@ export default function OnboardingPage() {
   return (
     <div className="w-full min-h-[100dvh] flex items-center overflow-hidden bg-black relative">
       {/* StarField Background with controlled speed */}
-      <StarField speed={speed} />
+      <WarpStarField speed={speed} />
 
       {/* ✅ 콘텐츠: 왼쪽 중앙 */}
       <div

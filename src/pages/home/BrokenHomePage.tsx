@@ -56,7 +56,7 @@ export default function BrokenHomePage() {
             It handles its own canvas and animation.
             Scaled up for visibility as requested.
            */}
-            <StarField particleScale={3} />
+            <StarField />
 
             {/* Vignette overlay for Foggy look (lighter grey mist at edges) */}
             <div className="fixed inset-0 pointer-events-none z-10 bg-[radial-gradient(circle_at_center,transparent_20%,rgba(30,32,36,0.8)_100%)] mix-blend-multiply" />
