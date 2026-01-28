@@ -16,6 +16,7 @@ import RequireAuth from "./pages/auth/RequireAuth";
 // Home & Main Pages
 const HomePage = lazy(() => import("./pages/home/HomePage"));
 const ChartPage = lazy(() => import("./pages/chart/ChartPage"));
+const BrokenHomePage = lazy(() => import("./pages/home/BrokenHomePage"));
 const MyPage = lazy(() => import("./pages/profile/MyPage"));
 
 // AI Pages
@@ -94,6 +95,7 @@ export default function App() {
             {/* ✅ 사이드바가 필요한 모든 페이지 */}
             <Route element={<Suspense fallback={<PageLoader />}><MainLayout /></Suspense>}>
               <Route path="/home" element={<Suspense fallback={<PageLoader />}><HomePage /></Suspense>} />
+              <Route path="/broken" element={<Suspense fallback={<PageLoader />}><BrokenHomePage /></Suspense>} />
               <Route path="/chart" element={<Suspense fallback={<PageLoader />}><ChartPage /></Suspense>}>
                 <Route index element={<Navigate to="top100" replace />} />
                 <Route path="top100" element={<Suspense fallback={<PageLoader />}><ChartTop100 /></Suspense>} />
