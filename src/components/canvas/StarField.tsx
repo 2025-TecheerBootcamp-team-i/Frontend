@@ -11,11 +11,14 @@ interface StarFieldProps {
     speed?: number; // External speed control
     starCount?: number;
     starColor?: string;
+    particleScale?: number; // Added to support broken page scaling
 }
 
 export default function StarField({
     speed = 2,
     starCount = 600, // Reduced for smooth performance
+    starColor = "white",
+    particleScale = 1
     starColor = "white"
 }: StarFieldProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -84,6 +87,10 @@ export default function StarField({
                 const y2d = star.y * invZ * cy + cy;
 
                 if (x2d > 0 && x2d < width && y2d > 0 && y2d < height) {
+                    // Apply particleScale to the size calculation
+                    const baseSize = (1 - star.z / width) * 3;
+                    const size = baseSize * particleScale;
+
                     const size = (1 - star.z / width) * 3;
                     const alpha = Math.min(1, (1 - star.z / width) + 0.2);
 
@@ -119,6 +126,7 @@ export default function StarField({
             window.removeEventListener('resize', resize);
             cancelAnimationFrame(animationFrameId);
         };
+    }, [starCount, starColor, particleScale]);
     }, [starCount, starColor]);
 
     return (
