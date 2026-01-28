@@ -19,7 +19,6 @@ export default function StarField({
     starCount = 600, // Reduced for smooth performance
     starColor = "white",
     particleScale = 1
-    starColor = "white"
 }: StarFieldProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -90,8 +89,6 @@ export default function StarField({
                     // Apply particleScale to the size calculation
                     const baseSize = (1 - star.z / width) * 3;
                     const size = baseSize * particleScale;
-
-                    const size = (1 - star.z / width) * 3;
                     const alpha = Math.min(1, (1 - star.z / width) + 0.2);
 
                     // SMOOTH TRANSITION & VECTOR TRAIL
@@ -127,7 +124,6 @@ export default function StarField({
             cancelAnimationFrame(animationFrameId);
         };
     }, [starCount, starColor, particleScale]);
-    }, [starCount, starColor]);
 
     return (
         <canvas
