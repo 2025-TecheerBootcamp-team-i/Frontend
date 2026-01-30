@@ -316,6 +316,97 @@ export interface TagSearchResponse {
   page_size: number;
 }
 
+/**
+ * LISA의 MONEY 곡 정보를 가져오는 헬퍼 함수
+ */
+async function getLisaMoneyTrack(): Promise<TagSearchResult | null> {
+  try {
+    // 1. LISA의 MONEY를 검색하여 찾기 시도
+    try {
+      const searchRes = await axiosInstance.get('/search/opensearch', {
+        params: {
+          q: 'LISA MONEY',
+          page_size: 10
+        }
+      });
+
+      const searchResults = searchRes.data?.results || searchRes.data || [];
+      const lisaMoney = Array.isArray(searchResults)
+        ? searchResults.find((r: any) =>
+          r.music_name?.toLowerCase().includes('money') &&
+          r.artist_name?.toLowerCase().includes('lisa')
+        )
+        : null;
+
+      if (lisaMoney) {
+        return {
+          music_id: lisaMoney.music_id,
+          music_name: lisaMoney.music_name || 'MONEY',
+          artist_name: lisaMoney.artist_name || 'LISA',
+          album_name: lisaMoney.album_name,
+          audio_url: lisaMoney.audio_url,
+          image_square: lisaMoney.album_image || lisaMoney.image_square,
+          image_large_square: lisaMoney.album_image || lisaMoney.image_large_square,
+          album_image: lisaMoney.album_image,
+          score: 1.0 // 높은 점수로 설정하여 상위에 표시
+        };
+      }
+    } catch (searchError) {
+      console.warn("[API] LISA MONEY API search failed, using fallback", searchError);
+    }
+
+    // 2. 검색 실패 시 하드코딩된 ID로 조회 시도
+    try {
+      const targetId = 7484; // User provided ID
+      const detail = await getMusicDetail(targetId);
+      if (detail) {
+        return {
+          music_id: detail.music_id,
+          music_name: detail.music_name,
+          artist_name: detail.artist_name,
+          album_name: detail.album_name,
+          audio_url: detail.audio_url,
+          image_square: detail.image_square || detail.album_image,
+          image_large_square: detail.image_large_square || detail.album_image,
+          album_image: detail.album_image,
+          score: 1.0
+        };
+      }
+    } catch (ignore) {
+      // ID 조회 실패 시 완전히 하드코딩된 값 사용
+    }
+
+    // 3. 최후의 수단: 완전 하드코딩 (User provided IDs)
+    return {
+      music_id: 7484,
+      music_name: 'MONEY',
+      artist_name: 'LISA',
+      album_name: 'LALISA',
+      // album_id: 5983, // TagSearchResult에는 album_id 필드가 없으므로 생략하거나 필요시 추가
+      audio_url: null,
+      image_square: 'https://i.scdn.co/image/ab67616d0000b273a1158a176cb6db0d8544ba8c',
+      image_large_square: 'https://i.scdn.co/image/ab67616d0000b273a1158a176cb6db0d8544ba8c',
+      album_image: 'https://i.scdn.co/image/ab67616d0000b273a1158a176cb6db0d8544ba8c',
+      score: 1.0
+    };
+
+  } catch (error) {
+    console.error("[API] getLisaMoneyTrack 실패", error);
+    // 최악의 경우에도 폴백 반환
+    return {
+      music_id: 7484,
+      music_name: 'MONEY',
+      artist_name: 'LISA',
+      album_name: 'LALISA',
+      audio_url: null,
+      image_square: 'https://i.scdn.co/image/ab67616d0000b273a1158a176cb6db0d8544ba8c',
+      image_large_square: 'https://i.scdn.co/image/ab67616d0000b273a1158a176cb6db0d8544ba8c',
+      album_image: 'https://i.scdn.co/image/ab67616d0000b273a1158a176cb6db0d8544ba8c',
+      score: 1.0
+    };
+  }
+}
+
 export async function searchByTags(tags: string, pageSize: number = 100): Promise<TagSearchResult[]> {
   try {
     console.log("[API] searchByTags 호출", { tags, pageSize });
@@ -331,19 +422,43 @@ export async function searchByTags(tags: string, pageSize: number = 100): Promis
     console.log("[API] searchByTags 전체 응답", res.data);
 
     // Handle different response formats
+    let results: TagSearchResult[] = [];
     if (Array.isArray(res.data)) {
       // Direct array response
-      return res.data;
+      results = res.data;
     } else if (res.data?.items && Array.isArray(res.data.items)) {
       // Paginated response with items
-      return res.data.items;
+      results = res.data.items;
     } else if (res.data?.results && Array.isArray(res.data.results)) {
       // Django REST style response
-      return res.data.results;
+      results = res.data.results;
+    } else {
+      console.warn("[API] searchByTags 알 수 없는 응답 형식", res.data);
+      return [];
     }
 
-    console.warn("[API] searchByTags 알 수 없는 응답 형식", res.data);
-    return [];
+    // "happy" 태그 검색 시 LISA의 MONEY를 반드시 포함
+    const normalizedTags = tags.toLowerCase().split(',').map(t => t.trim());
+    if (normalizedTags.includes('happy')) {
+      const lisaMoney = await getLisaMoneyTrack();
+      if (lisaMoney) {
+        // 이미 결과에 포함되어 있는지 확인
+        const alreadyIncluded = results.some(r => r.music_id === lisaMoney.music_id);
+        if (!alreadyIncluded) {
+          // 맨 앞에 추가하여 우선 표시
+          results = [lisaMoney, ...results];
+        } else {
+          // 이미 포함되어 있으면 맨 앞으로 이동
+          const index = results.findIndex(r => r.music_id === lisaMoney.music_id);
+          if (index > 0) {
+            const [lisaMoneyItem] = results.splice(index, 1);
+            results = [lisaMoneyItem, ...results];
+          }
+        }
+      }
+    }
+
+    return results;
   } catch (error) {
     console.error("[API] searchByTags 실패", { tags, error });
     return [];

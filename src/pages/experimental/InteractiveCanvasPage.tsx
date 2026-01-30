@@ -233,8 +233,40 @@ export default function InteractiveCanvasPage() {
                 .map(mapToCanvasAlbum)
                 .filter((a): a is CanvasAlbum => a !== null);
 
-            // Shuffle for variety
-            const shuffled = canvasAlbums.sort(() => Math.random() - 0.5);
+            // "happy" 태그 검색 시 LISA의 MONEY를 맨 앞에 고정하고 특정 위치에 배치
+            const normalizedTags = tags.toLowerCase().split(',').map(t => t.trim());
+            let shuffled: CanvasAlbum[];
+            let lisaMoney: CanvasAlbum | null = null;
+
+            if (normalizedTags.includes('happy')) {
+                // LISA의 MONEY 찾기
+                const lisaMoneyIndex = canvasAlbums.findIndex(
+                    album => album.title?.toLowerCase().includes('money') &&
+                        album.artist?.toLowerCase().includes('lisa')
+                );
+
+                if (lisaMoneyIndex !== -1) {
+                    // LISA의 MONEY를 분리
+                    lisaMoney = canvasAlbums[lisaMoneyIndex];
+                    const others = canvasAlbums.filter((_, idx) => idx !== lisaMoneyIndex);
+                    // 나머지만 shuffle
+                    const shuffledOthers = others.sort(() => Math.random() - 0.5);
+                    // LISA의 MONEY는 따로 추가하므로 캐시에서는 제외
+                    shuffled = shuffledOthers;
+
+                    // LISA의 MONEY를 오른쪽으로 조금 이동한 위치에 배치
+                    lisaMoney.x = 2000; // 오른쪽으로 더 이동 (기존 1400 -> 2000)
+                    lisaMoney.y = 0; // 중앙 높이
+                    lisaMoney.rotation = (Math.random() - 0.5) * 15; // 약간의 회전
+                    lisaMoney.scale = Math.max(lisaMoney.scale, 1.2); // 크게 표시
+                } else {
+                    // LISA의 MONEY를 찾지 못한 경우 일반 shuffle
+                    shuffled = canvasAlbums.sort(() => Math.random() - 0.5);
+                }
+            } else {
+                // "happy" 태그가 아닌 경우 일반 shuffle
+                shuffled = canvasAlbums.sort(() => Math.random() - 0.5);
+            }
 
             // Store in cache
             searchCacheRef.current = shuffled;
@@ -242,6 +274,11 @@ export default function InteractiveCanvasPage() {
             // Reset state
             setAlbums([]);
             loadedChunksRef.current.clear();
+
+            // "happy" 태그 검색 시 LISA의 MONEY를 먼저 표시
+            if (lisaMoney) {
+                setAlbums([lisaMoney]);
+            }
 
             // Load initial chunks
             for (let dx = -1; dx <= 1; dx++) {

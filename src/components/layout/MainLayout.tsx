@@ -1,5 +1,6 @@
 import { Outlet } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion"; // Added motion
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 import Player from "./Player";
@@ -8,6 +9,9 @@ import { usePlayer } from "../../player/PlayerContext";
 import { extractPastelColors, generateAnalogousPalette } from "../../utils/color";
 
 import { getTrackVibe, type VibeConfig } from "../../utils/vibe";
+import { useEasterEgg } from "../../contexts/EasterEggContext"; // Added context
+import BlackHoleOverlay from "../canvas/BlackHoleOverlay";
+import FailedPlatform from "../../pages/home/FailedPlatform";
 
 export type Playlist = {
     id: string;
@@ -23,6 +27,8 @@ function MainLayout() {
     const [dominantColor, setDominantColor] = useState<string>('#1d1d1d');
     const [blobColors, setBlobColors] = useState<string[]>([]);
     const [vibeConfig, setVibeConfig] = useState<VibeConfig>({ speed: 20, intensity: 1, mood: 'neutral' });
+
+    const { isActive: isBlackHoleActive, showFailedPlatform } = useEasterEgg(); // Use Context
 
     const coverUrl = useMemo(() => {
         if (!current?.coverUrl) return null;
@@ -83,8 +89,32 @@ function MainLayout() {
         createdAt: p.createdAt,
     }));
 
+    /* Animation Variants for "Debris" Effect */
+    const getDebrisVariant = (delay: number) => ({
+        initial: { scale: 1, x: 0, y: 0, opacity: 1, rotate: 0, filter: "blur(0px)" }, // Added blur support
+        suck: {
+            scale: [1, 0.9, 0],
+            x: [0, (Math.random() - 0.5) * 150, 0], // Wider jitter
+            y: [0, (Math.random() - 0.5) * 150, 0],
+            opacity: [1, 1, 0],
+            rotate: [0, (Math.random() - 0.5) * 60, (Math.random() > 0.5 ? 1 : -1) * 720],
+            filter: ["blur(0px)", "blur(2px)", "blur(10px)"], // Blur effect
+            transition: {
+                duration: 3 + Math.random() * 1.5,
+                delay: delay,
+                ease: [0.7, 0, 0.84, 0] as const, // Custom bezier for "suck" feel (starts slow, accelerates fast)
+            },
+        },
+    });
+
+    if (showFailedPlatform) {
+        return <FailedPlatform />;
+    }
+
     return (
         <div className="relative h-screen overflow-hidden flex flex-col bg-[#080808]">
+            {isBlackHoleActive && <BlackHoleOverlay />}
+
             {/* ✅ Ambient Background (뷰포트 전체) - Enhanced Shimmer & Transition */}
             <div className="pointer-events-none absolute inset-0 overflow-hidden transition-colors duration-[3000ms] ease-in-out"
                 style={{ background: dominantColor || '#1d1d1d' }}
@@ -170,22 +200,52 @@ function MainLayout() {
 
             {/* ✅ content 영역 */}
             <div className="relative z-10 flex flex-col flex-1 min-h-0">
-                <Header />
+                {/* Animated Header */}
+                <motion.div
+                    variants={getDebrisVariant(0.1)}
+                    initial="initial"
+                    animate={isBlackHoleActive ? "suck" : "initial"}
+                >
+                    <Header />
+                </motion.div>
 
                 <div className="flex flex-1 min-h-0">
-                    <Sidebar />
+                    {/* Animated Sidebar */}
+                    <motion.div
+                        variants={getDebrisVariant(0.2)}
+                        initial="initial"
+                        animate={isBlackHoleActive ? "suck" : "initial"}
+                    >
+                        <Sidebar />
+                    </motion.div>
 
                     {/* ✅ 스크롤은 여기(main)만 */}
                     <main className="flex-1 p-4 pt-3 min-h-0 overflow-y-auto" style={{ paddingBottom: PLAYER_H }}>
-                        <Outlet context={{ playlists }} />
+                        {/* Main Content Area - Note: HomePage inside Outlet animates its own debris too, which adds to the chaos */}
+                        <motion.div
+                            variants={getDebrisVariant(0.3)}
+                            initial="initial"
+                            animate={isBlackHoleActive ? "suck" : "initial"}
+                            className="h-full"
+                        >
+                            <Outlet context={{ playlists }} />
+                        </motion.div>
                     </main>
                 </div>
             </div>
 
-            {/* ✅ Player는 고정 */}
-            <div className="fixed bottom-0 left-0 w-full z-50">
+            {/* ✅ Player는 고정 - Animated Player */}
+            <motion.div
+                className="fixed bottom-0 left-0 w-full z-50"
+                variants={getDebrisVariant(0.5)}
+                initial="initial"
+                animate={isBlackHoleActive ? "suck" : "initial"}
+                onAnimationComplete={() => {
+                    // Can add Logic here if needed
+                }}
+            >
                 <Player height={PLAYER_H} />
-            </div>
+            </motion.div>
         </div>
     );
 }
