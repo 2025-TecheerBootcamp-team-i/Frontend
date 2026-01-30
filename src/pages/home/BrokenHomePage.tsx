@@ -60,6 +60,16 @@ export default function BrokenHomePage() {
 
             {/* Vignette overlay for Foggy look (lighter grey mist at edges) */}
             <div className="fixed inset-0 pointer-events-none z-10 bg-[radial-gradient(circle_at_center,transparent_20%,rgba(30,32,36,0.8)_100%)] mix-blend-multiply" />
+
+            {/* 
+                Curtain to prevent "Flash of Normal Content" 
+                Stays black/gray initially and fades out to reveal the broken world.
+                Z-index must be higher than Sidebar (likely 50 or 100).
+            */}
+            <div
+                className="fixed inset-0 bg-[#1a1c20] z-[9999]"
+                style={{ animation: 'section-fade-out 1.5s ease-out forwards' }}
+            />
             {/* 
             We use a global style to ensure even newly mounted images are hit 
         */}
@@ -129,12 +139,35 @@ export default function BrokenHomePage() {
         /* Break SVGs in sidebar (Commonly icons) if they want "image-like" things broken */
         aside svg {
            opacity: 0.3 !important; 
+           transition: opacity 2s ease-in-out !important;
+        }
+
+        /* Adjust Player Bar Opacity: Semi-transparent Dark (More opaque than default, but not solid) */
+        div[class*="fixed"][class*="bottom-0"][class*="z-[60]"] {
+            background-color: rgba(26, 28, 32, 0.85) !important; /* ~85% Opaque Theme Color */
+            border-top: 1px solid rgba(55, 65, 81, 0.5) !important;
+            backdrop-filter: blur(20px) !important;
         }
 
         /* =========================================
            STATIC BROKEN LAYOUT (No dizzy motion)
            ========================================= */
+        
+        @keyframes page-fade-in {
+            0% { opacity: 0; filter: blur(10px); }
+            100% { opacity: 1; filter: blur(0); }
+        }
+        
+        /* Apply fade and smooth morphing to all modified global structures */
+        aside, header, main, nav, footer {
+            transition: all 2.5s cubic-bezier(0.22, 1, 0.36, 1) !important;
+        }
 
+        @keyframes section-fade-out {
+            0% { opacity: 1; pointer-events: auto; }
+            100% { opacity: 0; pointer-events: none; }
+        }
+        
         /* 1. Structural Damage (Static Skew/Rotation) */
         aside {
             transform: skewY(-2deg) rotate(-1deg) translateY(20px) !important;
@@ -153,6 +186,11 @@ export default function BrokenHomePage() {
             /* Main content looks slightly caved in */
             transform: perspective(1000px) rotateX(1deg) scale(0.98) !important;
             filter: contrast(1.1);
+        }
+        
+        /* Apply fade in to the whole page content */
+        #broken-page-root {
+            animation: page-fade-in 3s ease-out forwards;
         }
 
         /* 2. Text Decay (Static) */

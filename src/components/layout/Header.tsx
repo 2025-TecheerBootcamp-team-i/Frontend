@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { logoutClient } from "../../api/auth";
 import { getProfile } from "../../utils/auth";
+import { useEasterEgg } from "../../contexts/EasterEggContext"; // Added context import
 
 import logo5 from "../../assets/logo5.png"; // ✅ 로고 추가
 
@@ -12,6 +13,7 @@ import { FaUser } from "react-icons/fa";
 
 function Header() {
   const navigate = useNavigate();
+  const { incrementClick } = useEasterEgg();
 
   const [profile, setProfile] = useState(getProfile());
 
@@ -51,6 +53,13 @@ function Header() {
         flex items-center px-4
       "
     >
+      {/* Easter Egg Trigger (Hidden Strategy) */}
+      <div
+        onClick={() => incrementClick()}
+        className="absolute top-0 left-0 w-24 h-20 z-[9999] cursor-pointer"
+        title=""
+      />
+
       {/* =========================
           [0] 좌측: 홈 버튼 + 로고
       ========================= */}
@@ -70,6 +79,7 @@ function Header() {
               h-[50px] w-auto
               block
               select-none
+
               drop-shadow-[0_0_8px_rgba(175,222,226,0.25)]
               saturate-50
             "
